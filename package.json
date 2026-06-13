@@ -1,0 +1,12 @@
+{
+  "name": "promptstudio-comfyui-bridge",
+  "version": "1.0.0",
+  "description": "Cloud bridge Prompt Studio AI → ComfyUI",
+  "main": "server-cloud.js",
+  "scripts": {
+    "start": "node server-cloud.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:sensors_plus/sensors_plus.dart';
 import 'dart:math' as math;
 
+import '../../core/purchase/purchase_service.dart';
 import '../../data/repository/progetto_repository.dart';
 import '../../app/theme.dart';
 
@@ -153,7 +154,8 @@ class _CompassOverlay extends StatelessWidget {
     required this.fotoScattate,
     required this.maxFoto,
   });
-  final double angolo, maxFoto;
+  final double angolo;
+  final int maxFoto;
   final int fotoScattate;
 
   @override
@@ -180,7 +182,7 @@ class _CompassOverlay extends StatelessWidget {
                 Text('${angolo.toStringAsFixed(0)}°',
                     style: const TextStyle(color: Colors.white, fontSize: 13)),
               ]),
-              Text('$fotoScattate / ${maxFoto.toInt()} foto',
+              Text('$fotoScattate / $maxFoto foto',
                   style: TextStyle(
                     color: fotoScattate >= 6 ? AppColors.primary : Colors.white70,
                     fontSize: 13,

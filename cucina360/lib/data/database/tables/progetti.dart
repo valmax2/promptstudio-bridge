@@ -1,5 +1,6 @@
 import 'package:drift/drift.dart';
 
+@DataClassName('Progetto')
 class Progetti extends Table {
   IntColumn get id => integer().autoIncrement()();
   TextColumn get nome => text().withLength(min: 1, max: 100)();

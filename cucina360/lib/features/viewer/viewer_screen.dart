@@ -33,9 +33,9 @@ class _ViewerScreenState extends State<ViewerScreen> {
           children: [
             // Viewer 360° — panorama_viewer gestisce giroscopio + swipe + zoom
             PanoramaViewer(
-              child: Image.file(File(widget.panoramaPath)),
               sensorControl: SensorControl.orientation,
               onViewChanged: (lon, lat, tilt) {},
+              child: Image.file(File(widget.panoramaPath)),
             ),
 
             // Overlay controlli

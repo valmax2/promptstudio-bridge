@@ -1,6 +1,7 @@
 import 'package:drift/drift.dart';
 import 'progetti.dart';
 
+@DataClassName('VersioneColore')
 class VersioniColore extends Table {
   IntColumn get id => integer().autoIncrement()();
   IntColumn get progettoId => integer().references(Progetti, #id)();

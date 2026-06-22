@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/purchase/purchase_service.dart';
-import '../app/theme.dart';
+import '../../app/theme.dart';
 
 class PaywallSheet extends ConsumerWidget {
   const PaywallSheet({super.key});

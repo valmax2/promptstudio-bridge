@@ -71,12 +71,11 @@ class PurchaseService extends ChangeNotifier {
   }
 }
 
-final purchaseServiceProvider = Provider<PurchaseService>((ref) {
+// ChangeNotifierProvider propaga automaticamente notifyListeners() a Riverpod
+final purchaseServiceProvider = ChangeNotifierProvider<PurchaseService>((ref) {
   throw UnimplementedError('Override in main()');
 });
 
 final isPremiumProvider = Provider<bool>((ref) {
-  // Ascolta le notifiche di PurchaseService
-  final service = ref.watch(purchaseServiceProvider);
-  return service.isPremium;
+  return ref.watch(purchaseServiceProvider).isPremium;
 });

@@ -1,7 +1,7 @@
 import 'package:drift/drift.dart';
 import 'progetti.dart';
 
-// Drift genera la classe row come "FotoData" dato che la table class è "Foto"
+@DataClassName('FotoData')
 class Foto extends Table {
   IntColumn get id => integer().autoIncrement()();
   IntColumn get progettoId => integer().references(Progetti, #id)();

@@ -18,7 +18,7 @@ void main() async {
     ProviderScope(
       overrides: [
         appDatabaseProvider.overrideWithValue(db),
-        purchaseServiceProvider.overrideWithValue(purchaseService),
+        purchaseServiceProvider.overrideWith((ref) => purchaseService),
       ],
       child: const Cucina360App(),
     ),

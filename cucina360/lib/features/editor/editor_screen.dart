@@ -155,7 +155,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                             onTapDown: (d) => _onTap(d, size),
                             child: _image != null
                                 ? Image.memory(
-                                    img.encodeJpg(_image!) as dynamic,
+                                    img.encodeJpg(_image!),
                                     fit: BoxFit.contain,
                                     width: double.infinity,
                                     height: double.infinity,

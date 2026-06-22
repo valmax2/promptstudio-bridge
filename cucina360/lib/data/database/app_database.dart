@@ -51,7 +51,7 @@ class AppDatabase extends _$AppDatabase {
 
   // ── Foto ──────────────────────────────────────────────────────────────────
 
-  Future<List<FotoRow>> getFotoPerProgetto(int progettoId) =>
+  Future<List<FotoData>> getFotoPerProgetto(int progettoId) =>
       (select(foto)
             ..where((f) => f.progettoId.equals(progettoId))
             ..orderBy([(f) => OrderingTerm.asc(f.ordine)]))

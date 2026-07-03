@@ -7,6 +7,7 @@ import { OBJExporter } from 'three/addons/exporters/OBJExporter.js';
 import { mergeGeometries, mergeVertices } from 'three/addons/utils/BufferGeometryUtils.js';
 import { ViewHelper } from 'three/addons/helpers/ViewHelper.js';
 import { MeshoptSimplifier } from 'meshoptimizer';
+import { initAds, adAfterExport } from './ads.js';
 
 // ─── DOM ────────────────────────────────────────────────────────────────────
 const $ = (id) => document.getElementById(id);
@@ -631,6 +632,7 @@ el.exportStl.addEventListener('click', () => {
   const blob = new Blob([dv], { type: 'application/octet-stream' });
   download(blob, baseName() + '.stl');
   toast('STL salvato · ' + fmtBytes(blob.size));
+  adAfterExport();
 });
 el.exportObj.addEventListener('click', () => {
   const txt = new OBJExporter().parse(exportMesh());
@@ -638,6 +640,7 @@ el.exportObj.addEventListener('click', () => {
   const blob = new Blob([txt], { type: 'application/octet-stream' });
   download(blob, baseName() + '.obj');
   toast('OBJ salvato · ' + fmtBytes(blob.size));
+  adAfterExport();
 });
 
 el.resetBtn.addEventListener('click', () => {
@@ -654,7 +657,7 @@ el.fileInput.addEventListener('change', (e) => { if (e.target.files[0]) handleFi
 viewport.addEventListener('drop', (e) => { const f = e.dataTransfer.files[0]; if (f) handleFile(f); });
 
 // ─── Versione app (per verificare gli aggiornamenti) ────────────────────────
-const APP_VERSION = 'v12';
+const APP_VERSION = 'v13';
 if (el.appVer) el.appVer.textContent = 'Poly Reducer 3D · ' + APP_VERSION;
 
 // ─── Service worker (offline / installazione PWA) ───────────────────────────────
@@ -678,6 +681,9 @@ if ('serviceWorker' in navigator) {
 
 // mostra il logo d'avvio (dopo che tutto è definito)
 showLogo();
+
+// inizializza le pubblicità (solo su app nativa; sul web non fa nulla)
+initAds();
 
 // hook di sola lettura per test/debug
 window.PR3D = { get mesh() { return mesh; }, get camera() { return camera; }, get material() { return material; }, get logo() { return logoMesh; } };

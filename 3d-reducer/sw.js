@@ -1,7 +1,7 @@
 // Service worker: cache dell'app shell + moduli CDN → funziona anche offline.
-const CACHE = 'poly-reducer-v12';
+const CACHE = 'poly-reducer-v13';
 const SHELL = [
-  './', './index.html', './styles.css', './app.js',
+  './', './index.html', './styles.css', './app.js', './ads.js',
   './manifest.webmanifest', './icon.svg',
   './vendor/assets/logo.stl',
   './vendor/three.module.js',

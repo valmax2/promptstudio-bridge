@@ -42,7 +42,7 @@
     </div>
     <div class="header-actions">
       <button id="wireframe" class="pill" aria-pressed="false">Rete</button>
-      <button id="themeToggle" class="icon-btn" aria-label="Cambia tema">☀︎</button>
+      <button id="settingsBtn" class="icon-btn" aria-label="Impostazioni">⚙</button>
     </div>
   </header>
 
@@ -84,6 +84,48 @@
       </div>
     </div>
   </section>
+
+  <!-- ⚙ Impostazioni -->
+  <div id="settings" class="modal hidden">
+    <div class="modal-backdrop" id="settingsBackdrop"></div>
+    <div class="modal-sheet">
+      <div class="grabber"></div>
+      <div class="modal-head">
+        <h2>Impostazioni</h2>
+        <button id="settingsClose" class="icon-btn" aria-label="Chiudi">✕</button>
+      </div>
+
+      <div class="group">
+        <div class="group-title">Aspetto</div>
+        <div class="seg" id="themeSeg">
+          <button data-theme-val="light">Chiara</button>
+          <button data-theme-val="dark">Scura</button>
+        </div>
+      </div>
+
+      <div class="group">
+        <div class="group-title">Palette interfaccia</div>
+        <div class="swatches" id="accentSwatches"></div>
+      </div>
+
+      <div class="group">
+        <div class="group-title">Colore modello</div>
+        <div class="swatches" id="modelSwatches"></div>
+      </div>
+
+      <div class="group">
+        <div class="group-title">Vista</div>
+        <div class="row">
+          <span>Auto-rotazione <small>fa girare l'oggetto</small></span>
+          <button class="switch" id="autoRotate" role="switch" aria-checked="false"></button>
+        </div>
+        <div class="row">
+          <span>Luce in movimento <small>ombre dinamiche</small></span>
+          <button class="switch" id="movingLight" role="switch" aria-checked="false"></button>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <div id="toast" class="toast"></div>
   <input type="file" id="fileInput" accept=".obj,.stl" hidden>

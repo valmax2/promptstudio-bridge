@@ -14,10 +14,13 @@ const el = {
   fileName: $('fileName'), dropHint: $('dropHint'), spinner: $('spinner'),
   spinnerText: $('spinnerText'), stats: $('stats'),
   statOrig: $('statOrig'), statCur: $('statCur'), statRed: $('statRed'), statSize: $('statSize'),
-  ratio: $('ratio'), ratioLabel: $('ratioLabel'), wireframe: $('wireframe'),
-  themeToggle: $('themeToggle'), toast: $('toast'),
+  ratio: $('ratio'), ratioLabel: $('ratioLabel'), wireframe: $('wireframe'), toast: $('toast'),
   loadBtn: $('loadBtn'), resetBtn: $('resetBtn'),
   exportStl: $('exportStl'), exportObj: $('exportObj'), fileInput: $('fileInput'),
+  settingsBtn: $('settingsBtn'), settings: $('settings'), settingsClose: $('settingsClose'),
+  settingsBackdrop: $('settingsBackdrop'), themeSeg: $('themeSeg'),
+  accentSwatches: $('accentSwatches'), modelSwatches: $('modelSwatches'),
+  autoRotate: $('autoRotate'), movingLight: $('movingLight'),
 };
 
 // ─── Three.js scene ───────────────────────────────────────────────────────────
@@ -44,6 +47,14 @@ const material = new THREE.MeshStandardMaterial({
   flatShading: false, side: THREE.DoubleSide,
 });
 
+// ─── Stato configurabile ────────────────────────────────────────────────────
+let userModelColor = null;          // null = colore automatico (dipende dal tema)
+let autoRotateOn = false;
+let movingLightOn = false;
+const modelCenter = new THREE.Vector3();
+let modelRadius = 1;
+const store = (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} };
+
 // ─── Tema chiaro / scuro ────────────────────────────────────────────────────
 const THEMES = {
   dark:  { bg: 0x141416, model: 0xcfd3dc, meta: '#141416' },
@@ -53,16 +64,94 @@ function applyTheme(name) {
   const t = THEMES[name] || THEMES.dark;
   document.documentElement.dataset.theme = name;
   scene.background = new THREE.Color(t.bg);
-  material.color.setHex(t.model);
-  el.themeToggle.textContent = name === 'dark' ? '☀︎' : '☾';
+  material.color.setHex(userModelColor != null ? userModelColor : t.model);
   const meta = document.getElementById('themeColor');
   if (meta) meta.setAttribute('content', t.meta);
-  try { localStorage.setItem('pr3d-theme', name); } catch (e) {}
+  el.themeSeg.querySelectorAll('button').forEach((b) =>
+    b.classList.toggle('active', b.dataset.themeVal === name));
+  store('pr3d-theme', name);
 }
-el.themeToggle.addEventListener('click', () => {
-  applyTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark');
+el.themeSeg.querySelectorAll('button').forEach((b) =>
+  b.addEventListener('click', () => applyTheme(b.dataset.themeVal)));
+
+// ─── Palette interfaccia (colore d'accento) ─────────────────────────────────
+const ACCENTS = ['#007AFF', '#AF52DE', '#34C759', '#FF9500', '#FF2D55', '#30B0C7', '#8E8E93'];
+function hexA(hex, a) {
+  const n = parseInt(hex.slice(1), 16);
+  return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`;
+}
+function applyAccent(hex, save = true) {
+  document.documentElement.style.setProperty('--accent', hex);
+  document.documentElement.style.setProperty('--accent-soft', hexA(hex, 0.18));
+  el.accentSwatches.querySelectorAll('.swatch').forEach((s) =>
+    s.classList.toggle('active', s.dataset.c === hex));
+  if (save) store('pr3d-accent', hex);
+}
+ACCENTS.forEach((hex) => {
+  const s = document.createElement('div');
+  s.className = 'swatch'; s.dataset.c = hex; s.style.background = hex;
+  s.addEventListener('click', () => applyAccent(hex));
+  el.accentSwatches.appendChild(s);
 });
+
+// ─── Colore del modello 3D ──────────────────────────────────────────────────
+const MODELS = [
+  { n: 'Auto', auto: true }, { n: 'Grigio', c: '#C6CAD3' }, { n: 'Bianco', c: '#F2F3F5' },
+  { n: 'Oro', c: '#E8C066' }, { n: 'Rame', c: '#C57B4E' }, { n: 'Blu', c: '#6EA8FF' },
+  { n: 'Verde', c: '#7ED08A' }, { n: 'Rosso', c: '#FF7A7A' }, { n: 'Grafite', c: '#3A3A3E' },
+];
+function applyModelColor(item, save = true) {
+  userModelColor = item.auto ? null : parseInt(item.c.slice(1), 16);
+  const theme = THEMES[document.documentElement.dataset.theme] || THEMES.dark;
+  material.color.setHex(userModelColor != null ? userModelColor : theme.model);
+  el.modelSwatches.querySelectorAll('.swatch').forEach((s) =>
+    s.classList.toggle('active', s.dataset.n === item.n));
+  if (save) store('pr3d-model', item.n);
+}
+MODELS.forEach((item) => {
+  const s = document.createElement('div');
+  s.className = 'swatch' + (item.auto ? ' auto' : '');
+  s.dataset.n = item.n; s.title = item.n;
+  if (!item.auto) s.style.background = item.c;
+  s.addEventListener('click', () => applyModelColor(item));
+  el.modelSwatches.appendChild(s);
+});
+
+// ─── Interruttori vista ─────────────────────────────────────────────────────
+function setSwitch(node, on) { node.setAttribute('aria-checked', on ? 'true' : 'false'); }
+el.autoRotate.addEventListener('click', () => {
+  autoRotateOn = !autoRotateOn;
+  controls.autoRotate = autoRotateOn;
+  setSwitch(el.autoRotate, autoRotateOn);
+  store('pr3d-autorotate', autoRotateOn ? '1' : '0');
+});
+el.movingLight.addEventListener('click', () => {
+  movingLightOn = !movingLightOn;
+  setSwitch(el.movingLight, movingLightOn);
+  if (!movingLightOn && mesh) key.position.copy(modelCenter).add(new THREE.Vector3(modelRadius, modelRadius * 1.5, modelRadius));
+  store('pr3d-movinglight', movingLightOn ? '1' : '0');
+});
+controls.autoRotateSpeed = 2.2;
+
+// ─── Apertura / chiusura Impostazioni ───────────────────────────────────────
+function openSettings() { el.settings.classList.remove('hidden'); requestAnimationFrame(() => el.settings.classList.add('show')); }
+function closeSettings() { el.settings.classList.remove('show'); setTimeout(() => el.settings.classList.add('hidden'), 320); }
+el.settingsBtn.addEventListener('click', openSettings);
+el.settingsClose.addEventListener('click', closeSettings);
+el.settingsBackdrop.addEventListener('click', closeSettings);
+
+// ─── Applica le preferenze salvate ──────────────────────────────────────────
 applyTheme(document.documentElement.dataset.theme === 'light' ? 'light' : 'dark');
+(function restore() {
+  let a; try { a = localStorage.getItem('pr3d-accent'); } catch (e) {}
+  applyAccent(ACCENTS.includes(a) ? a : ACCENTS[0], false);
+  let m; try { m = localStorage.getItem('pr3d-model'); } catch (e) {}
+  applyModelColor(MODELS.find((x) => x.n === m) || MODELS[0], false);
+  let ar; try { ar = localStorage.getItem('pr3d-autorotate'); } catch (e) {}
+  if (ar === '1') { autoRotateOn = true; controls.autoRotate = true; setSwitch(el.autoRotate, true); }
+  let ml; try { ml = localStorage.getItem('pr3d-movinglight'); } catch (e) {}
+  if (ml === '1') { movingLightOn = true; setSwitch(el.movingLight, true); }
+})();
 
 let mesh = null;            // mesh visualizzata
 let baseGeometry = null;    // geometria originale indicizzata (mai modificata)
@@ -81,6 +170,14 @@ resize();
 
 (function animate() {
   requestAnimationFrame(animate);
+  if (movingLightOn && mesh) {
+    const t = performance.now() * 0.0012;
+    key.position.set(
+      modelCenter.x + Math.cos(t) * modelRadius * 2.2,
+      modelCenter.y + modelRadius * 1.6,
+      modelCenter.z + Math.sin(t) * modelRadius * 2.2,
+    );
+  }
   controls.update();
   renderer.render(scene, camera);
 })();
@@ -125,6 +222,7 @@ function fitCamera() {
   const box = new THREE.Box3().setFromObject(mesh);
   const sphere = box.getBoundingSphere(new THREE.Sphere());
   const r = sphere.radius || 1, c = sphere.center;
+  modelCenter.copy(c); modelRadius = r;
   camera.near = r / 100; camera.far = r * 100;
   const dir = new THREE.Vector3(1, 0.55, 1).normalize();
   camera.position.copy(c).addScaledVector(dir, r * 2.6);

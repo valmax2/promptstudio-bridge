@@ -1,8 +1,9 @@
 name: Deploy Poly Reducer 3D to GitHub Pages
 
+# Avvio solo manuale: la pubblicazione avviene tramite l'impostazione
+# "Deploy from a branch" di GitHub Pages, quindi questo workflow non serve
+# in automatico (resta disponibile solo se un giorno passi a "GitHub Actions").
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 
 # Permessi necessari per pubblicare su Pages

@@ -167,10 +167,20 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);
 .switch[aria-checked="true"]{background:#34C759}
 .switch[aria-checked="true"]::after{transform:translateX(20px)}
 
-.sub-label{font-size:12px;color:var(--text2);font-weight:500;margin:0 4px 6px}
+.sub-label{font-size:12px;color:var(--text2);font-weight:500;margin:8px 4px 6px}
 .sub-label small{font-weight:400;opacity:.85}
 #orientRow{margin-bottom:8px}
 #orientRow .btn{box-shadow:none;background:var(--card);font-size:13px}
+
+.orient-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:8px}
+.orient-grid label{display:flex;align-items:center;gap:6px;background:var(--card);border-radius:12px;
+  padding:8px 10px;font-size:13px;font-weight:600;color:var(--text2)}
+.orient-grid input{width:100%;border:none;background:transparent;color:var(--text);
+  font-size:16px;font-weight:700;font-variant-numeric:tabular-nums;text-align:right;min-width:0;
+  -moz-appearance:textfield}
+.orient-grid input::-webkit-outer-spin-button,.orient-grid input::-webkit-inner-spin-button{
+  -webkit-appearance:none;margin:0}
+.orient-grid input:focus{outline:none;color:var(--accent)}
 
 /* Pulsanti vista fissa (Fronte/Lato/Sopra…) sopra il modello 3D */
 .view-cube{position:absolute;top:12px;left:12px;display:grid;grid-template-columns:repeat(2,1fr);

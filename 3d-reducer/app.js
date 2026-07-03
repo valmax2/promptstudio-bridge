@@ -23,7 +23,8 @@ const el = {
   settingsBackdrop: $('settingsBackdrop'), themeSeg: $('themeSeg'),
   accentSwatches: $('accentSwatches'), modelSwatches: $('modelSwatches'),
   autoRotate: $('autoRotate'), movingLight: $('movingLight'), viewAxes: $('viewAxes'),
-  orientRow: $('orientRow'), viewCube: $('viewCube'),
+  orientRow: $('orientRow'), viewCube: $('viewCube'), freeRotate: $('freeRotate'),
+  orientX: $('orientX'), orientY: $('orientY'), orientZ: $('orientZ'),
 };
 
 // ─── Three.js scene ───────────────────────────────────────────────────────────
@@ -64,7 +65,9 @@ let modelRadius = 1;
 let spinAngle = 0;
 const spinSpeed = 0.8;                          // rad/s
 const spinAxis = new THREE.Vector3(0, 1, 0);   // Y = verticale
-const modelOrient = new THREE.Quaternion();    // orientamento "raddrizzato" del modello
+const modelOrient = new THREE.Quaternion();    // orientamento manuale del modello
+const orientDeg = { x: 0, y: 0, z: 0 };        // gradi impostati dall'utente
+let freeRotateOn = false;
 const AX = { x: new THREE.Vector3(1, 0, 0), y: new THREE.Vector3(0, 1, 0), z: new THREE.Vector3(0, 0, 1) };
 let viewTween = null;                           // animazione delle viste fisse (camera)
 const store = (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} };
@@ -145,24 +148,71 @@ el.autoRotate.addEventListener('click', () => {
   store('pr3d-autorotate', autoRotateOn ? '1' : '0');
 });
 
-// Raddrizza il modello: al caricamento mette in verticale l'asse più lungo (di solito l'altezza)
+// ─── Orientamento del modello: gradi X/Y/Z + rotazione col dito ──────────────
+const D2R = Math.PI / 180, R2D = 180 / Math.PI;
+const _euler = new THREE.Euler();
+function orientFromDeg() {
+  _euler.set(orientDeg.x * D2R, orientDeg.y * D2R, orientDeg.z * D2R, 'XYZ');
+  modelOrient.setFromEuler(_euler);
+}
+function syncDegInputs() {
+  el.orientX.value = Math.round(orientDeg.x);
+  el.orientY.value = Math.round(orientDeg.y);
+  el.orientZ.value = Math.round(orientDeg.z);
+}
+function degFromOrient() { // dopo la rotazione col dito, aggiorna i campi gradi
+  _euler.setFromQuaternion(modelOrient, 'XYZ');
+  orientDeg.x = _euler.x * R2D; orientDeg.y = _euler.y * R2D; orientDeg.z = _euler.z * R2D;
+  syncDegInputs();
+}
+// al caricamento: metti in verticale l'asse più lungo (spesso l'altezza)
 function autoStand(geom) {
   geom.computeBoundingBox();
   const s = new THREE.Vector3();
   geom.boundingBox.getSize(s);
-  modelOrient.identity();
-  const m = 1.05; // margine: raddrizza solo se un asse è chiaramente il più lungo e non è già Y
-  if (s.z > s.y * m && s.z >= s.x) modelOrient.setFromAxisAngle(AX.x, -Math.PI / 2);    // Z-up → Y-up
-  else if (s.x > s.y * m && s.x >= s.z) modelOrient.setFromAxisAngle(AX.z, Math.PI / 2); // X-up → Y-up
+  orientDeg.x = 0; orientDeg.y = 0; orientDeg.z = 0;
+  const m = 1.05;
+  if (s.z > s.y * m && s.z >= s.x) orientDeg.x = -90;       // Z-up → Y-up
+  else if (s.x > s.y * m && s.x >= s.z) orientDeg.z = 90;   // X-up → Y-up
+  orientFromDeg(); syncDegInputs();
 }
-// correzione manuale a passi di 90°
-function nudgeOrient(action) {
-  if (action === 'reset') { modelOrient.identity(); return; }
-  const axis = action === 'tilt' ? AX.x : AX.z;
-  modelOrient.premultiply(new THREE.Quaternion().setFromAxisAngle(axis, Math.PI / 2));
-}
-el.orientRow.querySelectorAll('button').forEach((b) =>
-  b.addEventListener('click', () => nudgeOrient(b.dataset.orient)));
+[el.orientX, el.orientY, el.orientZ].forEach((inp, i) => {
+  inp.addEventListener('input', () => {
+    const key = ['x', 'y', 'z'][i];
+    orientDeg[key] = parseFloat(inp.value) || 0;
+    orientFromDeg();
+  });
+});
+el.orientRow.querySelectorAll('button').forEach((b) => b.addEventListener('click', () => {
+  const a = b.dataset.orient;
+  if (a === 'reset') { orientDeg.x = orientDeg.y = orientDeg.z = 0; }
+  else if (a === 'tilt') { orientDeg.x = ((orientDeg.x + 90) % 360); }
+  else if (a === 'roll') { orientDeg.z = ((orientDeg.z + 90) % 360); }
+  orientFromDeg(); syncDegInputs();
+}));
+
+// Rotazione col dito: trascina per girare l'OGGETTO (disattiva la rotazione della camera)
+el.freeRotate.addEventListener('click', () => {
+  freeRotateOn = !freeRotateOn;
+  setSwitch(el.freeRotate, freeRotateOn);
+  controls.enableRotate = !freeRotateOn;
+  store('pr3d-freerotate', freeRotateOn ? '1' : '0');
+});
+let dragging = false, lastX = 0, lastY = 0;
+canvas.addEventListener('pointerdown', (e) => {
+  if (!freeRotateOn) return;
+  dragging = true; lastX = e.clientX; lastY = e.clientY;
+});
+canvas.addEventListener('pointermove', (e) => {
+  if (!freeRotateOn || !dragging) return;
+  const dx = e.clientX - lastX, dy = e.clientY - lastY;
+  lastX = e.clientX; lastY = e.clientY;
+  modelOrient.premultiply(new THREE.Quaternion().setFromAxisAngle(AX.y, dx * 0.01));
+  modelOrient.premultiply(new THREE.Quaternion().setFromAxisAngle(AX.x, dy * 0.01));
+  degFromOrient();
+});
+canvas.addEventListener('pointerup', () => { dragging = false; });
+canvas.addEventListener('pointercancel', () => { dragging = false; });
 el.movingLight.addEventListener('click', () => {
   movingLightOn = !movingLightOn;
   setSwitch(el.movingLight, movingLightOn);
@@ -228,6 +278,8 @@ applyTheme(document.documentElement.dataset.theme === 'light' ? 'light' : 'dark'
   if (ml === '1') { movingLightOn = true; setSwitch(el.movingLight, true); }
   let va; try { va = localStorage.getItem('pr3d-viewaxes'); } catch (e) {}
   if (va === '1') { viewAxesOn = true; setSwitch(el.viewAxes, true); el.viewCube.classList.remove('hidden'); }
+  let fr; try { fr = localStorage.getItem('pr3d-freerotate'); } catch (e) {}
+  if (fr === '1') { freeRotateOn = true; setSwitch(el.freeRotate, true); controls.enableRotate = false; }
   let cl; try { cl = localStorage.getItem('pr3d-collapsed'); } catch (e) {}
   if (cl === '1') { el.sheet.classList.add('collapsed'); el.sheetToggle.setAttribute('aria-label', 'Espandi pannello'); }
 })();

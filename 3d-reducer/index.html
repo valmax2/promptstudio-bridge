@@ -133,10 +133,19 @@
           <span>Auto-rotazione <small>l'oggetto gira su sé stesso</small></span>
           <button class="switch" id="autoRotate" role="switch" aria-checked="false"></button>
         </div>
-        <div class="sub-label">Raddrizza modello <small>(se non è in piedi)</small></div>
+        <div class="row">
+          <span>Ruota col dito <small>trascina il modello per girarlo</small></span>
+          <button class="switch" id="freeRotate" role="switch" aria-checked="false"></button>
+        </div>
+        <div class="sub-label">Orienta con i gradi</div>
+        <div class="orient-grid">
+          <label>X°<input type="number" id="orientX" step="15" value="0" inputmode="numeric"></label>
+          <label>Y°<input type="number" id="orientY" step="15" value="0" inputmode="numeric"></label>
+          <label>Z°<input type="number" id="orientZ" step="15" value="0" inputmode="numeric"></label>
+        </div>
         <div class="btn-row" id="orientRow">
-          <button class="btn" data-orient="tilt">Inclina</button>
-          <button class="btn" data-orient="roll">Rulla</button>
+          <button class="btn" data-orient="tilt">+90° X</button>
+          <button class="btn" data-orient="roll">+90° Z</button>
           <button class="btn" data-orient="reset">Azzera</button>
         </div>
         <div class="row" style="margin-top:8px">

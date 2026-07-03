@@ -307,12 +307,28 @@ applyTheme(document.documentElement.dataset.theme === 'light' ? 'light' : 'dark'
 })();
 
 // ─── Logo d'avvio 3D (gira finché non carichi un modello) ───────────────────
-const logoMat = new THREE.MeshStandardMaterial({ color: 0x0A84FF, metalness: 0.4, roughness: 0.22, flatShading: true });
+const logoMat = new THREE.MeshStandardMaterial({ color: 0x2E7CF6, metalness: 0.5, roughness: 0.34 });
 let logoMesh = null;
 function gemGeometry() {
   const g = new THREE.OctahedronGeometry(1, 0);
-  g.scale(1, 1.55, 1);            // cristallo/diamante allungato
+  g.scale(1, 1.55, 1);
   return g;
+}
+// orienta la geometria del logo: forme piatte → faccia verso la camera; solidi → asse lungo in verticale
+function orientLogo(g) {
+  g.computeBoundingBox();
+  const s = new THREE.Vector3(); g.boundingBox.getSize(s);
+  const min = Math.min(s.x, s.y, s.z), max = Math.max(s.x, s.y, s.z);
+  if (min < 0.35 * max) {                 // medaglione/disco: metti la faccia di fronte
+    if (s.y === min) g.rotateX(Math.PI / 2);
+    else if (s.x === min) g.rotateY(-Math.PI / 2);
+  } else {                                // solido: asse più lungo in verticale
+    if (s.z >= s.x && s.z >= s.y) g.rotateX(-Math.PI / 2);
+    else if (s.x >= s.y && s.x >= s.z) g.rotateZ(Math.PI / 2);
+  }
+  g.computeBoundingBox();
+  const c = new THREE.Vector3(); g.boundingBox.getCenter(c);
+  g.translate(-c.x, -c.y, -c.z);          // centra all'origine
 }
 function loadSavedLogo() {
   let s; try { s = localStorage.getItem('pr3d-logo'); } catch (e) { return null; }
@@ -320,12 +336,20 @@ function loadSavedLogo() {
   try { const g = new THREE.BufferGeometryLoader().parse(JSON.parse(s)); g.computeVertexNormals(); return g; }
   catch (e) { return null; }
 }
-function showLogo() {
+async function loadDefaultLogo() {
+  try {
+    const res = await fetch('./vendor/assets/logo.stl');
+    if (!res.ok) return null;
+    return new STLLoader().parse(await res.arrayBuffer()); // normali già nell'STL → look nitido
+  } catch (e) { return null; }
+}
+async function showLogo() {
   hideLogo();
-  const g = loadSavedLogo() || gemGeometry();
-  g.computeBoundingBox();
-  const c = new THREE.Vector3(); g.boundingBox.getCenter(c);
-  g.translate(-c.x, -c.y, -c.z); // centra all'origine
+  let g = loadSavedLogo();
+  if (!g) g = await loadDefaultLogo();
+  if (mesh) { if (g) g.dispose(); return; } // l'utente ha caricato un modello nel frattempo
+  if (!g) g = gemGeometry();
+  orientLogo(g);
   logoMesh = new THREE.Mesh(g, logoMat);
   scene.add(logoMesh);
   fitCamera(logoMesh);
@@ -345,9 +369,8 @@ function saveLogoFromModel() {
 }
 el.logoRow.querySelectorAll('button').forEach((b) => b.addEventListener('click', () => {
   if (b.dataset.logo === 'save') saveLogoFromModel();
-  else { try { localStorage.removeItem('pr3d-logo'); } catch (e) {} toast('Logo predefinito ripristinato'); }
+  else { try { localStorage.removeItem('pr3d-logo'); } catch (e) {} toast('Logo predefinito ripristinato'); showLogo(); }
 }));
-showLogo();
 
 let mesh = null;            // mesh visualizzata
 let baseGeometry = null;    // geometria originale indicizzata (mai modificata)
@@ -631,7 +654,7 @@ el.fileInput.addEventListener('change', (e) => { if (e.target.files[0]) handleFi
 viewport.addEventListener('drop', (e) => { const f = e.dataTransfer.files[0]; if (f) handleFile(f); });
 
 // ─── Versione app (per verificare gli aggiornamenti) ────────────────────────
-const APP_VERSION = 'v11';
+const APP_VERSION = 'v12';
 if (el.appVer) el.appVer.textContent = 'Poly Reducer 3D · ' + APP_VERSION;
 
 // ─── Service worker (offline / installazione PWA) ───────────────────────────────
@@ -639,12 +662,12 @@ if ('serviceWorker' in navigator) {
   // updateViaCache:'none' → il browser non usa la cache HTTP per sw.js: aggiornamenti più rapidi
   navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' }).then((reg) => {
     reg.update();
-    // se arriva una nuova versione mentre l'app è aperta, applicala e ricarica una volta
+    // ricarica SOLO quando una nuova versione si installa mentre una vecchia è già attiva
     reg.addEventListener('updatefound', () => {
       const nw = reg.installing;
       if (!nw) return;
       nw.addEventListener('statechange', () => {
-        if (nw.state === 'activated' && navigator.serviceWorker.controller) {
+        if (nw.state === 'installed' && navigator.serviceWorker.controller) {
           toast('App aggiornata · ricarico…');
           setTimeout(() => location.reload(), 900);
         }
@@ -652,6 +675,9 @@ if ('serviceWorker' in navigator) {
     });
   }).catch(() => {});
 }
+
+// mostra il logo d'avvio (dopo che tutto è definito)
+showLogo();
 
 // hook di sola lettura per test/debug
 window.PR3D = { get mesh() { return mesh; }, get camera() { return camera; }, get material() { return material; }, get logo() { return logoMesh; } };

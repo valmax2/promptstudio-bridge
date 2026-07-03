@@ -17,6 +17,7 @@ const el = {
   statOrig: $('statOrig'), statCur: $('statCur'), statRed: $('statRed'), statSize: $('statSize'),
   ratio: $('ratio'), ratioLabel: $('ratioLabel'), wireframe: $('wireframe'), toast: $('toast'),
   loadBtn: $('loadBtn'), resetBtn: $('resetBtn'),
+  sheet: $('sheet'), sheetToggle: $('sheetToggle'),
   exportStl: $('exportStl'), exportObj: $('exportObj'), fileInput: $('fileInput'),
   settingsBtn: $('settingsBtn'), settings: $('settings'), settingsClose: $('settingsClose'),
   settingsBackdrop: $('settingsBackdrop'), themeSeg: $('themeSeg'),
@@ -155,6 +156,13 @@ el.settingsBtn.addEventListener('click', openSettings);
 el.settingsClose.addEventListener('click', closeSettings);
 el.settingsBackdrop.addEventListener('click', closeSettings);
 
+// Abbassa / rialza il pannello inferiore per avere più visuale 3D
+el.sheetToggle.addEventListener('click', () => {
+  const collapsed = el.sheet.classList.toggle('collapsed');
+  el.sheetToggle.setAttribute('aria-label', collapsed ? 'Espandi pannello' : 'Riduci pannello');
+  store('pr3d-collapsed', collapsed ? '1' : '0');
+});
+
 // ─── Applica le preferenze salvate ──────────────────────────────────────────
 applyTheme(document.documentElement.dataset.theme === 'light' ? 'light' : 'dark');
 (function restore() {
@@ -168,6 +176,8 @@ applyTheme(document.documentElement.dataset.theme === 'light' ? 'light' : 'dark'
   if (ml === '1') { movingLightOn = true; setSwitch(el.movingLight, true); }
   let va; try { va = localStorage.getItem('pr3d-viewaxes'); } catch (e) {}
   if (va === '1') { viewAxesOn = true; setSwitch(el.viewAxes, true); }
+  let cl; try { cl = localStorage.getItem('pr3d-collapsed'); } catch (e) {}
+  if (cl === '1') { el.sheet.classList.add('collapsed'); el.sheetToggle.setAttribute('aria-label', 'Espandi pannello'); }
 })();
 
 let mesh = null;            // mesh visualizzata

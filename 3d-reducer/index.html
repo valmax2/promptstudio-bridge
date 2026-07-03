@@ -58,8 +58,12 @@
   </div>
 
   <section id="sheet" class="sheet">
-    <div class="grabber"></div>
+    <button id="sheetToggle" class="sheet-toggle" aria-label="Riduci pannello">
+      <span class="grabber"></span>
+      <span class="chev" aria-hidden="true">⌄</span>
+    </button>
 
+    <div id="sheetBody">
     <div id="stats" class="stats hidden">
       <div class="stat"><label>Originale</label><b id="statOrig">—</b><small>triangoli</small></div>
       <div class="stat"><label>Attuale</label><b id="statCur">—</b><small>triangoli</small></div>
@@ -83,6 +87,7 @@
         <button id="exportObj" class="btn" disabled>Esporta OBJ</button>
       </div>
     </div>
+    </div><!-- /sheetBody -->
   </section>
 
   <!-- ⚙ Impostazioni -->

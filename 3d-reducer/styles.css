@@ -72,7 +72,18 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);
   -webkit-backdrop-filter:saturate(180%) blur(22px);
   border-top:.5px solid var(--sep);border-radius:22px 22px 0 0;box-shadow:0 -6px 24px rgba(0,0,0,.12);
   padding:6px 16px calc(16px + env(safe-area-inset-bottom));margin-top:-14px;z-index:4}
-.grabber{width:38px;height:5px;border-radius:3px;background:var(--track);margin:6px auto 12px}
+.grabber{width:38px;height:5px;border-radius:3px;background:var(--track);display:block;margin:0 auto}
+
+/* Maniglia per abbassare / rialzare il pannello */
+.sheet-toggle{display:flex;flex-direction:column;align-items:center;gap:3px;width:100%;
+  border:none;background:transparent;padding:8px 0 10px;cursor:pointer;color:var(--text2)}
+.sheet-toggle .chev{font-size:15px;line-height:1;transition:transform .3s}
+.sheet.collapsed .sheet-toggle .chev{transform:rotate(180deg)}
+.sheet.collapsed .sheet-toggle{padding:8px 0}
+
+#sheetBody{overflow:hidden;transition:max-height .32s cubic-bezier(.32,.72,0,1),opacity .25s;
+  max-height:70dvh;opacity:1}
+.sheet.collapsed #sheetBody{max-height:0;opacity:0;pointer-events:none}
 
 .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px}
 .stats.hidden{display:none}

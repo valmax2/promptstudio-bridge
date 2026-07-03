@@ -238,7 +238,8 @@ el.exportStl.addEventListener('click', () => {
 });
 el.exportObj.addEventListener('click', () => {
   const txt = new OBJExporter().parse(mesh);
-  download(new Blob([txt], { type: 'text/plain' }), baseName() + '.obj');
+  // octet-stream: forza il download come vero file .obj (evita che Android lo salvi come .txt)
+  download(new Blob([txt], { type: 'application/octet-stream' }), baseName() + '.obj');
 });
 
 el.resetBtn.addEventListener('click', () => {

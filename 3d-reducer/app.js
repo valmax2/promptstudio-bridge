@@ -25,7 +25,7 @@ const el = {
   autoRotate: $('autoRotate'), movingLight: $('movingLight'), viewAxes: $('viewAxes'),
   orientRow: $('orientRow'), viewCube: $('viewCube'), freeRotate: $('freeRotate'),
   orientX: $('orientX'), orientY: $('orientY'), orientZ: $('orientZ'),
-  displaySeg: $('displaySeg'),
+  displaySeg: $('displaySeg'), logoRow: $('logoRow'), appVer: $('appVer'),
 };
 
 // ─── Three.js scene ───────────────────────────────────────────────────────────
@@ -306,6 +306,49 @@ applyTheme(document.documentElement.dataset.theme === 'light' ? 'light' : 'dark'
   if (cl === '1') { el.sheet.classList.add('collapsed'); el.sheetToggle.setAttribute('aria-label', 'Espandi pannello'); }
 })();
 
+// ─── Logo d'avvio 3D (gira finché non carichi un modello) ───────────────────
+const logoMat = new THREE.MeshStandardMaterial({ color: 0x0A84FF, metalness: 0.4, roughness: 0.22, flatShading: true });
+let logoMesh = null;
+function gemGeometry() {
+  const g = new THREE.OctahedronGeometry(1, 0);
+  g.scale(1, 1.55, 1);            // cristallo/diamante allungato
+  return g;
+}
+function loadSavedLogo() {
+  let s; try { s = localStorage.getItem('pr3d-logo'); } catch (e) { return null; }
+  if (!s) return null;
+  try { const g = new THREE.BufferGeometryLoader().parse(JSON.parse(s)); g.computeVertexNormals(); return g; }
+  catch (e) { return null; }
+}
+function showLogo() {
+  hideLogo();
+  const g = loadSavedLogo() || gemGeometry();
+  g.computeBoundingBox();
+  const c = new THREE.Vector3(); g.boundingBox.getCenter(c);
+  g.translate(-c.x, -c.y, -c.z); // centra all'origine
+  logoMesh = new THREE.Mesh(g, logoMat);
+  scene.add(logoMesh);
+  fitCamera(logoMesh);
+  el.dropHint.classList.add('hidden');
+}
+function hideLogo() {
+  if (logoMesh) { scene.remove(logoMesh); logoMesh.geometry.dispose(); logoMesh = null; }
+}
+function saveLogoFromModel() {
+  if (!currentGeometry) { toast('Carica prima un modello'); return; }
+  try {
+    localStorage.setItem('pr3d-logo', JSON.stringify(currentGeometry.toJSON()));
+    toast('Logo salvato · apparirà all’avvio');
+  } catch (e) {
+    toast('Logo troppo pesante: riduci prima i poligoni');
+  }
+}
+el.logoRow.querySelectorAll('button').forEach((b) => b.addEventListener('click', () => {
+  if (b.dataset.logo === 'save') saveLogoFromModel();
+  else { try { localStorage.removeItem('pr3d-logo'); } catch (e) {} toast('Logo predefinito ripristinato'); }
+}));
+showLogo();
+
 let mesh = null;            // mesh visualizzata
 let baseGeometry = null;    // geometria originale indicizzata (mai modificata)
 let currentGeometry = null; // geometria attualmente in scena
@@ -329,6 +372,8 @@ function easeInOut(k) { return k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2)
 (function animate() {
   requestAnimationFrame(animate);
   const delta = clock.getDelta();
+
+  if (logoMesh) logoMesh.rotation.y += delta * 0.6;   // il logo d'avvio gira sempre
 
   if (movingLightOn && mesh) {
     const t = performance.now() * 0.0012;
@@ -403,8 +448,8 @@ function positionsOnly(geom) {
   return out;
 }
 
-function fitCamera() {
-  const box = new THREE.Box3().setFromObject(mesh);
+function fitCamera(obj = mesh) {
+  const box = new THREE.Box3().setFromObject(obj);
   const sphere = box.getBoundingSphere(new THREE.Sphere());
   const r = sphere.radius || 1, c = sphere.center;
   modelCenter.copy(c); modelRadius = r;
@@ -442,6 +487,7 @@ async function handleFile(file) {
     merged = mergeVertices(merged, 1e-4);
     merged.computeVertexNormals();
 
+    hideLogo();                       // via il logo d'avvio: ora mostri il modello
     baseGeometry = merged;
     spinAngle = 0;                    // il nuovo modello parte di fronte
     autoStand(merged);                // mettilo in piedi (asse più lungo → verticale)
@@ -584,10 +630,28 @@ el.fileInput.addEventListener('change', (e) => { if (e.target.files[0]) handleFi
 ['dragleave', 'drop'].forEach((ev) => viewport.addEventListener(ev, (e) => { e.preventDefault(); viewport.classList.remove('dragover'); }));
 viewport.addEventListener('drop', (e) => { const f = e.dataTransfer.files[0]; if (f) handleFile(f); });
 
+// ─── Versione app (per verificare gli aggiornamenti) ────────────────────────
+const APP_VERSION = 'v11';
+if (el.appVer) el.appVer.textContent = 'Poly Reducer 3D · ' + APP_VERSION;
+
 // ─── Service worker (offline / installazione PWA) ───────────────────────────────
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./sw.js').catch(() => {});
+  // updateViaCache:'none' → il browser non usa la cache HTTP per sw.js: aggiornamenti più rapidi
+  navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' }).then((reg) => {
+    reg.update();
+    // se arriva una nuova versione mentre l'app è aperta, applicala e ricarica una volta
+    reg.addEventListener('updatefound', () => {
+      const nw = reg.installing;
+      if (!nw) return;
+      nw.addEventListener('statechange', () => {
+        if (nw.state === 'activated' && navigator.serviceWorker.controller) {
+          toast('App aggiornata · ricarico…');
+          setTimeout(() => location.reload(), 900);
+        }
+      });
+    });
+  }).catch(() => {});
 }
 
 // hook di sola lettura per test/debug
-window.PR3D = { get mesh() { return mesh; }, get camera() { return camera; }, get material() { return material; } };
+window.PR3D = { get mesh() { return mesh; }, get camera() { return camera; }, get material() { return material; }, get logo() { return logoMesh; } };

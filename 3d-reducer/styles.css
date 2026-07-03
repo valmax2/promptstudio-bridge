@@ -182,6 +182,10 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);
   -webkit-appearance:none;margin:0}
 .orient-grid input:focus{outline:none;color:var(--accent)}
 
+.btn-row.two{grid-template-columns:1fr 1fr}
+.btn-row.two .btn{box-shadow:none;background:var(--card);font-size:13px;white-space:normal}
+.modal-ver{text-align:center;font-size:11px;color:var(--text2);opacity:.7;margin-top:4px;font-variant-numeric:tabular-nums}
+
 /* Pulsanti vista fissa (Fronte/Lato/Sopra…) sopra il modello 3D */
 .view-cube{position:absolute;top:12px;left:12px;display:grid;grid-template-columns:repeat(2,1fr);
   gap:6px;z-index:3}

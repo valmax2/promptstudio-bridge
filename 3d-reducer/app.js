@@ -13,8 +13,9 @@ const canvas = $('canvas'), viewport = $('viewport');
 const el = {
   fileName: $('fileName'), dropHint: $('dropHint'), spinner: $('spinner'),
   spinnerText: $('spinnerText'), stats: $('stats'),
-  statOrig: $('statOrig'), statCur: $('statCur'), statRed: $('statRed'),
+  statOrig: $('statOrig'), statCur: $('statCur'), statRed: $('statRed'), statSize: $('statSize'),
   ratio: $('ratio'), ratioLabel: $('ratioLabel'), wireframe: $('wireframe'),
+  themeToggle: $('themeToggle'), toast: $('toast'),
   loadBtn: $('loadBtn'), resetBtn: $('resetBtn'),
   exportStl: $('exportStl'), exportObj: $('exportObj'), fileInput: $('fileInput'),
 };
@@ -42,6 +43,26 @@ const material = new THREE.MeshStandardMaterial({
   color: 0xcfd3dc, metalness: 0.12, roughness: 0.62,
   flatShading: false, side: THREE.DoubleSide,
 });
+
+// ─── Tema chiaro / scuro ────────────────────────────────────────────────────
+const THEMES = {
+  dark:  { bg: 0x141416, model: 0xcfd3dc, meta: '#141416' },
+  light: { bg: 0xe9e9ee, model: 0xb4b8c2, meta: '#EFEFF4' },
+};
+function applyTheme(name) {
+  const t = THEMES[name] || THEMES.dark;
+  document.documentElement.dataset.theme = name;
+  scene.background = new THREE.Color(t.bg);
+  material.color.setHex(t.model);
+  el.themeToggle.textContent = name === 'dark' ? '☀︎' : '☾';
+  const meta = document.getElementById('themeColor');
+  if (meta) meta.setAttribute('content', t.meta);
+  try { localStorage.setItem('pr3d-theme', name); } catch (e) {}
+}
+el.themeToggle.addEventListener('click', () => {
+  applyTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark');
+});
+applyTheme(document.documentElement.dataset.theme === 'light' ? 'light' : 'dark');
 
 let mesh = null;            // mesh visualizzata
 let baseGeometry = null;    // geometria originale indicizzata (mai modificata)
@@ -73,6 +94,22 @@ const nextFrame = () => new Promise((r) => requestAnimationFrame(() => requestAn
 
 function triCount(geom) {
   return (geom.index ? geom.index.count : geom.getAttribute('position').count) / 3;
+}
+
+// dimensione di uno STL binario = intestazione 84 byte + 50 byte per triangolo
+function stlBytes(tris) { return 84 + tris * 50; }
+function fmtBytes(n) {
+  if (n < 1024) return n + ' B';
+  if (n < 1024 * 1024) return (n / 1024).toFixed(0) + ' KB';
+  return (n / 1024 / 1024).toFixed(1) + ' MB';
+}
+
+let toastTimer = null;
+function toast(msg) {
+  el.toast.textContent = msg;
+  el.toast.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.toast.classList.remove('show'), 2600);
 }
 
 // estrae solo le posizioni da una geometria (scarta uv/normali per un merge robusto)
@@ -155,6 +192,7 @@ function updateStats() {
   el.statCur.textContent = fmt(cur);
   const red = orig ? Math.round((1 - cur / orig) * 100) : 0;
   el.statRed.textContent = red + '%';
+  el.statSize.textContent = fmtBytes(stlBytes(cur));
 }
 
 // ─── Riduzione poligoni (meshoptimizer) ────────────────────────────────────────
@@ -234,12 +272,16 @@ function baseName() {
 
 el.exportStl.addEventListener('click', () => {
   const dv = new STLExporter().parse(mesh, { binary: true });
-  download(new Blob([dv], { type: 'application/octet-stream' }), baseName() + '.stl');
+  const blob = new Blob([dv], { type: 'application/octet-stream' });
+  download(blob, baseName() + '.stl');
+  toast('STL salvato · ' + fmtBytes(blob.size));
 });
 el.exportObj.addEventListener('click', () => {
   const txt = new OBJExporter().parse(mesh);
   // octet-stream: forza il download come vero file .obj (evita che Android lo salvi come .txt)
-  download(new Blob([txt], { type: 'application/octet-stream' }), baseName() + '.obj');
+  const blob = new Blob([txt], { type: 'application/octet-stream' });
+  download(blob, baseName() + '.obj');
+  toast('OBJ salvato · ' + fmtBytes(blob.size));
 });
 
 el.resetBtn.addEventListener('click', () => {
@@ -247,7 +289,11 @@ el.resetBtn.addEventListener('click', () => {
   setGeometry(baseGeometry.clone()); updateStats();
 });
 
-el.wireframe.addEventListener('change', () => { material.wireframe = el.wireframe.checked; });
+// toggle wireframe (pulsante "Rete")
+el.wireframe.addEventListener('click', () => {
+  material.wireframe = !material.wireframe;
+  el.wireframe.setAttribute('aria-pressed', material.wireframe ? 'true' : 'false');
+});
 
 // ─── Input file + drag & drop ──────────────────────────────────────────────────
 el.loadBtn.addEventListener('click', () => el.fileInput.click());

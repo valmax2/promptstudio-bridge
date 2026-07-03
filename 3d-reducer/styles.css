@@ -168,6 +168,9 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);
 .switch[aria-checked="true"]::after{transform:translateX(20px)}
 
 .sub-label{font-size:12px;color:var(--text2);font-weight:500;margin:0 4px 6px}
+.sub-label small{font-weight:400;opacity:.85}
+#orientRow{margin-bottom:8px}
+#orientRow .btn{box-shadow:none;background:var(--card);font-size:13px}
 
 /* Pulsanti vista fissa (Fronte/Lato/Sopra…) sopra il modello 3D */
 .view-cube{position:absolute;top:12px;left:12px;display:grid;grid-template-columns:repeat(2,1fr);

@@ -23,7 +23,7 @@ const el = {
   settingsBackdrop: $('settingsBackdrop'), themeSeg: $('themeSeg'),
   accentSwatches: $('accentSwatches'), modelSwatches: $('modelSwatches'),
   autoRotate: $('autoRotate'), movingLight: $('movingLight'), viewAxes: $('viewAxes'),
-  spinAxisSeg: $('spinAxisSeg'), viewCube: $('viewCube'),
+  orientRow: $('orientRow'), viewCube: $('viewCube'),
 };
 
 // ─── Three.js scene ───────────────────────────────────────────────────────────
@@ -60,12 +60,13 @@ let viewAxesOn = false;
 const modelCenter = new THREE.Vector3();
 let modelRadius = 1;
 
-// Auto-rotazione: l'OGGETTO gira su un asse scelto (turntable), senza toccare l'export
+// Turntable: l'OGGETTO gira attorno alla VERTICALE (piatto girevole), senza toccare l'export
 let spinAngle = 0;
-const spinSpeed = 0.8;              // rad/s
-const spinAxis = new THREE.Vector3(0, 1, 0); // Y = verticale (colonna vertebrale)
-const AXES = { x: new THREE.Vector3(1, 0, 0), y: new THREE.Vector3(0, 1, 0), z: new THREE.Vector3(0, 0, 1) };
-let viewTween = null;               // animazione delle viste fisse (camera)
+const spinSpeed = 0.8;                          // rad/s
+const spinAxis = new THREE.Vector3(0, 1, 0);   // Y = verticale
+const modelOrient = new THREE.Quaternion();    // orientamento "raddrizzato" del modello
+const AX = { x: new THREE.Vector3(1, 0, 0), y: new THREE.Vector3(0, 1, 0), z: new THREE.Vector3(0, 0, 1) };
+let viewTween = null;                           // animazione delle viste fisse (camera)
 const store = (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} };
 
 // Cubo/assi di orientamento (stile CAD), angolo in basso a destra del canvas
@@ -143,14 +144,25 @@ el.autoRotate.addEventListener('click', () => {
   setSwitch(el.autoRotate, autoRotateOn);
   store('pr3d-autorotate', autoRotateOn ? '1' : '0');
 });
-// scelta dell'asse su cui gira l'oggetto (es. verticale = colonna vertebrale)
-function applySpinAxis(a, save = true) {
-  spinAxis.copy(AXES[a] || AXES.y);
-  el.spinAxisSeg.querySelectorAll('button').forEach((b) => b.classList.toggle('active', b.dataset.axis === a));
-  if (save) store('pr3d-spinaxis', a);
+
+// Raddrizza il modello: al caricamento mette in verticale l'asse più lungo (di solito l'altezza)
+function autoStand(geom) {
+  geom.computeBoundingBox();
+  const s = new THREE.Vector3();
+  geom.boundingBox.getSize(s);
+  modelOrient.identity();
+  const m = 1.05; // margine: raddrizza solo se un asse è chiaramente il più lungo e non è già Y
+  if (s.z > s.y * m && s.z >= s.x) modelOrient.setFromAxisAngle(AX.x, -Math.PI / 2);    // Z-up → Y-up
+  else if (s.x > s.y * m && s.x >= s.z) modelOrient.setFromAxisAngle(AX.z, Math.PI / 2); // X-up → Y-up
 }
-el.spinAxisSeg.querySelectorAll('button').forEach((b) =>
-  b.addEventListener('click', () => applySpinAxis(b.dataset.axis)));
+// correzione manuale a passi di 90°
+function nudgeOrient(action) {
+  if (action === 'reset') { modelOrient.identity(); return; }
+  const axis = action === 'tilt' ? AX.x : AX.z;
+  modelOrient.premultiply(new THREE.Quaternion().setFromAxisAngle(axis, Math.PI / 2));
+}
+el.orientRow.querySelectorAll('button').forEach((b) =>
+  b.addEventListener('click', () => nudgeOrient(b.dataset.orient)));
 el.movingLight.addEventListener('click', () => {
   movingLightOn = !movingLightOn;
   setSwitch(el.movingLight, movingLightOn);
@@ -210,8 +222,6 @@ applyTheme(document.documentElement.dataset.theme === 'light' ? 'light' : 'dark'
   applyAccent(ACCENTS.includes(a) ? a : ACCENTS[0], false);
   let m; try { m = localStorage.getItem('pr3d-model'); } catch (e) {}
   applyModelColor(MODELS.find((x) => x.n === m) || MODELS[0], false);
-  let sx; try { sx = localStorage.getItem('pr3d-spinaxis'); } catch (e) {}
-  applySpinAxis(['x', 'y', 'z'].includes(sx) ? sx : 'y', false);
   let ar; try { ar = localStorage.getItem('pr3d-autorotate'); } catch (e) {}
   if (ar === '1') { autoRotateOn = true; setSwitch(el.autoRotate, true); }
   let ml; try { ml = localStorage.getItem('pr3d-movinglight'); } catch (e) {}
@@ -238,6 +248,7 @@ new ResizeObserver(resize).observe(viewport);
 resize();
 
 const _q = new THREE.Quaternion();
+const _R = new THREE.Quaternion();
 const _tmp = new THREE.Vector3();
 function easeInOut(k) { return k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2; }
 
@@ -254,14 +265,13 @@ function easeInOut(k) { return k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2)
     );
   }
 
-  // Turntable: fa girare l'OGGETTO attorno all'asse scelto, passante per il suo centro
+  // Turntable: l'OGGETTO (già raddrizzato) gira attorno alla verticale, passando per il suo centro
   if (mesh) {
     if (autoRotateOn) spinAngle += delta * spinSpeed;
-    if (spinAngle !== 0) {
-      _q.setFromAxisAngle(spinAxis, spinAngle);
-      mesh.quaternion.copy(_q);
-      mesh.position.copy(modelCenter).sub(_tmp.copy(modelCenter).applyQuaternion(_q));
-    }
+    _q.setFromAxisAngle(spinAxis, spinAngle);
+    _R.multiplyQuaternions(_q, modelOrient);   // prima raddrizza, poi gira
+    mesh.quaternion.copy(_R);
+    mesh.position.copy(modelCenter).sub(_tmp.copy(modelCenter).applyQuaternion(_R));
   }
 
   // Viste fisse (pulsanti) e cubetto di orientamento animano la camera
@@ -360,6 +370,7 @@ async function handleFile(file) {
 
     baseGeometry = merged;
     spinAngle = 0;                    // il nuovo modello parte di fronte
+    autoStand(merged);                // mettilo in piedi (asse più lungo → verticale)
     setGeometry(merged.clone());
     fitCamera();
 

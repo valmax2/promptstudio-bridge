@@ -1,0 +1,72 @@
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#07070A">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Poly Reducer 3D</title>
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="icon" href="./icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="./icon.svg">
+<link rel="stylesheet" href="./styles.css">
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "./vendor/three.module.js",
+    "three/addons/": "./vendor/addons/",
+    "meshoptimizer": "./vendor/meshopt_simplifier.module.js"
+  }
+}
+</script>
+
+<div id="app">
+  <header id="topbar">
+    <div class="logo"><span></span></div>
+    <div class="titles">
+      <h1>POLY REDUCER 3D</h1>
+      <div class="sub" id="fileName">OBJ · STL — riduttore poligoni</div>
+    </div>
+    <label class="wire-toggle">
+      <input type="checkbox" id="wireframe"> <span>rete</span>
+    </label>
+  </header>
+
+  <div id="viewport">
+    <canvas id="canvas"></canvas>
+
+    <div id="dropHint" class="drop-hint">
+      <div class="icon">◈</div>
+      <p>Tocca <strong>Carica modello</strong><br>oppure trascina qui un file <b>.obj</b> / <b>.stl</b></p>
+    </div>
+
+    <div id="spinner" class="spinner hidden"><div class="ring"></div><span id="spinnerText">Elaboro…</span></div>
+  </div>
+
+  <section id="stats" class="stats hidden">
+    <div class="stat"><label>Originale</label><b id="statOrig">—</b><small>triangoli</small></div>
+    <div class="stat"><label>Attuale</label><b id="statCur">—</b><small>triangoli</small></div>
+    <div class="stat"><label>Riduzione</label><b id="statRed">—</b><small>in meno</small></div>
+  </section>
+
+  <section id="controls" class="controls">
+    <div class="slider-row">
+      <div class="slider-head">
+        <span>Dettaglio mantenuto</span>
+        <b id="ratioLabel">100%</b>
+      </div>
+      <input type="range" id="ratio" min="2" max="100" value="100" step="1" disabled>
+    </div>
+
+    <div class="buttons">
+      <button id="loadBtn" class="btn primary">📂 Carica modello</button>
+      <button id="resetBtn" class="btn" disabled>↺ Originale</button>
+      <button id="exportStl" class="btn" disabled>⤓ STL</button>
+      <button id="exportObj" class="btn" disabled>⤓ OBJ</button>
+    </div>
+  </section>
+
+  <input type="file" id="fileInput" accept=".obj,.stl" hidden>
+</div>
+
+<script type="module" src="./app.js"></script>

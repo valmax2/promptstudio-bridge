@@ -4,7 +4,8 @@
   "description": "Cloud bridge Prompt Studio AI → ComfyUI",
   "main": "server-cloud.js",
   "scripts": {
-    "start": "node server-cloud.js"
+    "start": "node server-cloud.js",
+    "serve3d": "node 3d-reducer/serve.js"
   },
   "engines": {
     "node": ">=18"

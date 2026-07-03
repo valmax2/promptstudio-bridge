@@ -25,6 +25,7 @@ const el = {
   autoRotate: $('autoRotate'), movingLight: $('movingLight'), viewAxes: $('viewAxes'),
   orientRow: $('orientRow'), viewCube: $('viewCube'), freeRotate: $('freeRotate'),
   orientX: $('orientX'), orientY: $('orientY'), orientZ: $('orientZ'),
+  displaySeg: $('displaySeg'),
 };
 
 // ─── Three.js scene ───────────────────────────────────────────────────────────
@@ -265,6 +266,25 @@ el.sheetToggle.addEventListener('click', () => {
   store('pr3d-collapsed', collapsed ? '1' : '0');
 });
 
+// ─── Modalità di visualizzazione: filo di ferro / sfaccettato / smooth ──────
+let displayMode = 'smooth';
+let prevShaded = 'smooth';   // ultima modalità piena, per il tasto rapido "Rete"
+function applyDisplayMode(mode, save = true) {
+  displayMode = mode;
+  material.wireframe = (mode === 'wire');
+  material.flatShading = (mode === 'flat');
+  material.needsUpdate = true;
+  if (mode !== 'wire') prevShaded = mode;
+  el.displaySeg.querySelectorAll('button').forEach((b) => b.classList.toggle('active', b.dataset.mode === mode));
+  el.wireframe.setAttribute('aria-pressed', mode === 'wire' ? 'true' : 'false');
+  if (save) store('pr3d-display', mode);
+}
+el.displaySeg.querySelectorAll('button').forEach((b) =>
+  b.addEventListener('click', () => applyDisplayMode(b.dataset.mode)));
+// pulsante "Rete": scorciatoia filo di ferro ⇄ ultima modalità piena
+el.wireframe.addEventListener('click', () =>
+  applyDisplayMode(displayMode === 'wire' ? prevShaded : 'wire'));
+
 // ─── Applica le preferenze salvate ──────────────────────────────────────────
 applyTheme(document.documentElement.dataset.theme === 'light' ? 'light' : 'dark');
 (function restore() {
@@ -280,6 +300,8 @@ applyTheme(document.documentElement.dataset.theme === 'light' ? 'light' : 'dark'
   if (va === '1') { viewAxesOn = true; setSwitch(el.viewAxes, true); el.viewCube.classList.remove('hidden'); }
   let fr; try { fr = localStorage.getItem('pr3d-freerotate'); } catch (e) {}
   if (fr === '1') { freeRotateOn = true; setSwitch(el.freeRotate, true); controls.enableRotate = false; }
+  let dm; try { dm = localStorage.getItem('pr3d-display'); } catch (e) {}
+  applyDisplayMode(['wire', 'flat', 'smooth'].includes(dm) ? dm : 'smooth', false);
   let cl; try { cl = localStorage.getItem('pr3d-collapsed'); } catch (e) {}
   if (cl === '1') { el.sheet.classList.add('collapsed'); el.sheetToggle.setAttribute('aria-label', 'Espandi pannello'); }
 })();
@@ -554,12 +576,6 @@ el.resetBtn.addEventListener('click', () => {
   setGeometry(baseGeometry.clone()); updateStats();
 });
 
-// toggle wireframe (pulsante "Rete")
-el.wireframe.addEventListener('click', () => {
-  material.wireframe = !material.wireframe;
-  el.wireframe.setAttribute('aria-pressed', material.wireframe ? 'true' : 'false');
-});
-
 // ─── Input file + drag & drop ──────────────────────────────────────────────────
 el.loadBtn.addEventListener('click', () => el.fileInput.click());
 el.fileInput.addEventListener('change', (e) => { if (e.target.files[0]) handleFile(e.target.files[0]); el.fileInput.value = ''; });
@@ -574,4 +590,4 @@ if ('serviceWorker' in navigator) {
 }
 
 // hook di sola lettura per test/debug
-window.PR3D = { get mesh() { return mesh; }, get camera() { return camera; } };
+window.PR3D = { get mesh() { return mesh; }, get camera() { return camera; }, get material() { return material; } };

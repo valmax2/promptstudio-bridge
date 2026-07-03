@@ -23,6 +23,7 @@ const el = {
   settingsBackdrop: $('settingsBackdrop'), themeSeg: $('themeSeg'),
   accentSwatches: $('accentSwatches'), modelSwatches: $('modelSwatches'),
   autoRotate: $('autoRotate'), movingLight: $('movingLight'), viewAxes: $('viewAxes'),
+  spinAxisSeg: $('spinAxisSeg'), viewCube: $('viewCube'),
 };
 
 // ─── Three.js scene ───────────────────────────────────────────────────────────
@@ -58,6 +59,13 @@ let movingLightOn = false;
 let viewAxesOn = false;
 const modelCenter = new THREE.Vector3();
 let modelRadius = 1;
+
+// Auto-rotazione: l'OGGETTO gira su un asse scelto (turntable), senza toccare l'export
+let spinAngle = 0;
+const spinSpeed = 0.8;              // rad/s
+const spinAxis = new THREE.Vector3(0, 1, 0); // Y = verticale (colonna vertebrale)
+const AXES = { x: new THREE.Vector3(1, 0, 0), y: new THREE.Vector3(0, 1, 0), z: new THREE.Vector3(0, 0, 1) };
+let viewTween = null;               // animazione delle viste fisse (camera)
 const store = (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} };
 
 // Cubo/assi di orientamento (stile CAD), angolo in basso a destra del canvas
@@ -132,10 +140,17 @@ MODELS.forEach((item) => {
 function setSwitch(node, on) { node.setAttribute('aria-checked', on ? 'true' : 'false'); }
 el.autoRotate.addEventListener('click', () => {
   autoRotateOn = !autoRotateOn;
-  controls.autoRotate = autoRotateOn;
   setSwitch(el.autoRotate, autoRotateOn);
   store('pr3d-autorotate', autoRotateOn ? '1' : '0');
 });
+// scelta dell'asse su cui gira l'oggetto (es. verticale = colonna vertebrale)
+function applySpinAxis(a, save = true) {
+  spinAxis.copy(AXES[a] || AXES.y);
+  el.spinAxisSeg.querySelectorAll('button').forEach((b) => b.classList.toggle('active', b.dataset.axis === a));
+  if (save) store('pr3d-spinaxis', a);
+}
+el.spinAxisSeg.querySelectorAll('button').forEach((b) =>
+  b.addEventListener('click', () => applySpinAxis(b.dataset.axis)));
 el.movingLight.addEventListener('click', () => {
   movingLightOn = !movingLightOn;
   setSwitch(el.movingLight, movingLightOn);
@@ -145,9 +160,34 @@ el.movingLight.addEventListener('click', () => {
 el.viewAxes.addEventListener('click', () => {
   viewAxesOn = !viewAxesOn;
   setSwitch(el.viewAxes, viewAxesOn);
+  el.viewCube.classList.toggle('hidden', !viewAxesOn);
   store('pr3d-viewaxes', viewAxesOn ? '1' : '0');
 });
-controls.autoRotateSpeed = 2.2;
+
+// ─── Viste fisse: orienta la camera esattamente su un asse ──────────────────
+const VIEW_DIRS = {
+  front:  { dir: new THREE.Vector3(0, 0, 1),  up: new THREE.Vector3(0, 1, 0) },
+  back:   { dir: new THREE.Vector3(0, 0, -1), up: new THREE.Vector3(0, 1, 0) },
+  right:  { dir: new THREE.Vector3(1, 0, 0),  up: new THREE.Vector3(0, 1, 0) },
+  left:   { dir: new THREE.Vector3(-1, 0, 0), up: new THREE.Vector3(0, 1, 0) },
+  top:    { dir: new THREE.Vector3(0, 1, 0),  up: new THREE.Vector3(0, 0, -1) },
+  bottom: { dir: new THREE.Vector3(0, -1, 0), up: new THREE.Vector3(0, 0, 1) },
+};
+function orientTo(name) {
+  const v = VIEW_DIRS[name];
+  if (!v) return;
+  const dist = camera.position.distanceTo(modelCenter) || modelRadius * 2.6 || 5;
+  controls.target.copy(modelCenter);
+  viewTween = {
+    startPos: camera.position.clone(),
+    endPos: modelCenter.clone().addScaledVector(v.dir, dist),
+    startUp: camera.up.clone(),
+    endUp: v.up.clone(),
+    t0: performance.now(), dur: 480,
+  };
+}
+el.viewCube.querySelectorAll('button').forEach((b) =>
+  b.addEventListener('click', () => orientTo(b.dataset.dir)));
 
 // ─── Apertura / chiusura Impostazioni ───────────────────────────────────────
 function openSettings() { el.settings.classList.remove('hidden'); requestAnimationFrame(() => el.settings.classList.add('show')); }
@@ -170,12 +210,14 @@ applyTheme(document.documentElement.dataset.theme === 'light' ? 'light' : 'dark'
   applyAccent(ACCENTS.includes(a) ? a : ACCENTS[0], false);
   let m; try { m = localStorage.getItem('pr3d-model'); } catch (e) {}
   applyModelColor(MODELS.find((x) => x.n === m) || MODELS[0], false);
+  let sx; try { sx = localStorage.getItem('pr3d-spinaxis'); } catch (e) {}
+  applySpinAxis(['x', 'y', 'z'].includes(sx) ? sx : 'y', false);
   let ar; try { ar = localStorage.getItem('pr3d-autorotate'); } catch (e) {}
-  if (ar === '1') { autoRotateOn = true; controls.autoRotate = true; setSwitch(el.autoRotate, true); }
+  if (ar === '1') { autoRotateOn = true; setSwitch(el.autoRotate, true); }
   let ml; try { ml = localStorage.getItem('pr3d-movinglight'); } catch (e) {}
   if (ml === '1') { movingLightOn = true; setSwitch(el.movingLight, true); }
   let va; try { va = localStorage.getItem('pr3d-viewaxes'); } catch (e) {}
-  if (va === '1') { viewAxesOn = true; setSwitch(el.viewAxes, true); }
+  if (va === '1') { viewAxesOn = true; setSwitch(el.viewAxes, true); el.viewCube.classList.remove('hidden'); }
   let cl; try { cl = localStorage.getItem('pr3d-collapsed'); } catch (e) {}
   if (cl === '1') { el.sheet.classList.add('collapsed'); el.sheetToggle.setAttribute('aria-label', 'Espandi pannello'); }
 })();
@@ -195,9 +237,14 @@ function resize() {
 new ResizeObserver(resize).observe(viewport);
 resize();
 
+const _q = new THREE.Quaternion();
+const _tmp = new THREE.Vector3();
+function easeInOut(k) { return k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2; }
+
 (function animate() {
   requestAnimationFrame(animate);
   const delta = clock.getDelta();
+
   if (movingLightOn && mesh) {
     const t = performance.now() * 0.0012;
     key.position.set(
@@ -206,9 +253,31 @@ resize();
       modelCenter.z + Math.sin(t) * modelRadius * 2.2,
     );
   }
-  // durante l'animazione del cubo di orientamento comanda il ViewHelper, non i controlli
-  if (viewHelper.animating) viewHelper.update(delta);
-  else controls.update();
+
+  // Turntable: fa girare l'OGGETTO attorno all'asse scelto, passante per il suo centro
+  if (mesh) {
+    if (autoRotateOn) spinAngle += delta * spinSpeed;
+    if (spinAngle !== 0) {
+      _q.setFromAxisAngle(spinAxis, spinAngle);
+      mesh.quaternion.copy(_q);
+      mesh.position.copy(modelCenter).sub(_tmp.copy(modelCenter).applyQuaternion(_q));
+    }
+  }
+
+  // Viste fisse (pulsanti) e cubetto di orientamento animano la camera
+  if (viewTween) {
+    const k = Math.min((performance.now() - viewTween.t0) / viewTween.dur, 1);
+    const e = easeInOut(k);
+    camera.position.lerpVectors(viewTween.startPos, viewTween.endPos, e);
+    camera.up.lerpVectors(viewTween.startUp, viewTween.endUp, e).normalize();
+    camera.lookAt(modelCenter);
+    if (k >= 1) viewTween = null;
+  } else if (viewHelper.animating) {
+    viewHelper.update(delta);
+  } else {
+    controls.update();
+  }
+
   renderer.clear();
   renderer.render(scene, camera);
   if (viewAxesOn) viewHelper.render(renderer);
@@ -290,6 +359,7 @@ async function handleFile(file) {
     merged.computeVertexNormals();
 
     baseGeometry = merged;
+    spinAngle = 0;                    // il nuovo modello parte di fronte
     setGeometry(merged.clone());
     fitCamera();
 
@@ -400,14 +470,16 @@ function baseName() {
   return `${n}_ridotto_${pct}pct`;
 }
 
+// esporta dalla geometria nelle coordinate originali (ignora la rotazione di visualizzazione)
+function exportMesh() { return new THREE.Mesh(currentGeometry); }
 el.exportStl.addEventListener('click', () => {
-  const dv = new STLExporter().parse(mesh, { binary: true });
+  const dv = new STLExporter().parse(exportMesh(), { binary: true });
   const blob = new Blob([dv], { type: 'application/octet-stream' });
   download(blob, baseName() + '.stl');
   toast('STL salvato · ' + fmtBytes(blob.size));
 });
 el.exportObj.addEventListener('click', () => {
-  const txt = new OBJExporter().parse(mesh);
+  const txt = new OBJExporter().parse(exportMesh());
   // octet-stream: forza il download come vero file .obj (evita che Android lo salvi come .txt)
   const blob = new Blob([txt], { type: 'application/octet-stream' });
   download(blob, baseName() + '.obj');
@@ -437,3 +509,6 @@ viewport.addEventListener('drop', (e) => { const f = e.dataTransfer.files[0]; if
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('./sw.js').catch(() => {});
 }
+
+// hook di sola lettura per test/debug
+window.PR3D = { get mesh() { return mesh; }, get camera() { return camera; } };

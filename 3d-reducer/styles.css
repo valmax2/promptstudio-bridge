@@ -167,6 +167,17 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);
 .switch[aria-checked="true"]{background:#34C759}
 .switch[aria-checked="true"]::after{transform:translateX(20px)}
 
+.sub-label{font-size:12px;color:var(--text2);font-weight:500;margin:0 4px 6px}
+
+/* Pulsanti vista fissa (Fronte/Lato/Sopra…) sopra il modello 3D */
+.view-cube{position:absolute;top:12px;left:12px;display:grid;grid-template-columns:repeat(2,1fr);
+  gap:6px;z-index:3}
+.view-cube.hidden{display:none}
+.view-cube button{padding:8px 10px;border-radius:10px;border:none;font-size:12px;font-weight:600;
+  min-width:76px;color:var(--text);background:var(--sheet);box-shadow:var(--shadow);cursor:pointer;
+  backdrop-filter:saturate(180%) blur(12px);-webkit-backdrop-filter:saturate(180%) blur(12px)}
+.view-cube button:active{transform:scale(.93);color:var(--accent)}
+
 /* ─── Toast ────────────────────────────────────────────────────────────────── */
 .toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom));transform:translate(-50%,20px);
   background:var(--sheet-solid);color:var(--text);padding:12px 20px;border-radius:14px;

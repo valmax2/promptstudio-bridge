@@ -55,6 +55,15 @@
     </div>
 
     <div id="spinner" class="spinner hidden"><div class="ring"></div><span id="spinnerText">Elaboro…</span></div>
+
+    <div id="viewCube" class="view-cube hidden">
+      <button data-dir="front">Fronte</button>
+      <button data-dir="back">Retro</button>
+      <button data-dir="left">Sinistra</button>
+      <button data-dir="right">Destra</button>
+      <button data-dir="top">Sopra</button>
+      <button data-dir="bottom">Sotto</button>
+    </div>
   </div>
 
   <section id="sheet" class="sheet">
@@ -121,15 +130,21 @@
       <div class="group">
         <div class="group-title">Vista</div>
         <div class="row">
-          <span>Auto-rotazione <small>fa girare l'oggetto</small></span>
+          <span>Auto-rotazione <small>l'oggetto gira su sé stesso</small></span>
           <button class="switch" id="autoRotate" role="switch" aria-checked="false"></button>
         </div>
-        <div class="row">
+        <div class="sub-label">Asse di rotazione</div>
+        <div class="seg" id="spinAxisSeg">
+          <button data-axis="y">Verticale</button>
+          <button data-axis="z">Profondità</button>
+          <button data-axis="x">Orizzontale</button>
+        </div>
+        <div class="row" style="margin-top:8px">
           <span>Luce in movimento <small>ombre dinamiche</small></span>
           <button class="switch" id="movingLight" role="switch" aria-checked="false"></button>
         </div>
         <div class="row">
-          <span>Assi di orientamento <small>tocca X / Y / Z per girare la vista</small></span>
+          <span>Pulsanti orientamento <small>viste fisse Fronte / Lato / Sopra…</small></span>
           <button class="switch" id="viewAxes" role="switch" aria-checked="false"></button>
         </div>
       </div>

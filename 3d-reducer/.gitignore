@@ -1,0 +1,12 @@
+# Capacitor / Android / build
+.capacitor-build/
+android/
+www/
+node_modules/
+*.apk
+*.aab
+
+# Firma (NON committare MAI la chiave!)
+*.keystore
+*.jks
+keystore.properties

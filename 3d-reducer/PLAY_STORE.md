@@ -26,19 +26,21 @@ mkdir -p www
 cp index.html styles.css app.js manifest.webmanifest sw.js icon.svg www/
 cp -r vendor www/vendor
 
-# inizializza Capacitor e crea il progetto Android PERSISTENTE
-npx cap init "Poly Reducer 3D" com.polyreducer.app --web-dir=www
+# capacitor.config.json è GIÀ nel repo → NON serve 'cap init'
 npx cap add android
 ```
 
 Ora esiste `3d-reducer/android/` (progetto Android Studio vero e proprio). **Non** cancellarlo tra una build e l'altra (serve per versioni e firma).
 
-### Icona dell'app col tuo logo (consigliato)
+### Icona e splash col tuo logo (già pronti)
+Gli asset sorgente sono già nel repo, in `3d-reducer/assets/`
+(`icon-only.png`, `icon-foreground.png`, `icon-background.png`, `splash.png`, `splash-dark.png`).
+Basta generarli per Android:
 ```bash
 npm install @capacitor/assets --save-dev
-# metti un'immagine 1024x1024 del logo in: resources/icon.png
 npx capacitor-assets generate --android
 ```
+Questo crea l'icona (anche **adattiva**, senza tagli) e lo splash screen a partire dalla tua icona.
 
 ---
 

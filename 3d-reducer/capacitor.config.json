@@ -1,0 +1,9 @@
+{
+  "appId": "com.polyreducer.app",
+  "appName": "Poly Reducer 3D",
+  "webDir": "www",
+  "backgroundColor": "#08183AFF",
+  "android": {
+    "backgroundColor": "#08183AFF"
+  }
+}

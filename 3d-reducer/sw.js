@@ -1,5 +1,5 @@
 // Service worker: cache dell'app shell + moduli CDN → funziona anche offline.
-const CACHE = 'poly-reducer-v4';
+const CACHE = 'poly-reducer-v5';
 const SHELL = [
   './', './index.html', './styles.css', './app.js',
   './manifest.webmanifest', './icon.svg',
@@ -11,6 +11,7 @@ const SHELL = [
   './vendor/addons/exporters/STLExporter.js',
   './vendor/addons/exporters/OBJExporter.js',
   './vendor/addons/utils/BufferGeometryUtils.js',
+  './vendor/addons/helpers/ViewHelper.js',
 ];
 
 self.addEventListener('install', (e) => {

@@ -5,6 +5,7 @@ import { OBJLoader } from 'three/addons/loaders/OBJLoader.js';
 import { STLExporter } from 'three/addons/exporters/STLExporter.js';
 import { OBJExporter } from 'three/addons/exporters/OBJExporter.js';
 import { mergeGeometries, mergeVertices } from 'three/addons/utils/BufferGeometryUtils.js';
+import { ViewHelper } from 'three/addons/helpers/ViewHelper.js';
 import { MeshoptSimplifier } from 'meshoptimizer';
 
 // ─── DOM ────────────────────────────────────────────────────────────────────
@@ -20,13 +21,15 @@ const el = {
   settingsBtn: $('settingsBtn'), settings: $('settings'), settingsClose: $('settingsClose'),
   settingsBackdrop: $('settingsBackdrop'), themeSeg: $('themeSeg'),
   accentSwatches: $('accentSwatches'), modelSwatches: $('modelSwatches'),
-  autoRotate: $('autoRotate'), movingLight: $('movingLight'),
+  autoRotate: $('autoRotate'), movingLight: $('movingLight'), viewAxes: $('viewAxes'),
 };
 
 // ─── Three.js scene ───────────────────────────────────────────────────────────
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 renderer.outputColorSpace = THREE.SRGBColorSpace;
+// autoClear off: puliamo a mano, così il ViewHelper (assi) non cancella la scena
+renderer.autoClear = false;
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x0a0a0f);
@@ -51,9 +54,16 @@ const material = new THREE.MeshStandardMaterial({
 let userModelColor = null;          // null = colore automatico (dipende dal tema)
 let autoRotateOn = false;
 let movingLightOn = false;
+let viewAxesOn = false;
 const modelCenter = new THREE.Vector3();
 let modelRadius = 1;
 const store = (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} };
+
+// Cubo/assi di orientamento (stile CAD), angolo in basso a destra del canvas
+const clock = new THREE.Clock();
+const viewHelper = new ViewHelper(camera, renderer.domElement);
+viewHelper.center = modelCenter;
+canvas.addEventListener('pointerup', (e) => { if (viewAxesOn) viewHelper.handleClick(e); });
 
 // ─── Tema chiaro / scuro ────────────────────────────────────────────────────
 const THEMES = {
@@ -131,6 +141,11 @@ el.movingLight.addEventListener('click', () => {
   if (!movingLightOn && mesh) key.position.copy(modelCenter).add(new THREE.Vector3(modelRadius, modelRadius * 1.5, modelRadius));
   store('pr3d-movinglight', movingLightOn ? '1' : '0');
 });
+el.viewAxes.addEventListener('click', () => {
+  viewAxesOn = !viewAxesOn;
+  setSwitch(el.viewAxes, viewAxesOn);
+  store('pr3d-viewaxes', viewAxesOn ? '1' : '0');
+});
 controls.autoRotateSpeed = 2.2;
 
 // ─── Apertura / chiusura Impostazioni ───────────────────────────────────────
@@ -151,6 +166,8 @@ applyTheme(document.documentElement.dataset.theme === 'light' ? 'light' : 'dark'
   if (ar === '1') { autoRotateOn = true; controls.autoRotate = true; setSwitch(el.autoRotate, true); }
   let ml; try { ml = localStorage.getItem('pr3d-movinglight'); } catch (e) {}
   if (ml === '1') { movingLightOn = true; setSwitch(el.movingLight, true); }
+  let va; try { va = localStorage.getItem('pr3d-viewaxes'); } catch (e) {}
+  if (va === '1') { viewAxesOn = true; setSwitch(el.viewAxes, true); }
 })();
 
 let mesh = null;            // mesh visualizzata
@@ -170,6 +187,7 @@ resize();
 
 (function animate() {
   requestAnimationFrame(animate);
+  const delta = clock.getDelta();
   if (movingLightOn && mesh) {
     const t = performance.now() * 0.0012;
     key.position.set(
@@ -178,8 +196,12 @@ resize();
       modelCenter.z + Math.sin(t) * modelRadius * 2.2,
     );
   }
-  controls.update();
+  // durante l'animazione del cubo di orientamento comanda il ViewHelper, non i controlli
+  if (viewHelper.animating) viewHelper.update(delta);
+  else controls.update();
+  renderer.clear();
   renderer.render(scene, camera);
+  if (viewAxesOn) viewHelper.render(renderer);
 })();
 
 // ─── Utility ──────────────────────────────────────────────────────────────────

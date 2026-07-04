@@ -7,7 +7,8 @@ import { OBJExporter } from 'three/addons/exporters/OBJExporter.js';
 import { mergeGeometries, mergeVertices } from 'three/addons/utils/BufferGeometryUtils.js';
 import { ViewHelper } from 'three/addons/helpers/ViewHelper.js';
 import { MeshoptSimplifier } from 'meshoptimizer';
-import { initAds, adAfterExport } from './ads.js';
+import { initAds, adAfterExport, showRewarded, isPro } from './ads.js';
+import { initBilling, buyPro, restorePro } from './billing.js';
 
 // ─── DOM ────────────────────────────────────────────────────────────────────
 const $ = (id) => document.getElementById(id);
@@ -27,6 +28,8 @@ const el = {
   orientRow: $('orientRow'), viewCube: $('viewCube'), freeRotate: $('freeRotate'),
   orientX: $('orientX'), orientY: $('orientY'), orientZ: $('orientZ'),
   displaySeg: $('displaySeg'), logoRow: $('logoRow'), appVer: $('appVer'),
+  proGroup: $('proGroup'), proStatus: $('proStatus'), buyProBtn: $('buyProBtn'),
+  unlockDetailBtn: $('unlockDetailBtn'), restoreProBtn: $('restoreProBtn'),
 };
 
 // ─── Three.js scene ───────────────────────────────────────────────────────────
@@ -600,7 +603,8 @@ function compact(positions, newIndices) {
 
 // slider: anteprima in tempo reale con debounce
 el.ratio.addEventListener('input', () => {
-  const pct = +el.ratio.value;
+  let pct = +el.ratio.value;
+  if (!detailAllowed(pct)) { pct = FREE_MIN_PCT; el.ratio.value = pct; promptDetailLocked(); }
   el.ratioLabel.textContent = pct + '%';
   clearTimeout(debounceTimer);
   debounceTimer = setTimeout(async () => {
@@ -657,7 +661,7 @@ el.fileInput.addEventListener('change', (e) => { if (e.target.files[0]) handleFi
 viewport.addEventListener('drop', (e) => { const f = e.dataTransfer.files[0]; if (f) handleFile(f); });
 
 // ─── Versione app (per verificare gli aggiornamenti) ────────────────────────
-const APP_VERSION = 'v14';
+const APP_VERSION = 'v15';
 if (el.appVer) el.appVer.textContent = 'Poly Reducer 3D · ' + APP_VERSION;
 
 // ─── Service worker (offline / installazione PWA) ───────────────────────────────
@@ -682,8 +686,47 @@ if ('serviceWorker' in navigator) {
 // mostra il logo d'avvio (dopo che tutto è definito)
 showLogo();
 
-// inizializza le pubblicità (solo su app nativa; sul web non fa nulla)
+// ─── Versione Pro + funzione premium "dettaglio massimo" ────────────────────
+const FREE_MIN_PCT = 12;          // sotto questa soglia = riduzione estrema (premium)
+let hiDetailUnlocked = false;
+function isNative() { const C = window.Capacitor; return !!(C && typeof C.isNativePlatform === 'function' && C.isNativePlatform()); }
+// il dettaglio massimo è libero sul web; nell'app serve Pro o un video premiato
+function detailAllowed(pct) { return pct >= FREE_MIN_PCT || !isNative() || isPro() || hiDetailUnlocked; }
+let lockToastAt = 0;
+function promptDetailLocked() {
+  const now = Date.now(); if (now - lockToastAt < 2500) return; lockToastAt = now;
+  toast('Dettaglio massimo: sbloccalo in Impostazioni (video o Pro)');
+}
+function refreshProUI() {
+  el.proGroup.classList.toggle('hidden', !isNative());
+  const pro = isPro();
+  el.proStatus.textContent = pro ? '· Pro ✓' : '';
+  el.buyProBtn.style.display = pro ? 'none' : '';
+  el.unlockDetailBtn.style.display = pro ? 'none' : '';
+}
+el.buyProBtn.addEventListener('click', async () => {
+  toast('Avvio acquisto…');
+  const r = await buyPro();
+  if (r.ok) { toast('Grazie! Pro attivo ✓'); refreshProUI(); }
+  else if (r.reason !== 'cancelled') { toast('Acquisti non disponibili al momento'); }
+});
+el.restoreProBtn.addEventListener('click', async () => {
+  const r = await restorePro();
+  toast(r.ok ? 'Acquisto ripristinato ✓' : 'Nessun acquisto da ripristinare');
+  refreshProUI();
+});
+el.unlockDetailBtn.addEventListener('click', async () => {
+  if (isPro() || hiDetailUnlocked) { toast('Dettaglio massimo già attivo'); return; }
+  toast('Carico il video…');
+  const earned = await showRewarded();
+  if (earned) { hiDetailUnlocked = true; toast('Dettaglio massimo sbloccato ✓'); }
+  else toast('Video non completato');
+});
+
+// inizializza pubblicità e acquisti (solo su app nativa; sul web non fanno nulla)
 initAds();
+initBilling().then(refreshProUI);
+refreshProUI();
 
 // hook di sola lettura per test/debug
 window.PR3D = { get mesh() { return mesh; }, get camera() { return camera; }, get material() { return material; }, get logo() { return logoMesh; } };

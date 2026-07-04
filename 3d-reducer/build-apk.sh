@@ -28,9 +28,11 @@ rm -rf "$BUILD"
 mkdir -p "$BUILD/www"
 
 # Copia i file statici dell'app nella cartella 'www' che Capacitor userà come webdir
-cp "$HERE"/index.html "$HERE"/styles.css "$HERE"/app.js \
+cp "$HERE"/index.html "$HERE"/app.html "$HERE"/tutorial.html "$HERE"/privacy.html \
+   "$HERE"/styles.css "$HERE"/app.js "$HERE"/ads.js \
    "$HERE"/manifest.webmanifest "$HERE"/sw.js "$HERE"/icon.svg "$BUILD/www/"
 cp -r "$HERE"/vendor "$BUILD/www/vendor"
+cp -r "$HERE"/assets "$BUILD/www/assets"
 
 cd "$BUILD"
 

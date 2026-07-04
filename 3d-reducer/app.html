@@ -1,0 +1,187 @@
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#000000" id="themeColor">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Poly Reducer 3D</title>
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="icon" href="./icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="./icon.svg">
+
+<!-- Imposta il tema prima del rendering per evitare lampeggi -->
+<script>
+(function () {
+  try {
+    var t = localStorage.getItem('pr3d-theme');
+    if (t !== 'light' && t !== 'dark')
+      t = matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    document.documentElement.dataset.theme = t;
+  } catch (e) { document.documentElement.dataset.theme = 'dark'; }
+})();
+</script>
+
+<link rel="stylesheet" href="./styles.css">
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "./vendor/three.module.js",
+    "three/addons/": "./vendor/addons/",
+    "meshoptimizer": "./vendor/meshopt_simplifier.module.js"
+  }
+}
+</script>
+
+<div id="app">
+  <header id="topbar">
+    <div class="app-icon"><span></span></div>
+    <div class="titles">
+      <h1>Poly Reducer 3D</h1>
+      <div class="sub" id="fileName">Nessun file · OBJ / STL</div>
+    </div>
+    <div class="header-actions">
+      <button id="wireframe" class="pill" aria-pressed="false">Rete</button>
+      <button id="settingsBtn" class="icon-btn" aria-label="Impostazioni">⚙</button>
+    </div>
+  </header>
+
+  <div id="viewport">
+    <canvas id="canvas"></canvas>
+
+    <div id="dropHint" class="drop-hint">
+      <div class="icon">◈</div>
+      <p>Tocca <b>Carica modello</b><br>oppure trascina un file <b>.obj</b> / <b>.stl</b></p>
+    </div>
+
+    <div id="spinner" class="spinner hidden"><div class="ring"></div><span id="spinnerText">Elaboro…</span></div>
+
+    <div id="viewCube" class="view-cube hidden">
+      <button data-dir="front">Fronte</button>
+      <button data-dir="back">Retro</button>
+      <button data-dir="left">Sinistra</button>
+      <button data-dir="right">Destra</button>
+      <button data-dir="top">Sopra</button>
+      <button data-dir="bottom">Sotto</button>
+    </div>
+  </div>
+
+  <section id="sheet" class="sheet">
+    <button id="sheetToggle" class="sheet-toggle" aria-label="Riduci pannello">
+      <span class="grabber"></span>
+      <span class="chev" aria-hidden="true">⌄</span>
+    </button>
+
+    <div id="sheetBody">
+    <div id="stats" class="stats hidden">
+      <div class="stat"><label>Originale</label><b id="statOrig">—</b><small>triangoli</small></div>
+      <div class="stat"><label>Attuale</label><b id="statCur">—</b><small>triangoli</small></div>
+      <div class="stat"><label>Riduzione</label><b id="statRed">—</b><small>in meno</small></div>
+      <div class="stat"><label>Dimensione</label><b id="statSize">—</b><small>~ STL</small></div>
+    </div>
+
+    <div class="slider-card">
+      <div class="slider-head">
+        <span>Dettaglio mantenuto</span>
+        <b id="ratioLabel">100%</b>
+      </div>
+      <input type="range" id="ratio" min="2" max="100" value="100" step="1" disabled>
+    </div>
+
+    <div class="buttons">
+      <button id="loadBtn" class="btn primary">Carica modello</button>
+      <div class="btn-row">
+        <button id="resetBtn" class="btn" disabled>Originale</button>
+        <button id="exportStl" class="btn" disabled>Esporta STL</button>
+        <button id="exportObj" class="btn" disabled>Esporta OBJ</button>
+      </div>
+    </div>
+    </div><!-- /sheetBody -->
+  </section>
+
+  <!-- ⚙ Impostazioni -->
+  <div id="settings" class="modal hidden">
+    <div class="modal-backdrop" id="settingsBackdrop"></div>
+    <div class="modal-sheet">
+      <div class="grabber"></div>
+      <div class="modal-head">
+        <h2>Impostazioni</h2>
+        <button id="settingsClose" class="icon-btn" aria-label="Chiudi">✕</button>
+      </div>
+
+      <div class="group">
+        <div class="group-title">Aspetto</div>
+        <div class="seg" id="themeSeg">
+          <button data-theme-val="light">Chiara</button>
+          <button data-theme-val="dark">Scura</button>
+        </div>
+      </div>
+
+      <div class="group">
+        <div class="group-title">Palette interfaccia</div>
+        <div class="swatches" id="accentSwatches"></div>
+      </div>
+
+      <div class="group">
+        <div class="group-title">Colore modello</div>
+        <div class="swatches" id="modelSwatches"></div>
+      </div>
+
+      <div class="group">
+        <div class="group-title">Visualizzazione</div>
+        <div class="seg" id="displaySeg">
+          <button data-mode="wire">Filo</button>
+          <button data-mode="flat">Sfaccettato</button>
+          <button data-mode="smooth">Smooth</button>
+        </div>
+      </div>
+
+      <div class="group">
+        <div class="group-title">Vista</div>
+        <div class="row">
+          <span>Auto-rotazione <small>l'oggetto gira su sé stesso</small></span>
+          <button class="switch" id="autoRotate" role="switch" aria-checked="false"></button>
+        </div>
+        <div class="row">
+          <span>Ruota col dito <small>trascina il modello per girarlo</small></span>
+          <button class="switch" id="freeRotate" role="switch" aria-checked="false"></button>
+        </div>
+        <div class="sub-label">Orienta con i gradi</div>
+        <div class="orient-grid">
+          <label>X°<input type="number" id="orientX" step="15" value="0" inputmode="numeric"></label>
+          <label>Y°<input type="number" id="orientY" step="15" value="0" inputmode="numeric"></label>
+          <label>Z°<input type="number" id="orientZ" step="15" value="0" inputmode="numeric"></label>
+        </div>
+        <div class="btn-row" id="orientRow">
+          <button class="btn" data-orient="tilt">+90° X</button>
+          <button class="btn" data-orient="roll">+90° Z</button>
+          <button class="btn" data-orient="reset">Azzera</button>
+        </div>
+        <div class="row" style="margin-top:8px">
+          <span>Luce in movimento <small>ombre dinamiche</small></span>
+          <button class="switch" id="movingLight" role="switch" aria-checked="false"></button>
+        </div>
+        <div class="row">
+          <span>Pulsanti orientamento <small>viste fisse Fronte / Lato / Sopra…</small></span>
+          <button class="switch" id="viewAxes" role="switch" aria-checked="false"></button>
+        </div>
+      </div>
+
+      <div class="group">
+        <div class="group-title">Logo d'avvio</div>
+        <div class="sub-label">Il modello che gira all'apertura dell'app</div>
+        <div class="btn-row two" id="logoRow">
+          <button class="btn" data-logo="save">Usa il modello come logo</button>
+          <button class="btn" data-logo="reset">Logo predefinito</button>
+        </div>
+      </div>
+
+      <div class="modal-ver" id="appVer"></div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast"></div>
+  <input type="file" id="fileInput" accept=".obj,.stl" hidden>
+</div>
+
+<script type="module" src="./app.js"></script>

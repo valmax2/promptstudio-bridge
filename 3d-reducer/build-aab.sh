@@ -38,7 +38,7 @@ case "$STORE_FILE" in /*) KS="$STORE_FILE";; *) KS="$HERE/$STORE_FILE";; esac
 
 echo "▶ Aggiorno i file web in www/"
 mkdir -p www
-cp index.html app.html tutorial.html privacy.html styles.css app.js ads.js \
+cp index.html app.html tutorial.html privacy.html styles.css app.js ads.js billing.js \
    manifest.webmanifest sw.js icon.svg www/
 rm -rf www/vendor && cp -r vendor www/vendor
 rm -rf www/assets && cp -r assets www/assets

@@ -182,7 +182,7 @@ body {
 .cell[data-row="8"] { border-bottom: 1.5px solid var(--box-line); }
 
 .pause-overlay {
-  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  position: absolute; inset: 0; z-index: 5; display: flex; align-items: center; justify-content: center;
   background: color-mix(in srgb, var(--bg) 88%, transparent);
   backdrop-filter: blur(6px);
   border-radius: 12px;
@@ -269,6 +269,18 @@ body {
 }
 .switch input:checked + .slider { background: var(--accent); }
 .switch input:checked + .slider::before { transform: translateX(18px); }
+
+.track-picker {
+  display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;
+  padding: 4px 4px 16px; transition: opacity .15s ease;
+}
+.track-picker.disabled { opacity: .4; pointer-events: none; }
+.track-btn {
+  border: none; border-radius: 12px; padding: 10px 8px; font-size: 13px; font-weight: 700;
+  background: var(--surface-2); color: var(--text); cursor: pointer;
+}
+.track-btn:active { transform: scale(.96); }
+.track-btn.active { background: var(--accent); color: var(--accent-contrast); }
 
 .brand-footer { margin-top: 18px; color: var(--muted); font-size: 12px; font-weight: 600; }
 

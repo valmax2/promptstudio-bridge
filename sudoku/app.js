@@ -10,6 +10,8 @@
   const STORAGE_KEY = 'vsudoku-state-v2';
   const THEME_KEY = 'vsudoku-theme';
   const SOUND_KEY = 'vsudoku-sound';
+  const MUSIC_ENABLED_KEY = 'vsudoku-music-enabled';
+  const MUSIC_TRACK_KEY = 'vsudoku-music-track';
 
   const $ = (sel) => document.querySelector(sel);
 
@@ -28,6 +30,8 @@
   const winModal = $('#winModal');
   const darkModeToggle = $('#darkModeToggle');
   const soundToggle = $('#soundToggle');
+  const musicToggle = $('#musicToggle');
+  const trackPicker = $('#trackPicker');
   const notesBtn = $('#notesBtn');
 
   const DIFFICULTY_NAMES = { easy: 'Facile', medium: 'Medio', hard: 'Difficile' };
@@ -37,6 +41,10 @@
   let timerHandle = null;
   let paused = false;
   let soundEnabled = true;
+  let musicEnabled = false;
+  let currentTrackId = 'ocean';
+  let musicStopFn = null;
+  let musicGain = null;
   let notesMode = false;
   let audioCtx = null;
 
@@ -91,6 +99,220 @@
   const sfxTap = () => beep(520, 0.09, 'sine');
   const sfxError = () => beep(160, 0.2, 'square');
   const sfxWin = () => [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => beep(f, 0.24, 'triangle'), i * 110));
+
+  /* ── Musica ambient: tracce zen generate al volo, nessun file da scaricare ─
+   * Ogni traccia è un piccolo grafo WebAudio (rumore filtrato + LFO + note
+   * sparse) che suona in loop senza soluzione di continuità e senza asset
+   * audio esterni (quindi nessun problema di licenza).
+   */
+  function makeNoiseBuffer(ctx, seconds) {
+    const buffer = ctx.createBuffer(1, Math.floor(ctx.sampleRate * seconds), ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+    return buffer;
+  }
+  function makeBrownBuffer(ctx, seconds) {
+    const buffer = ctx.createBuffer(1, Math.floor(ctx.sampleRate * seconds), ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    let last = 0;
+    for (let i = 0; i < data.length; i++) {
+      const white = Math.random() * 2 - 1;
+      last = (last + 0.02 * white) / 1.02;
+      data[i] = last * 3.5; // compensa il volume naturalmente basso del brown noise
+    }
+    return buffer;
+  }
+  function disconnectAll(nodes) {
+    nodes.forEach((n) => { try { n.disconnect(); } catch (e) {} });
+  }
+  function stopAll(nodes) {
+    nodes.forEach((n) => { try { n.stop(); } catch (e) {} });
+  }
+
+  function buildOceanTrack(ctx, dest) {
+    const noise = ctx.createBufferSource();
+    noise.buffer = makeBrownBuffer(ctx, 4);
+    noise.loop = true;
+
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.value = 500;
+    filter.Q.value = 0.6;
+
+    const gain = ctx.createGain();
+    gain.gain.value = 0.5;
+
+    const filterLfo = ctx.createOscillator();
+    filterLfo.frequency.value = 0.07;
+    const filterLfoGain = ctx.createGain();
+    filterLfoGain.gain.value = 300;
+    filterLfo.connect(filterLfoGain).connect(filter.frequency);
+
+    const swell = ctx.createOscillator();
+    swell.frequency.value = 0.05;
+    const swellGain = ctx.createGain();
+    swellGain.gain.value = 0.25;
+    swell.connect(swellGain).connect(gain.gain);
+
+    noise.connect(filter).connect(gain).connect(dest);
+    noise.start(); filterLfo.start(); swell.start();
+
+    return () => {
+      stopAll([noise, filterLfo, swell]);
+      disconnectAll([noise, filter, gain, filterLfo, filterLfoGain, swell, swellGain]);
+    };
+  }
+
+  function buildRainTrack(ctx, dest) {
+    const noise = ctx.createBufferSource();
+    noise.buffer = makeNoiseBuffer(ctx, 3);
+    noise.loop = true;
+
+    const highpass = ctx.createBiquadFilter();
+    highpass.type = 'highpass';
+    highpass.frequency.value = 1200;
+    const lowpass = ctx.createBiquadFilter();
+    lowpass.type = 'lowpass';
+    lowpass.frequency.value = 6000;
+
+    const gain = ctx.createGain();
+    gain.gain.value = 0.16;
+
+    const lfo = ctx.createOscillator();
+    lfo.frequency.value = 0.15;
+    const lfoGain = ctx.createGain();
+    lfoGain.gain.value = 0.04;
+    lfo.connect(lfoGain).connect(gain.gain);
+
+    noise.connect(highpass).connect(lowpass).connect(gain).connect(dest);
+    noise.start(); lfo.start();
+
+    const dropNotes = [523.25, 587.33, 659.25, 783.99, 880.0];
+    let dropTimer = null;
+    (function scheduleDrop() {
+      dropTimer = setTimeout(() => {
+        const osc = ctx.createOscillator();
+        const dGain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.value = dropNotes[Math.floor(Math.random() * dropNotes.length)];
+        dGain.gain.setValueAtTime(0.0001, ctx.currentTime);
+        dGain.gain.exponentialRampToValueAtTime(0.05, ctx.currentTime + 0.02);
+        dGain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.6);
+        osc.connect(dGain).connect(dest);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.7);
+        scheduleDrop();
+      }, 700 + Math.random() * 2200);
+    })();
+
+    return () => {
+      clearTimeout(dropTimer);
+      stopAll([noise, lfo]);
+      disconnectAll([noise, highpass, lowpass, gain, lfo, lfoGain]);
+    };
+  }
+
+  function buildChimesTrack(ctx, dest) {
+    const noise = ctx.createBufferSource();
+    noise.buffer = makeNoiseBuffer(ctx, 3);
+    noise.loop = true;
+    const bandpass = ctx.createBiquadFilter();
+    bandpass.type = 'bandpass';
+    bandpass.frequency.value = 800;
+    bandpass.Q.value = 0.5;
+    const windGain = ctx.createGain();
+    windGain.gain.value = 0.025;
+    noise.connect(bandpass).connect(windGain).connect(dest);
+    noise.start();
+
+    const scale = [293.66, 349.23, 392.0, 440.0, 523.25, 587.33]; // pentatonica calma
+    let chimeTimer = null;
+    (function scheduleChime() {
+      chimeTimer = setTimeout(() => {
+        const octave = Math.random() < 0.3 ? 2 : 1;
+        const freq = scale[Math.floor(Math.random() * scale.length)] * octave;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(0.0001, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.09, ctx.currentTime + 0.6);
+        gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 3.5);
+        osc.connect(gain).connect(dest);
+        osc.start();
+        osc.stop(ctx.currentTime + 3.6);
+        scheduleChime();
+      }, 2500 + Math.random() * 4500);
+    })();
+
+    return () => {
+      clearTimeout(chimeTimer);
+      stopAll([noise]);
+      disconnectAll([noise, bandpass, windGain]);
+    };
+  }
+
+  function buildMeditationTrack(ctx, dest) {
+    const freqs = [130.81, 196.0, 261.63]; // C3, G3, C4: quinta + ottava, drone caldo
+    const oscs = [];
+    const gains = [];
+    const masterGain = ctx.createGain();
+    masterGain.gain.value = 0.16;
+
+    const breathe = ctx.createOscillator();
+    breathe.frequency.value = 0.06;
+    const breatheGain = ctx.createGain();
+    breatheGain.gain.value = 0.06;
+    breathe.connect(breatheGain).connect(masterGain.gain);
+
+    freqs.forEach((f, i) => {
+      const osc = ctx.createOscillator();
+      osc.type = 'sine';
+      osc.frequency.value = f;
+      const g = ctx.createGain();
+      g.gain.value = i === 0 ? 0.5 : 0.3;
+      osc.connect(g).connect(masterGain);
+      osc.start();
+      oscs.push(osc);
+      gains.push(g);
+    });
+    masterGain.connect(dest);
+    breathe.start();
+
+    return () => {
+      stopAll([...oscs, breathe]);
+      disconnectAll([...oscs, ...gains, masterGain, breathe, breatheGain]);
+    };
+  }
+
+  const MUSIC_TRACKS = [
+    { id: 'ocean', build: buildOceanTrack },
+    { id: 'rain', build: buildRainTrack },
+    { id: 'chimes', build: buildChimesTrack },
+    { id: 'meditation', build: buildMeditationTrack },
+  ];
+
+  function stopMusic() {
+    if (musicStopFn) { musicStopFn(); musicStopFn = null; }
+    if (musicGain) { try { musicGain.disconnect(); } catch (e) {} musicGain = null; }
+  }
+  function startMusic() {
+    const ctx = ensureAudio();
+    if (!ctx) return;
+    stopMusic();
+    musicGain = ctx.createGain();
+    musicGain.gain.value = 0.7;
+    musicGain.connect(ctx.destination);
+    const track = MUSIC_TRACKS.find((t) => t.id === currentTrackId) || MUSIC_TRACKS[0];
+    const play = () => { musicStopFn = track.build(ctx, musicGain); };
+    if (ctx.state === 'running') play();
+    else ctx.resume().then(play).catch(() => {});
+  }
+  function refreshMusic() {
+    const inGame = !gameScreen.classList.contains('hidden');
+    if (musicEnabled && inGame && !paused) startMusic();
+    else stopMusic();
+  }
 
   /* ── Tema chiaro/scuro ─────────────────────────────────────────────────── */
   function applyTheme(theme) {
@@ -360,6 +582,7 @@
     paused = false;
     pauseOverlay.classList.add('hidden');
     if (!state.completed) startTimer();
+    refreshMusic();
   }
 
   function backToMenu() {
@@ -370,6 +593,7 @@
     gameScreen.classList.add('hidden');
     startScreen.classList.remove('hidden');
     refreshResumeButton();
+    refreshMusic();
   }
 
   function refreshResumeButton() {
@@ -388,6 +612,7 @@
     paused = p;
     pauseOverlay.classList.toggle('hidden', !p);
     if (p) saveState();
+    refreshMusic();
   }
 
   document.addEventListener('visibilitychange', () => {
@@ -456,6 +681,27 @@
     try { localStorage.setItem(SOUND_KEY, soundEnabled ? '1' : '0'); } catch (e) {}
   });
 
+  function updateTrackPickerUI() {
+    trackPicker.querySelectorAll('.track-btn').forEach((btn) => {
+      btn.classList.toggle('active', btn.dataset.track === currentTrackId);
+    });
+    trackPicker.classList.toggle('disabled', !musicEnabled);
+  }
+  musicToggle.addEventListener('change', () => {
+    musicEnabled = musicToggle.checked;
+    try { localStorage.setItem(MUSIC_ENABLED_KEY, musicEnabled ? '1' : '0'); } catch (e) {}
+    updateTrackPickerUI();
+    refreshMusic();
+  });
+  trackPicker.querySelectorAll('.track-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      currentTrackId = btn.dataset.track;
+      try { localStorage.setItem(MUSIC_TRACK_KEY, currentTrackId); } catch (e) {}
+      updateTrackPickerUI();
+      if (musicEnabled) refreshMusic();
+    });
+  });
+
   // Input da tastiera fisica (comodo per test su desktop e per l'accessibilità)
   document.addEventListener('keydown', (e) => {
     if (gameScreen.classList.contains('hidden') || paused) return;
@@ -477,6 +723,11 @@
     applyTheme(document.documentElement.dataset.theme || 'dark');
     try { soundEnabled = localStorage.getItem(SOUND_KEY) !== '0'; } catch (e) { soundEnabled = true; }
     soundToggle.checked = soundEnabled;
+
+    try { musicEnabled = localStorage.getItem(MUSIC_ENABLED_KEY) === '1'; } catch (e) { musicEnabled = false; }
+    try { currentTrackId = localStorage.getItem(MUSIC_TRACK_KEY) || 'ocean'; } catch (e) { currentTrackId = 'ocean'; }
+    musicToggle.checked = musicEnabled;
+    updateTrackPickerUI();
 
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' }).catch(() => {});

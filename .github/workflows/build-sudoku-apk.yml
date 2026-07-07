@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build:
@@ -46,3 +46,15 @@ jobs:
           name: sudoku-debug-apk
           path: sudoku/.capacitor-build/android/app/build/outputs/apk/debug/app-debug.apk
           retention-days: 14
+
+      - name: Pubblica una Release con link diretto e stabile all'APK
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: sudoku-debug-latest
+          name: Sudoku VStudio (build di debug più recente)
+          body: >
+            APK di debug generato automaticamente dal branch `${{ github.ref_name }}`
+            (commit ${{ github.sha }}). Non è una release firmata per il Play Store,
+            solo per test su dispositivo.
+          prerelease: true
+          files: sudoku/.capacitor-build/android/app/build/outputs/apk/debug/app-debug.apk

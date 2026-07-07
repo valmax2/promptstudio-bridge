@@ -46,6 +46,24 @@ echo "▶ Aggiungo la piattaforma Android"
 npx cap add android
 npx cap sync android
 
+echo "▶ Forzo una versione coerente di kotlin-stdlib"
+# Il template cordova-android incluso da Capacitor porta kotlin-stdlib-jdk7/jdk8
+# in una versione vecchia (1.6.21) che duplica classi già presenti nel
+# kotlin-stdlib più recente tirato in da AndroidX/AGP, causando un errore
+# "Duplicate class" in fase di compilazione. Forziamo tutte sulla stessa versione.
+cat >> android/build.gradle <<'GRADLE_EOF'
+
+allprojects {
+    configurations.all {
+        resolutionStrategy {
+            force 'org.jetbrains.kotlin:kotlin-stdlib:1.9.24'
+            force 'org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.9.24'
+            force 'org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.9.24'
+        }
+    }
+}
+GRADLE_EOF
+
 echo "▶ Compilo l'APK di debug (gradlew assembleDebug)"
 cd android
 chmod +x ./gradlew

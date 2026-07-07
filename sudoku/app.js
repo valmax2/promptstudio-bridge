@@ -12,6 +12,10 @@
   const SOUND_KEY = 'vsudoku-sound';
   const MUSIC_ENABLED_KEY = 'vsudoku-music-enabled';
   const MUSIC_TRACK_KEY = 'vsudoku-music-track';
+  const PALETTE_KEY = 'vsudoku-palette';
+  const CUSTOM_TRACK_DB = 'vsudoku-db';
+  const CUSTOM_TRACK_STORE = 'tracks';
+  const CUSTOM_TRACK_ID = 'custom';
 
   const $ = (sel) => document.querySelector(sel);
 
@@ -32,6 +36,10 @@
   const soundToggle = $('#soundToggle');
   const musicToggle = $('#musicToggle');
   const trackPicker = $('#trackPicker');
+  const importAudioBtn = $('#importAudioBtn');
+  const audioFileInput = $('#audioFileInput');
+  const customTrackNameEl = $('#customTrackName');
+  const palettePicker = $('#palettePicker');
   const notesBtn = $('#notesBtn');
 
   const DIFFICULTY_NAMES = { easy: 'Facile', medium: 'Medio', hard: 'Difficile' };
@@ -47,6 +55,8 @@
   let musicGain = null;
   let notesMode = false;
   let audioCtx = null;
+  let customTrackName = '';
+  let customAudioEl = null;
 
   /* ── Persistenza (salvataggio automatico) ─────────────────────────────── */
   function saveState() {
@@ -292,14 +302,62 @@
     { id: 'meditation', build: buildMeditationTrack },
   ];
 
+  /* ── Traccia personalizzata: importata dal telefono, salvata in IndexedDB
+   * (localStorage non è adatto a file binari/di dimensioni non banali). ──── */
+  function openTrackDB() {
+    return new Promise((resolve, reject) => {
+      const req = indexedDB.open(CUSTOM_TRACK_DB, 1);
+      req.onupgradeneeded = () => { req.result.createObjectStore(CUSTOM_TRACK_STORE); };
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+  }
+  function saveCustomTrack(blob, name) {
+    return openTrackDB().then((db) => new Promise((resolve, reject) => {
+      const tx = db.transaction(CUSTOM_TRACK_STORE, 'readwrite');
+      tx.objectStore(CUSTOM_TRACK_STORE).put({ blob, name }, CUSTOM_TRACK_ID);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    }));
+  }
+  function loadCustomTrack() {
+    return openTrackDB().then((db) => new Promise((resolve, reject) => {
+      const tx = db.transaction(CUSTOM_TRACK_STORE, 'readonly');
+      const req = tx.objectStore(CUSTOM_TRACK_STORE).get(CUSTOM_TRACK_ID);
+      req.onsuccess = () => resolve(req.result || null);
+      req.onerror = () => reject(req.error);
+    }));
+  }
+  function stopCustomAudio() {
+    if (customAudioEl) {
+      customAudioEl.pause();
+      if (customAudioEl.src) { URL.revokeObjectURL(customAudioEl.src); customAudioEl.src = ''; }
+    }
+  }
+  function startCustomAudio() {
+    loadCustomTrack().then((record) => {
+      if (!record) return;
+      if (!customAudioEl) {
+        customAudioEl = document.createElement('audio');
+        customAudioEl.loop = true;
+        customAudioEl.volume = 0.5;
+        document.body.appendChild(customAudioEl);
+      }
+      customAudioEl.src = URL.createObjectURL(record.blob);
+      customAudioEl.play().catch(() => {});
+    }).catch(() => {});
+  }
+
   function stopMusic() {
     if (musicStopFn) { musicStopFn(); musicStopFn = null; }
     if (musicGain) { try { musicGain.disconnect(); } catch (e) {} musicGain = null; }
+    stopCustomAudio();
   }
   function startMusic() {
+    stopMusic();
+    if (currentTrackId === CUSTOM_TRACK_ID) { startCustomAudio(); return; }
     const ctx = ensureAudio();
     if (!ctx) return;
-    stopMusic();
     musicGain = ctx.createGain();
     musicGain.gain.value = 0.7;
     musicGain.connect(ctx.destination);
@@ -695,11 +753,40 @@
   });
   trackPicker.querySelectorAll('.track-btn').forEach((btn) => {
     btn.addEventListener('click', () => {
+      if (btn.dataset.track === CUSTOM_TRACK_ID && !customTrackName) {
+        audioFileInput.click(); // nessun file ancora importato: apri subito il selettore
+        return;
+      }
       currentTrackId = btn.dataset.track;
       try { localStorage.setItem(MUSIC_TRACK_KEY, currentTrackId); } catch (e) {}
       updateTrackPickerUI();
       if (musicEnabled) refreshMusic();
     });
+  });
+
+  importAudioBtn.addEventListener('click', () => audioFileInput.click());
+  audioFileInput.addEventListener('change', () => {
+    const file = audioFileInput.files && audioFileInput.files[0];
+    if (!file) return;
+    saveCustomTrack(file, file.name).then(() => {
+      customTrackName = file.name;
+      customTrackNameEl.textContent = `Traccia caricata: ${file.name}`;
+      currentTrackId = CUSTOM_TRACK_ID;
+      try { localStorage.setItem(MUSIC_TRACK_KEY, currentTrackId); } catch (e) {}
+      updateTrackPickerUI();
+      if (musicEnabled) refreshMusic();
+    }).catch(() => {});
+  });
+
+  function applyPalette(id) {
+    document.documentElement.dataset.palette = id;
+    try { localStorage.setItem(PALETTE_KEY, id); } catch (e) {}
+    palettePicker.querySelectorAll('.palette-btn').forEach((btn) => {
+      btn.classList.toggle('active', btn.dataset.palette === id);
+    });
+  }
+  palettePicker.querySelectorAll('.palette-btn').forEach((btn) => {
+    btn.addEventListener('click', () => applyPalette(btn.dataset.palette));
   });
 
   // Input da tastiera fisica (comodo per test su desktop e per l'accessibilità)
@@ -728,6 +815,17 @@
     try { currentTrackId = localStorage.getItem(MUSIC_TRACK_KEY) || 'ocean'; } catch (e) { currentTrackId = 'ocean'; }
     musicToggle.checked = musicEnabled;
     updateTrackPickerUI();
+
+    let palette = 'terracotta';
+    try { palette = localStorage.getItem(PALETTE_KEY) || 'terracotta'; } catch (e) {}
+    applyPalette(palette);
+
+    loadCustomTrack().then((record) => {
+      if (record) {
+        customTrackName = record.name;
+        customTrackNameEl.textContent = `Traccia caricata: ${record.name}`;
+      }
+    }).catch(() => {});
 
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' }).catch(() => {});

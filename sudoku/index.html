@@ -22,6 +22,10 @@
     }
     document.documentElement.dataset.theme = t;
   } catch (e) { document.documentElement.dataset.theme = 'dark'; }
+  try {
+    var p = localStorage.getItem('vsudoku-palette');
+    if (p) document.documentElement.dataset.palette = p;
+  } catch (e) {}
 })();
 </script>
 
@@ -142,6 +146,19 @@
         <button class="track-btn" data-track="rain" type="button">🌧️ Pioggia</button>
         <button class="track-btn" data-track="chimes" type="button">🎐 Campane</button>
         <button class="track-btn" data-track="meditation" type="button">🧘 Meditazione</button>
+        <button class="track-btn" data-track="custom" type="button">🎵 Personalizzata</button>
+      </div>
+      <button id="importAudioBtn" class="btn ghost import-audio-btn" type="button">📁 Carica un audio dal telefono</button>
+      <p id="customTrackName" class="custom-track-name"></p>
+      <input id="audioFileInput" type="file" accept="audio/*" class="hidden">
+
+      <p class="settings-subhead">Colore interfaccia</p>
+      <div id="palettePicker" class="palette-picker">
+        <button class="palette-btn" data-palette="terracotta" type="button" aria-label="Terracotta"></button>
+        <button class="palette-btn" data-palette="ocean" type="button" aria-label="Oceano"></button>
+        <button class="palette-btn" data-palette="forest" type="button" aria-label="Foresta"></button>
+        <button class="palette-btn" data-palette="lavender" type="button" aria-label="Lavanda"></button>
+        <button class="palette-btn" data-palette="sunset" type="button" aria-label="Tramonto"></button>
       </div>
 
       <button id="menuBtn" class="btn ghost" type="button">Torna al menu</button>

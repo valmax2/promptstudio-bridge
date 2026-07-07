@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
 # Setup una tantum del progetto Android (Capacitor) per Sudoku VStudio.
-# Da eseguire dopo aver installato Node 18+, JDK 17 e Android SDK.
+# Da eseguire dopo aver installato Node 18+, JDK 21 e Android SDK.
 #
 #   cd sudoku
 #   bash setup-android.sh

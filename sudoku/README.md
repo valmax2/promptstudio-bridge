@@ -89,7 +89,7 @@ rete Wi-Fi) oppure `http://localhost:8081` sul PC.
 
 ## Come generare l'APK Android
 
-Prerequisiti sul PC: Node.js ≥ 18, JDK 17, Android SDK (`ANDROID_HOME`
+Prerequisiti sul PC: Node.js ≥ 18, JDK 21, Android SDK (`ANDROID_HOME`
 impostata — bastano le "Command line tools").
 
 ```bash

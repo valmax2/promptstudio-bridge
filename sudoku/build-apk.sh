@@ -4,7 +4,7 @@
 #
 # PREREQUISITI (sul tuo PC, una volta sola):
 #   - Node.js >= 18            (https://nodejs.org)
-#   - Java JDK 17              (Temurin/OpenJDK)
+#   - Java JDK 21              (Temurin/OpenJDK; richiesto da Capacitor 7+)
 #   - Android SDK              (bastano le "Command line tools" da developer.android.com,
 #                               oppure Android Studio) con variabile ANDROID_HOME impostata
 #

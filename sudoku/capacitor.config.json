@@ -1,0 +1,9 @@
+{
+  "appId": "com.vstudioapps.sudoku",
+  "appName": "Sudoku VStudio",
+  "webDir": "www",
+  "backgroundColor": "#0D1117FF",
+  "android": {
+    "backgroundColor": "#0D1117FF"
+  }
+}

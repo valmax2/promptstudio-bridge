@@ -1,0 +1,15 @@
+{
+  "name": "Sudoku - VStudio Apps",
+  "short_name": "Sudoku",
+  "description": "Sudoku classico 9x9 con tre livelli di difficoltà, modalità scura e salvataggio automatico.",
+  "lang": "it",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0D1117",
+  "theme_color": "#0D1117",
+  "icons": [
+    { "src": "./icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}

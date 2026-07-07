@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0E1116" id="themeColor">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Sudoku · VStudio Apps</title>
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="icon" href="./icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="./icon.svg">
+
+<!-- Applica il tema salvato prima del rendering, per evitare lampeggi bianco/nero -->
+<script>
+(function () {
+  try {
+    var t = localStorage.getItem('vsudoku-theme');
+    if (t !== 'light' && t !== 'dark') {
+      t = matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    }
+    document.documentElement.dataset.theme = t;
+  } catch (e) { document.documentElement.dataset.theme = 'dark'; }
+})();
+</script>
+
+<link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+<div id="app">
+
+  <!-- ── Schermata iniziale: scelta difficoltà / continua partita ───────── -->
+  <section id="startScreen" class="screen">
+    <div class="brand">
+      <div class="brand-mark">S</div>
+      <h1>Sudoku</h1>
+      <p class="brand-sub">by VStudio Apps</p>
+    </div>
+
+    <button id="resumeBtn" class="btn primary hidden" type="button">
+      Continua partita <span id="resumeInfo" class="btn-sub"></span>
+    </button>
+
+    <div class="difficulty-picker">
+      <p class="picker-label">Nuova partita</p>
+      <div class="difficulty-grid">
+        <button class="btn diff" data-difficulty="easy" type="button">Facile</button>
+        <button class="btn diff" data-difficulty="medium" type="button">Medio</button>
+        <button class="btn diff" data-difficulty="hard" type="button">Difficile</button>
+      </div>
+    </div>
+
+    <button id="startSettingsBtn" class="icon-btn start-settings" type="button" aria-label="Impostazioni">⚙</button>
+  </section>
+
+  <!-- ── Schermata di gioco ──────────────────────────────────────────────── -->
+  <section id="gameScreen" class="screen hidden">
+    <header id="topbar">
+      <button id="backBtn" class="icon-btn" type="button" aria-label="Torna al menu">←</button>
+      <div class="topbar-center">
+        <span id="difficultyLabel" class="pill">Medio</span>
+        <span id="timer" class="timer">00:00</span>
+      </div>
+      <div class="topbar-actions">
+        <button id="newGameBtn" class="icon-btn" type="button" aria-label="Nuova partita">⟳</button>
+        <button id="settingsBtn" class="icon-btn" type="button" aria-label="Impostazioni">⚙</button>
+      </div>
+    </header>
+
+    <div id="boardWrap">
+      <div id="board" role="grid" aria-label="Griglia Sudoku 9x9"></div>
+      <div id="pauseOverlay" class="pause-overlay hidden">
+        <button id="resumePauseBtn" class="btn primary" type="button">▶ Riprendi</button>
+      </div>
+    </div>
+
+    <div id="keypad" role="group" aria-label="Tastierino numerico">
+      <button class="key" data-num="1" type="button">1<span class="key-count"></span></button>
+      <button class="key" data-num="2" type="button">2<span class="key-count"></span></button>
+      <button class="key" data-num="3" type="button">3<span class="key-count"></span></button>
+      <button class="key" data-num="4" type="button">4<span class="key-count"></span></button>
+      <button class="key" data-num="5" type="button">5<span class="key-count"></span></button>
+      <button class="key" data-num="6" type="button">6<span class="key-count"></span></button>
+      <button class="key" data-num="7" type="button">7<span class="key-count"></span></button>
+      <button class="key" data-num="8" type="button">8<span class="key-count"></span></button>
+      <button class="key" data-num="9" type="button">9<span class="key-count"></span></button>
+      <button class="key key-erase" data-num="0" type="button" aria-label="Cancella">⌫</button>
+    </div>
+  </section>
+
+  <!-- ── Modale impostazioni ─────────────────────────────────────────────── -->
+  <div id="settingsModal" class="modal hidden">
+    <div class="modal-card">
+      <h2>Impostazioni</h2>
+
+      <label class="switch-row">
+        <span>Modalità scura</span>
+        <span class="switch"><input type="checkbox" id="darkModeToggle"><span class="slider"></span></span>
+      </label>
+
+      <label class="switch-row">
+        <span>Suoni ed effetti</span>
+        <span class="switch"><input type="checkbox" id="soundToggle"><span class="slider"></span></span>
+      </label>
+
+      <button id="closeSettingsBtn" class="btn primary" type="button">Chiudi</button>
+      <p class="brand-footer">Sudoku · VStudio Apps</p>
+    </div>
+  </div>
+
+  <!-- ── Modale conferma nuova partita ───────────────────────────────────── -->
+  <div id="confirmModal" class="modal hidden">
+    <div class="modal-card">
+      <h2>Nuova partita?</h2>
+      <p class="modal-text">La partita in corso andrà persa.</p>
+      <div class="modal-actions">
+        <button id="confirmCancelBtn" class="btn ghost" type="button">Annulla</button>
+        <button id="confirmOkBtn" class="btn primary" type="button">Conferma</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Modale vittoria ─────────────────────────────────────────────────── -->
+  <div id="winModal" class="modal hidden">
+    <div class="modal-card win-card">
+      <div class="win-icon">🎉</div>
+      <h2>Complimenti!</h2>
+      <p class="modal-text">Hai completato lo schema <span id="winDifficulty"></span> in</p>
+      <p class="win-time" id="winTime">00:00</p>
+      <button id="winNewGameBtn" class="btn primary" type="button">Nuova partita</button>
+    </div>
+  </div>
+
+</div>
+
+<script src="./sudoku-engine.js"></script>
+<script src="./app.js"></script>
+</body>
+</html>

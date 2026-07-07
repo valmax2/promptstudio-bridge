@@ -14,7 +14,7 @@ html, body { height: 100%; overscroll-behavior: none; }
   --accent-2: #C46A3F;
   --accent-contrast: #FBF3E9;
   --cell-given: #26221D;
-  --cell-user: #7A4B2E;
+  --cell-user: #6B6459;
   --cell-selected: #E4D3B8;
   --cell-peer: #EFE7D6;
   --cell-same: #DFCBA6;
@@ -37,7 +37,7 @@ html, body { height: 100%; overscroll-behavior: none; }
   --accent-2: #E6A06C;
   --accent-contrast: #201206;
   --cell-given: #F3ECDE;
-  --cell-user: #E3A876;
+  --cell-user: #ABA192;
   --cell-selected: #3C3120;
   --cell-peer: #262019;
   --cell-same: #46381F;
@@ -112,16 +112,20 @@ body {
 /* ── Top bar di gioco ────────────────────────────────────────────────────── */
 #topbar {
   display: flex; align-items: center; justify-content: space-between; gap: 10px;
-  padding: calc(12px + env(safe-area-inset-top)) 16px 12px;
+  padding: calc(16px + env(safe-area-inset-top)) 20px 2px;
 }
-.topbar-center { display: flex; align-items: center; gap: 10px; }
-.game-title { font-size: 20px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
+.clock-btn { background: none; box-shadow: none; font-size: 22px; }
+.clock-btn:active { transform: scale(.9); }
+.game-title { font-size: 26px; font-weight: 800; letter-spacing: .06em; }
 .pill {
   background: var(--surface-2); color: var(--muted); font-size: 12px; font-weight: 700;
   padding: 6px 12px; border-radius: 999px; text-transform: uppercase; letter-spacing: .04em;
 }
-.timer { font-variant-numeric: tabular-nums; font-size: 18px; font-weight: 800; letter-spacing: .02em; }
-.topbar-actions { display: flex; align-items: center; gap: 10px; }
+.timer { font-variant-numeric: tabular-nums; font-size: 22px; font-weight: 800; letter-spacing: .02em; }
+#timerSub {
+  text-align: center; font-variant-numeric: tabular-nums; font-size: 15px; font-weight: 600;
+  color: var(--text); opacity: .75; padding-bottom: 10px;
+}
 
 /* ── Griglia Sudoku ──────────────────────────────────────────────────────── */
 #boardWrap {
@@ -158,6 +162,17 @@ body {
 .cell.error { background: var(--cell-error-bg); color: var(--cell-error-text); }
 .cell.given.error { color: var(--cell-error-text); }
 
+.cell-value { position: relative; z-index: 1; line-height: 1; }
+.cell-notes {
+  display: none; position: absolute; inset: 2px;
+  grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr);
+}
+.cell.has-notes .cell-notes { display: grid; }
+.cell-notes span {
+  display: flex; align-items: center; justify-content: center;
+  font-size: calc(var(--cell) * 0.2); font-weight: 600; color: var(--muted); line-height: 1;
+}
+
 /* Bordi più marcati ogni 3 celle per delineare i riquadri 3x3 */
 .cell[data-col="0"] { border-left: 1.5px solid var(--box-line); }
 .cell[data-col="2"], .cell[data-col="5"] { border-right: 1.5px solid var(--box-line); }
@@ -174,10 +189,12 @@ body {
 }
 
 /* ── Tastierino numerico ─────────────────────────────────────────────────── */
-#keypad { padding: 14px 16px 10px; display: flex; flex-direction: column; gap: 8px; }
+#keypad {
+  padding: 10px 16px 8px; display: flex; align-items: stretch; justify-content: center; gap: 10px;
+}
 .keypad-grid {
   display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
-  max-width: 320px; width: 100%; margin: 0 auto;
+  max-width: 260px; width: 100%; flex-shrink: 1;
 }
 .key {
   aspect-ratio: 1; border: none; border-radius: 12px; background: var(--surface-2); color: var(--text);
@@ -189,24 +206,37 @@ body {
 .key-count {
   position: absolute; bottom: 4px; right: 7px; font-size: 9px; font-weight: 700; color: var(--muted);
 }
-.key-erase {
-  max-width: 320px; width: 100%; margin: 0 auto; aspect-ratio: auto; height: 46px;
-  font-size: 14px; font-weight: 700; color: var(--muted); background: var(--surface);
-  display: flex; align-items: center; justify-content: center; gap: 6px;
-}
 
-/* ── Barra azioni (tema scuro + impostazioni) ───────────────────────────── */
+/* Colonne laterali: Undo/Hint a sinistra, Notes/Erase a destra */
+.side-rail { display: flex; flex-direction: column; gap: 8px; width: 62px; flex-shrink: 0; }
+.side-btn {
+  flex: 1; aspect-ratio: auto; border: none; border-radius: 12px; background: none; color: var(--muted);
+  box-shadow: none; cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+  font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .02em;
+}
+.side-btn:active { transform: scale(.94); }
+.side-icon { font-size: 19px; }
+.side-btn.active { color: var(--accent); }
+
+/* ── Barra azioni (Undo / Erase / Dark Mode) ────────────────────────────── */
 #actionBar {
-  display: flex; align-items: center; justify-content: center; gap: 28px;
-  padding: 6px 16px calc(14px + env(safe-area-inset-bottom));
+  display: flex; align-items: center; justify-content: center; gap: 22px;
+  padding: 8px 16px 6px;
 }
 .action-toggle, .action-btn {
   display: flex; flex-direction: column; align-items: center; gap: 4px;
   background: none; border: none; color: var(--muted); font-size: 11px; font-weight: 700;
-  cursor: pointer;
+  cursor: pointer; text-transform: uppercase; letter-spacing: .03em;
 }
 .action-icon { font-size: 18px; }
 .action-label { text-transform: uppercase; letter-spacing: .04em; }
+
+/* ── Footer di gioco: difficoltà, nuova partita, impostazioni ───────────── */
+#gameFooterBar {
+  display: flex; align-items: center; justify-content: center; gap: 14px;
+  padding: 6px 16px calc(14px + env(safe-area-inset-bottom));
+}
 
 /* ── Modali ──────────────────────────────────────────────────────────────── */
 .modal {

@@ -57,16 +57,11 @@
   <!-- ── Schermata di gioco ──────────────────────────────────────────────── -->
   <section id="gameScreen" class="screen hidden">
     <header id="topbar">
-      <button id="backBtn" class="icon-btn" type="button" aria-label="Torna al menu">←</button>
-      <div class="topbar-center">
-        <span class="game-title">Sudoku</span>
-        <span id="difficultyLabel" class="pill">Medio</span>
-      </div>
-      <div class="topbar-actions">
-        <span id="timer" class="timer">00:00</span>
-        <button id="newGameBtn" class="icon-btn" type="button" aria-label="Nuova partita">⟳</button>
-      </div>
+      <button id="pauseBtn" class="icon-btn clock-btn" type="button" aria-label="Pausa">🕐</button>
+      <span class="game-title">SUDOKU</span>
+      <span id="timer" class="timer">00:00</span>
     </header>
+    <div id="timerSub">00:00</div>
 
     <div id="boardWrap">
       <div id="board" role="grid" aria-label="Griglia Sudoku 9x9"></div>
@@ -76,6 +71,15 @@
     </div>
 
     <div id="keypad" role="group" aria-label="Tastierino numerico">
+      <div class="side-rail">
+        <button id="undoBtn" class="side-btn" type="button">
+          <span class="side-icon">↶</span><span class="side-label">Undo</span>
+        </button>
+        <button id="hintBtn" class="side-btn" type="button">
+          <span class="side-icon">💡</span><span class="side-label">Hint</span>
+        </button>
+      </div>
+
       <div class="keypad-grid">
         <button class="key" data-num="1" type="button">1<span class="key-count"></span></button>
         <button class="key" data-num="2" type="button">2<span class="key-count"></span></button>
@@ -87,17 +91,34 @@
         <button class="key" data-num="8" type="button">8<span class="key-count"></span></button>
         <button class="key" data-num="9" type="button">9<span class="key-count"></span></button>
       </div>
-      <button class="key key-erase" data-num="0" type="button">⌫ Cancella</button>
+
+      <div class="side-rail">
+        <button id="notesBtn" class="side-btn" type="button">
+          <span class="side-icon">✎</span><span class="side-label">Notes</span>
+        </button>
+        <button class="side-btn key key-erase" data-num="0" type="button">
+          <span class="side-icon">⌦</span><span class="side-label">Erase</span>
+        </button>
+      </div>
     </div>
 
     <div id="actionBar">
+      <button id="undoBtn2" class="action-btn" type="button">
+        <span class="action-icon">↺</span><span class="action-label">Undo</span>
+      </button>
+      <button id="eraseBtn2" class="action-btn" type="button">
+        <span class="action-icon">⌦</span><span class="action-label">Erase</span>
+      </button>
       <label class="action-toggle">
         <span class="switch"><input type="checkbox" id="darkModeToggle"><span class="slider"></span></span>
-        <span class="action-label">Scura</span>
+        <span class="action-label">Dark Mode</span>
       </label>
-      <button id="settingsBtn" class="action-btn" type="button" aria-label="Impostazioni">
-        <span class="action-icon">⚙</span><span class="action-label">Altro</span>
-      </button>
+    </div>
+
+    <div id="gameFooterBar">
+      <span id="difficultyLabel" class="pill">Medio</span>
+      <button id="newGameBtn" class="icon-btn" type="button" aria-label="Nuova partita">⟳</button>
+      <button id="settingsBtn" class="icon-btn" type="button" aria-label="Impostazioni">⚙</button>
     </div>
   </section>
 
@@ -111,6 +132,7 @@
         <span class="switch"><input type="checkbox" id="soundToggle"><span class="slider"></span></span>
       </label>
 
+      <button id="menuBtn" class="btn ghost" type="button">Torna al menu</button>
       <button id="closeSettingsBtn" class="btn primary" type="button">Chiudi</button>
       <p class="brand-footer">Sudoku · VStudio Apps</p>
     </div>

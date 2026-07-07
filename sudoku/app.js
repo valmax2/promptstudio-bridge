@@ -7,7 +7,7 @@
   const Engine = window.SudokuEngine;
   const SIZE = Engine.SIZE;
 
-  const STORAGE_KEY = 'vsudoku-state-v1';
+  const STORAGE_KEY = 'vsudoku-state-v2';
   const THEME_KEY = 'vsudoku-theme';
   const SOUND_KEY = 'vsudoku-sound';
 
@@ -20,6 +20,7 @@
   const boardEl = $('#board');
   const keypadEl = $('#keypad');
   const timerEl = $('#timer');
+  const timerSubEl = $('#timerSub');
   const difficultyLabelEl = $('#difficultyLabel');
   const pauseOverlay = $('#pauseOverlay');
   const settingsModal = $('#settingsModal');
@@ -27,14 +28,16 @@
   const winModal = $('#winModal');
   const darkModeToggle = $('#darkModeToggle');
   const soundToggle = $('#soundToggle');
+  const notesBtn = $('#notesBtn');
 
   const DIFFICULTY_NAMES = { easy: 'Facile', medium: 'Medio', hard: 'Difficile' };
 
-  let state = null;      // { puzzle, given, values, difficulty, elapsedSeconds, completed }
+  let state = null;      // { puzzle, given, values, notes, solution, difficulty, elapsedSeconds, completed, history }
   let selected = null;   // { r, c }
   let timerHandle = null;
   let paused = false;
   let soundEnabled = true;
+  let notesMode = false;
   let audioCtx = null;
 
   /* ── Persistenza (salvataggio automatico) ─────────────────────────────── */
@@ -95,12 +98,17 @@
     const s = Math.floor(totalSeconds % 60).toString().padStart(2, '0');
     return `${m}:${s}`;
   }
+  function renderTimer() {
+    const t = formatTime(state.elapsedSeconds);
+    timerEl.textContent = t;
+    timerSubEl.textContent = t;
+  }
   function startTimer() {
     stopTimer();
     timerHandle = setInterval(() => {
       if (paused || !state || state.completed) return;
       state.elapsedSeconds++;
-      timerEl.textContent = formatTime(state.elapsedSeconds);
+      renderTimer();
       if (state.elapsedSeconds % 5 === 0) saveState();
     }, 1000);
   }
@@ -108,6 +116,12 @@
     if (timerHandle) clearInterval(timerHandle);
     timerHandle = null;
   }
+
+  /* ── Note (matite): array 9x9 di array di 9 booleani ──────────────────── */
+  function emptyNotesGrid() {
+    return Array.from({ length: SIZE }, () => Array.from({ length: SIZE }, () => Array(9).fill(false)));
+  }
+  function cloneNotesCell(cell) { return cell.slice(); }
 
   /* ── Costruzione DOM della griglia (una volta per partita) ────────────── */
   function buildBoardDom() {
@@ -120,6 +134,20 @@
         cell.dataset.row = r;
         cell.dataset.col = c;
         cell.setAttribute('role', 'gridcell');
+
+        const value = document.createElement('span');
+        value.className = 'cell-value';
+        cell.appendChild(value);
+
+        const notes = document.createElement('div');
+        notes.className = 'cell-notes';
+        for (let n = 1; n <= 9; n++) {
+          const noteDigit = document.createElement('span');
+          noteDigit.dataset.n = n;
+          notes.appendChild(noteDigit);
+        }
+        cell.appendChild(notes);
+
         cell.addEventListener('click', () => onCellTap(r, c));
         frag.appendChild(cell);
       }
@@ -136,14 +164,24 @@
       for (let c = 0; c < SIZE; c++) renderCell(r, c);
     }
     renderKeypadCounts();
+    notesBtn.classList.toggle('active', notesMode);
   }
 
   function renderCell(r, c) {
     const el = cellEl(r, c);
     const v = state.values[r][c];
     const isGiven = state.given[r][c];
-    el.textContent = v ? String(v) : '';
+    el.querySelector('.cell-value').textContent = v ? String(v) : '';
     el.classList.toggle('given', isGiven);
+    el.classList.toggle('has-notes', v === 0);
+
+    if (v === 0) {
+      const cellNotes = state.notes[r][c];
+      el.querySelectorAll('.cell-notes span').forEach((span) => {
+        const n = Number(span.dataset.n);
+        span.textContent = cellNotes[n - 1] ? n : '';
+      });
+    }
 
     const hasConflict = v !== 0 && Engine.getConflictCells(state.values, r, c, v).length > 0;
     el.classList.toggle('error', hasConflict);
@@ -186,12 +224,33 @@
     renderAll();
   }
 
+  function pushHistory(r, c) {
+    state.history.push({
+      r, c,
+      prevValue: state.values[r][c],
+      prevNotes: cloneNotesCell(state.notes[r][c]),
+    });
+    if (state.history.length > 200) state.history.shift();
+  }
+
   function onKeyTap(num) {
     if (paused || !state || !selected) return;
     const { r, c } = selected;
     if (state.given[r][c]) return; // le celle date all'inizio non si modificano
 
+    // Modalità Note: le matite si segnano solo su celle ancora vuote.
+    if (notesMode && num !== 0 && state.values[r][c] === 0) {
+      pushHistory(r, c);
+      state.notes[r][c][num - 1] = !state.notes[r][c][num - 1];
+      renderAll();
+      saveState();
+      sfxTap();
+      return;
+    }
+
+    pushHistory(r, c);
     state.values[r][c] = num;
+    state.notes[r][c] = Array(9).fill(false); // un valore reale sostituisce le matite
     renderAll();
     saveState();
 
@@ -201,6 +260,43 @@
     } else {
       sfxTap();
     }
+
+    if (Engine.isBoardComplete(state.values)) onWin();
+  }
+
+  function onUndo() {
+    if (paused || !state || !state.history.length) return;
+    const move = state.history.pop();
+    state.values[move.r][move.c] = move.prevValue;
+    state.notes[move.r][move.c] = move.prevNotes;
+    selected = { r: move.r, c: move.c };
+    renderAll();
+    saveState();
+    sfxTap();
+  }
+
+  function onHint() {
+    if (paused || !state) return;
+    let target = selected;
+    if (!target || state.given[target.r][target.c] || state.values[target.r][target.c] !== 0) {
+      target = null;
+      outer:
+      for (let r = 0; r < SIZE; r++) {
+        for (let c = 0; c < SIZE; c++) {
+          if (!state.given[r][c] && state.values[r][c] === 0) { target = { r, c }; break outer; }
+        }
+      }
+    }
+    if (!target) return; // schema già completo
+
+    const { r, c } = target;
+    pushHistory(r, c);
+    state.values[r][c] = state.solution[r][c];
+    state.notes[r][c] = Array(9).fill(false);
+    selected = { r, c };
+    renderAll();
+    saveState();
+    sfxTap();
 
     if (Engine.isBoardComplete(state.values)) onWin();
   }
@@ -217,24 +313,31 @@
 
   /* ── Ciclo partita ─────────────────────────────────────────────────────── */
   function newGame(difficulty) {
-    const { puzzle } = Engine.generatePuzzle(difficulty);
+    const { puzzle, solution } = Engine.generatePuzzle(difficulty);
     const given = puzzle.map((row) => row.map((v) => v !== 0));
     state = {
       puzzle,
       given,
       values: Engine.cloneBoard(puzzle),
+      notes: emptyNotesGrid(),
+      solution,
       difficulty,
       elapsedSeconds: 0,
       completed: false,
+      history: [],
     };
     selected = null;
+    notesMode = false;
     saveState();
     enterGameScreen();
   }
 
   function resumeGame(saved) {
     state = saved;
+    if (!state.notes) state.notes = emptyNotesGrid();
+    if (!state.history) state.history = [];
     selected = null;
+    notesMode = false;
     enterGameScreen();
   }
 
@@ -242,7 +345,7 @@
     startScreen.classList.add('hidden');
     gameScreen.classList.remove('hidden');
     difficultyLabelEl.textContent = DIFFICULTY_NAMES[state.difficulty] || '';
-    timerEl.textContent = formatTime(state.elapsedSeconds);
+    renderTimer();
     buildBoardDom();
     renderAll();
     paused = false;
@@ -270,7 +373,7 @@
     }
   }
 
-  /* ── Pausa automatica quando l'app va in background ───────────────────── */
+  /* ── Pausa (manuale tramite icona orologio, o automatica in background) ─ */
   function setPaused(p) {
     if (!state || state.completed) return;
     paused = p;
@@ -303,7 +406,15 @@
     if (btn) onKeyTap(Number(btn.dataset.num));
   });
 
-  $('#backBtn').addEventListener('click', backToMenu);
+  $('#pauseBtn').addEventListener('click', () => setPaused(true));
+  $('#undoBtn').addEventListener('click', onUndo);
+  $('#undoBtn2').addEventListener('click', onUndo);
+  $('#hintBtn').addEventListener('click', onHint);
+  $('#eraseBtn2').addEventListener('click', () => onKeyTap(0));
+  notesBtn.addEventListener('click', () => {
+    notesMode = !notesMode;
+    notesBtn.classList.toggle('active', notesMode);
+  });
 
   $('#newGameBtn').addEventListener('click', () => showModal(confirmModal));
   $('#confirmCancelBtn').addEventListener('click', () => hideModal(confirmModal));
@@ -323,6 +434,10 @@
   $('#settingsBtn').addEventListener('click', () => showModal(settingsModal));
   $('#startSettingsBtn').addEventListener('click', () => showModal(settingsModal));
   $('#closeSettingsBtn').addEventListener('click', () => hideModal(settingsModal));
+  $('#menuBtn').addEventListener('click', () => {
+    hideModal(settingsModal);
+    backToMenu();
+  });
 
   darkModeToggle.addEventListener('change', () => {
     applyTheme(darkModeToggle.checked ? 'dark' : 'light');
@@ -337,6 +452,7 @@
     if (gameScreen.classList.contains('hidden') || paused) return;
     if (e.key >= '1' && e.key <= '9') { onKeyTap(Number(e.key)); return; }
     if (e.key === 'Backspace' || e.key === 'Delete' || e.key === '0') { onKeyTap(0); return; }
+    if (e.key === 'z' && (e.ctrlKey || e.metaKey)) { onUndo(); return; }
     if (!selected) return;
     const { r, c } = selected;
     if (e.key === 'ArrowUp') selected = { r: Math.max(0, r - 1), c };

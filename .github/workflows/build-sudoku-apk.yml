@@ -1,7 +1,7 @@
 name: Build Sudoku APK
 
-# Compila un APK di debug dell'app Sudoku (VStudio Apps) usando l'Android SDK
-# già presente sui runner GitHub-hosted, e lo carica come artifact scaricabile.
+# Compila un APK di debug dell'app Sudoku (VStudio Apps) su un runner
+# GitHub-hosted (Android SDK installato al volo) e lo carica come artifact scaricabile.
 on:
   push:
     paths:
@@ -30,10 +30,11 @@ jobs:
         with:
           node-version: '20'
 
+      - name: Installa e configura l'Android SDK
+        uses: android-actions/setup-android@v3
+
       - name: Installa i pacchetti Android SDK richiesti
-        run: |
-          yes | sdkmanager --licenses > /dev/null || true
-          sdkmanager --install "platform-tools" "platforms;android-34" "build-tools;34.0.0"
+        run: sdkmanager --install "platform-tools" "platforms;android-34" "build-tools;34.0.0"
 
       - name: Compila l'APK di debug
         working-directory: sudoku

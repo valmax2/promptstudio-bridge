@@ -2,8 +2,8 @@
   "appId": "com.vstudioapps.sudoku",
   "appName": "Sudoku VStudio",
   "webDir": "www",
-  "backgroundColor": "#0D1117FF",
+  "backgroundColor": "#17140FFF",
   "android": {
-    "backgroundColor": "#0D1117FF"
+    "backgroundColor": "#17140FFF"
   }
 }

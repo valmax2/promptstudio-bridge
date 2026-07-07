@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<meta name="theme-color" content="#0E1116" id="themeColor">
+<meta name="theme-color" content="#17140F" id="themeColor">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -45,9 +45,9 @@
     <div class="difficulty-picker">
       <p class="picker-label">Nuova partita</p>
       <div class="difficulty-grid">
-        <button class="btn diff" data-difficulty="easy" type="button">Facile</button>
-        <button class="btn diff" data-difficulty="medium" type="button">Medio</button>
-        <button class="btn diff" data-difficulty="hard" type="button">Difficile</button>
+        <button class="btn diff" data-difficulty="easy" type="button"><span class="diff-dot"></span>Facile</button>
+        <button class="btn diff" data-difficulty="medium" type="button"><span class="diff-dot"></span>Medio</button>
+        <button class="btn diff" data-difficulty="hard" type="button"><span class="diff-dot"></span>Difficile</button>
       </div>
     </div>
 
@@ -59,12 +59,12 @@
     <header id="topbar">
       <button id="backBtn" class="icon-btn" type="button" aria-label="Torna al menu">←</button>
       <div class="topbar-center">
+        <span class="game-title">Sudoku</span>
         <span id="difficultyLabel" class="pill">Medio</span>
-        <span id="timer" class="timer">00:00</span>
       </div>
       <div class="topbar-actions">
+        <span id="timer" class="timer">00:00</span>
         <button id="newGameBtn" class="icon-btn" type="button" aria-label="Nuova partita">⟳</button>
-        <button id="settingsBtn" class="icon-btn" type="button" aria-label="Impostazioni">⚙</button>
       </div>
     </header>
 
@@ -76,16 +76,28 @@
     </div>
 
     <div id="keypad" role="group" aria-label="Tastierino numerico">
-      <button class="key" data-num="1" type="button">1<span class="key-count"></span></button>
-      <button class="key" data-num="2" type="button">2<span class="key-count"></span></button>
-      <button class="key" data-num="3" type="button">3<span class="key-count"></span></button>
-      <button class="key" data-num="4" type="button">4<span class="key-count"></span></button>
-      <button class="key" data-num="5" type="button">5<span class="key-count"></span></button>
-      <button class="key" data-num="6" type="button">6<span class="key-count"></span></button>
-      <button class="key" data-num="7" type="button">7<span class="key-count"></span></button>
-      <button class="key" data-num="8" type="button">8<span class="key-count"></span></button>
-      <button class="key" data-num="9" type="button">9<span class="key-count"></span></button>
-      <button class="key key-erase" data-num="0" type="button" aria-label="Cancella">⌫</button>
+      <div class="keypad-grid">
+        <button class="key" data-num="1" type="button">1<span class="key-count"></span></button>
+        <button class="key" data-num="2" type="button">2<span class="key-count"></span></button>
+        <button class="key" data-num="3" type="button">3<span class="key-count"></span></button>
+        <button class="key" data-num="4" type="button">4<span class="key-count"></span></button>
+        <button class="key" data-num="5" type="button">5<span class="key-count"></span></button>
+        <button class="key" data-num="6" type="button">6<span class="key-count"></span></button>
+        <button class="key" data-num="7" type="button">7<span class="key-count"></span></button>
+        <button class="key" data-num="8" type="button">8<span class="key-count"></span></button>
+        <button class="key" data-num="9" type="button">9<span class="key-count"></span></button>
+      </div>
+      <button class="key key-erase" data-num="0" type="button">⌫ Cancella</button>
+    </div>
+
+    <div id="actionBar">
+      <label class="action-toggle">
+        <span class="switch"><input type="checkbox" id="darkModeToggle"><span class="slider"></span></span>
+        <span class="action-label">Scura</span>
+      </label>
+      <button id="settingsBtn" class="action-btn" type="button" aria-label="Impostazioni">
+        <span class="action-icon">⚙</span><span class="action-label">Altro</span>
+      </button>
     </div>
   </section>
 
@@ -93,11 +105,6 @@
   <div id="settingsModal" class="modal hidden">
     <div class="modal-card">
       <h2>Impostazioni</h2>
-
-      <label class="switch-row">
-        <span>Modalità scura</span>
-        <span class="switch"><input type="checkbox" id="darkModeToggle"><span class="slider"></span></span>
-      </label>
 
       <label class="switch-row">
         <span>Suoni ed effetti</span>

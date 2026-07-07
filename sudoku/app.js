@@ -85,7 +85,7 @@
     document.documentElement.dataset.theme = theme;
     try { localStorage.setItem(THEME_KEY, theme); } catch (e) {}
     const meta = document.getElementById('themeColor');
-    if (meta) meta.setAttribute('content', theme === 'dark' ? '#0D1117' : '#F3F5FA');
+    if (meta) meta.setAttribute('content', theme === 'dark' ? '#17140F' : '#EAE3D5');
     darkModeToggle.checked = theme === 'dark';
   }
 

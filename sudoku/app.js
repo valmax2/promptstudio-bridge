@@ -61,27 +61,36 @@
       const Ctx = window.AudioContext || window.webkitAudioContext;
       if (Ctx) audioCtx = new Ctx();
     }
-    if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
     return audioCtx;
   }
-  function beep(freq, duration, type) {
-    if (!soundEnabled) return;
-    const ctx = ensureAudio();
-    if (!ctx) return;
+  function playTone(ctx, freq, duration, type) {
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
     osc.type = type || 'sine';
     osc.frequency.value = freq;
     gain.gain.setValueAtTime(0.0001, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.18, ctx.currentTime + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.35, ctx.currentTime + 0.01);
     gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + duration);
     osc.connect(gain).connect(ctx.destination);
     osc.start();
     osc.stop(ctx.currentTime + duration + 0.02);
   }
-  const sfxTap = () => beep(520, 0.07, 'sine');
-  const sfxError = () => beep(160, 0.18, 'square');
-  const sfxWin = () => [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => beep(f, 0.22, 'triangle'), i * 110));
+  function beep(freq, duration, type) {
+    if (!soundEnabled) return;
+    const ctx = ensureAudio();
+    if (!ctx) return;
+    // Il contesto audio va "risvegliato" con resume() dopo un gesto utente;
+    // se lo si schedula subito, sui primi tocchi (o al ritorno in foreground)
+    // resta ancora sospeso e il suono non parte. Si attende che sia attivo.
+    if (ctx.state === 'running') {
+      playTone(ctx, freq, duration, type);
+    } else {
+      ctx.resume().then(() => playTone(ctx, freq, duration, type)).catch(() => {});
+    }
+  }
+  const sfxTap = () => beep(520, 0.09, 'sine');
+  const sfxError = () => beep(160, 0.2, 'square');
+  const sfxWin = () => [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => beep(f, 0.24, 'triangle'), i * 110));
 
   /* ── Tema chiaro/scuro ─────────────────────────────────────────────────── */
   function applyTheme(theme) {

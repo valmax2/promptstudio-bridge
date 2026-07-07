@@ -34,7 +34,9 @@ cp "$HERE"/index.html "$HERE"/styles.css "$HERE"/sudoku-engine.js "$HERE"/app.js
 cd "$BUILD"
 
 echo "▶ Inizializzo il progetto npm e installo Capacitor"
-npm init -y >/dev/null
+# Non uso "npm init -y": deriverebbe il nome pacchetto dal nome della cartella
+# (.capacitor-build), che npm rifiuta perché inizia con un punto.
+echo '{"name":"sudoku-vstudio-capacitor-build","version":"1.0.0","private":true}' > package.json
 npm install @capacitor/core @capacitor/cli @capacitor/android >/dev/null
 
 echo "▶ Inizializzo Capacitor ($APP_ID)"

@@ -1,7 +1,7 @@
 // Service worker: cache dell'app shell → funziona anche offline (nessuna rete richiesta per giocare).
-const CACHE = 'vsudoku-v1';
+const CACHE = 'vsudoku-v2';
 const SHELL = [
-  './', './index.html', './styles.css', './sudoku-engine.js', './app.js',
+  './', './index.html', './styles.css', './sudoku-engine.js', './ads.js', './billing.js', './app.js', './privacy.html',
   './manifest.webmanifest', './icon.svg',
 ];
 

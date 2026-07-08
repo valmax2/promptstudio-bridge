@@ -17,6 +17,8 @@
   const CUSTOM_TRACK_DB = 'vsudoku-db';
   const CUSTOM_TRACK_STORE = 'tracks';
   const CUSTOM_TRACK_ID = 'custom';
+  const HINT_USAGE_KEY = 'vsudoku-hint-usage';
+  const FREE_HINTS_PER_DAY = 3;
 
   const $ = (sel) => document.querySelector(sel);
 
@@ -637,7 +639,30 @@
     sfxTap();
   }
 
-  function onHint() {
+  // Un numero limitato di hint gratuiti al giorno; oltre quello, se disponibile,
+  // un video premiato (AdMob) sblocca l'hint successivo. Su web/senza plugin
+  // configurato, ads.js non blocca nulla (vedi ads.js).
+  async function canUseHint() {
+    if (window.SudokuAds && window.SudokuAds.isPro()) return true;
+    const today = new Date().toISOString().slice(0, 10);
+    let usage = { date: today, used: 0 };
+    try {
+      const raw = localStorage.getItem(HINT_USAGE_KEY);
+      if (raw) usage = JSON.parse(raw);
+      if (usage.date !== today) usage = { date: today, used: 0 };
+    } catch (e) {}
+    if (usage.used < FREE_HINTS_PER_DAY) {
+      usage.used++;
+      try { localStorage.setItem(HINT_USAGE_KEY, JSON.stringify(usage)); } catch (e) {}
+      return true;
+    }
+    if (window.SudokuAds && typeof window.SudokuAds.showRewarded === 'function') {
+      return await window.SudokuAds.showRewarded();
+    }
+    return true;
+  }
+
+  async function onHint() {
     if (paused || !state) return;
     let target = selected;
     if (!target || state.given[target.r][target.c] || state.values[target.r][target.c] !== 0) {
@@ -650,6 +675,7 @@
       }
     }
     if (!target) return; // schema già completo
+    if (!(await canUseHint())) return; // rewarded rifiutato/non guadagnato
 
     const { r, c } = target;
     pushHistory(r, c);
@@ -693,6 +719,7 @@
     notesMode = false;
     saveState();
     enterGameScreen();
+    if (window.SudokuAds) window.SudokuAds.adAfterNewGame();
   }
 
   function resumeGame(saved) {
@@ -866,6 +893,25 @@
     btn.addEventListener('click', () => applyPalette(btn.dataset.palette));
   });
 
+  const proStatusEl = $('#proStatus');
+  function updateProStatus() {
+    if (window.SudokuAds && window.SudokuAds.isPro()) {
+      proStatusEl.textContent = 'Sei Pro — grazie del supporto! 💛';
+    } else {
+      proStatusEl.textContent = 'Rimuove la pubblicità e sblocca hint illimitati.';
+    }
+  }
+  $('#buyProBtn').addEventListener('click', async () => {
+    if (!window.SudokuBilling) return;
+    const ok = await window.SudokuBilling.buyPro();
+    proStatusEl.textContent = ok ? 'Sei Pro — grazie del supporto! 💛' : 'Acquisti non disponibili al momento.';
+  });
+  $('#restoreProBtn').addEventListener('click', async () => {
+    if (!window.SudokuBilling) return;
+    const ok = await window.SudokuBilling.restorePurchases();
+    proStatusEl.textContent = ok ? 'Acquisto ripristinato.' : 'Nessun acquisto da ripristinare.';
+  });
+
   // Input da tastiera fisica (comodo per test su desktop e per l'accessibilità)
   document.addEventListener('keydown', (e) => {
     if (gameScreen.classList.contains('hidden') || paused) return;
@@ -911,6 +957,10 @@
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' }).catch(() => {});
     }
+
+    if (window.SudokuAds) window.SudokuAds.initAds();
+    if (window.SudokuBilling) window.SudokuBilling.initBilling();
+    updateProStatus();
 
     refreshResumeButton();
   }

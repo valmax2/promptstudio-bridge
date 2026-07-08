@@ -17,7 +17,7 @@ npm install --save-dev @capacitor/assets
 
 echo "▶ Copio i file web in www/"
 rm -rf www && mkdir -p www
-cp index.html styles.css sudoku-engine.js app.js manifest.webmanifest sw.js icon.svg www/
+cp index.html privacy.html styles.css sudoku-engine.js ads.js billing.js app.js manifest.webmanifest sw.js icon.svg www/
 
 echo "▶ Creo il progetto Android (usa capacitor.config.json)"
 if [ ! -d android ]; then

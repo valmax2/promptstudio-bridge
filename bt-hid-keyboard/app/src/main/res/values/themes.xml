@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <style name="Theme.BtHidKeyboard" parent="Theme.AppCompat.DayNight.NoActionBar">
-        <item name="colorPrimary">#007ACC</item>
-        <item name="colorPrimaryDark">#005A9C</item>
-        <item name="colorAccent">#007ACC</item>
-    </style>
-</resources>

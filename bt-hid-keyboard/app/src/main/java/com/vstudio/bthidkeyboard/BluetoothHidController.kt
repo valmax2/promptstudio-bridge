@@ -15,6 +15,11 @@ class BluetoothHidController(private val context: Context, private val onStatusC
     private var connectedDevice: BluetoothDevice? = null
 
     init {
+        try {
+            bluetoothAdapter?.name = "VStudio HID Keyboard"
+        } catch (e: SecurityException) {
+            Log.w(TAG, "Impossibile rinominare il Bluetooth: permesso mancante", e)
+        }
         bluetoothAdapter?.getProfileProxy(context, object : BluetoothProfile.ServiceListener {
             override fun onServiceConnected(profile: Int, proxy: BluetoothProfile?) {
                 if (profile == BluetoothProfile.HID_DEVICE) {

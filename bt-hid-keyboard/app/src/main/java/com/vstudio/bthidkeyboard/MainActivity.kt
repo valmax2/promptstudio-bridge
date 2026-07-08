@@ -18,7 +18,7 @@ import java.util.*
 
 class MainActivity : AppCompatActivity() {
 
-    private lateinit var hidController: BluetoothHidController
+    private var hidController: BluetoothHidController? = null
     private lateinit var speechRecognizer: SpeechRecognizer
     private lateinit var statusText: TextView
     private var isVoiceListening = false
@@ -27,21 +27,19 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        checkPermissions()
-
         statusText = findViewById(R.id.statusText)
         val inputEditText = findViewById<EditText>(R.id.inputEditText)
         val btnVoice = findViewById<Button>(R.id.btnVoice)
 
-        hidController = BluetoothHidController(this) { message ->
-            runOnUiThread { statusText.text = message }
+        if (checkPermissions()) {
+            startHidController()
         }
 
         inputEditText.doAfterTextChanged { editable ->
             val text = editable?.toString() ?: ""
             if (text.isNotEmpty()) {
                 val lastChar = text.last()
-                hidController.sendChar(lastChar)
+                hidController?.sendChar(lastChar)
                 editable?.clear()
             }
         }
@@ -57,7 +55,7 @@ class MainActivity : AppCompatActivity() {
                 val matches = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
                 if (!matches.isNullOrEmpty()) {
                     val textDettato = matches[0]
-                    hidController.sendString("$textDettato ")
+                    hidController?.sendString("$textDettato ")
                 }
                 resetVoiceButton(btnVoice)
             }
@@ -93,14 +91,36 @@ class MainActivity : AppCompatActivity() {
         statusText.text = "Pronto"
     }
 
-    private fun checkPermissions() {
+    private fun checkPermissions(): Boolean {
         val permissions = mutableListOf(Manifest.permission.RECORD_AUDIO)
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
             permissions.add(Manifest.permission.BLUETOOTH_CONNECT)
             permissions.add(Manifest.permission.BLUETOOTH_SCAN)
         }
-        if (permissions.any { ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED }) {
+        val allGranted = permissions.all { ContextCompat.checkSelfPermission(this, it) == PackageManager.PERMISSION_GRANTED }
+        if (!allGranted) {
             ActivityCompat.requestPermissions(this, permissions.toTypedArray(), 101)
+        }
+        return allGranted
+    }
+
+    private fun startHidController() {
+        if (hidController != null) return
+        hidController = BluetoothHidController(this) { message ->
+            runOnUiThread { statusText.text = message }
+        }
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == 101 && grantResults.isNotEmpty() && grantResults.all { it == PackageManager.PERMISSION_GRANTED }) {
+            startHidController()
+        } else if (requestCode == 101) {
+            statusText.text = "Permessi Bluetooth/Microfono necessari per funzionare."
         }
     }
 

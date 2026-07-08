@@ -187,7 +187,7 @@ body {
 /* ── Top bar di gioco ────────────────────────────────────────────────────── */
 #topbar {
   display: flex; align-items: center; justify-content: space-between; gap: 10px;
-  padding: calc(16px + env(safe-area-inset-top)) 20px 2px;
+  padding: calc(10px + env(safe-area-inset-top)) 20px 2px;
 }
 .clock-btn { background: none; box-shadow: none; font-size: 22px; }
 .clock-btn:active { transform: scale(.9); box-shadow: none; }
@@ -201,17 +201,17 @@ body {
 .timer { font-variant-numeric: tabular-nums; font-size: 22px; font-weight: 800; letter-spacing: .02em; }
 #timerSub {
   text-align: center; font-variant-numeric: tabular-nums; font-size: 15px; font-weight: 600;
-  color: var(--text); opacity: .75; padding-bottom: 10px;
+  color: var(--text); opacity: .75; padding-bottom: 4px;
 }
 
 /* ── Griglia Sudoku ──────────────────────────────────────────────────────── */
 #boardWrap {
   flex: 1; display: flex; align-items: center; justify-content: center; position: relative;
-  padding: 4px 14px;
+  padding: 2px 8px;
   min-height: 0;
 }
 #board {
-  --cell: min(9.6vw, calc((100dvh - 340px) / 9));
+  --cell: min(10.4vw, calc((100dvh - 300px) / 9));
   display: grid;
   grid-template-columns: repeat(9, var(--cell));
   grid-template-rows: repeat(9, var(--cell));
@@ -223,7 +223,7 @@ body {
 }
 .cell {
   display: flex; align-items: center; justify-content: center;
-  font-size: calc(var(--cell) * 0.48);
+  font-size: calc(var(--cell) * 0.52);
   font-weight: 600;
   color: var(--cell-user);
   background: var(--surface);
@@ -233,6 +233,8 @@ body {
   position: relative;
 }
 .cell.given { color: var(--cell-given); font-weight: 700; cursor: default; }
+:root[data-bold-numbers="1"] .cell { font-weight: 800; }
+:root[data-bold-numbers="1"] .cell.given { font-weight: 900; }
 .cell.peer { background: var(--cell-peer); }
 .cell.same-value { background: var(--cell-same); }
 .cell.selected { background: var(--cell-selected); }
@@ -290,7 +292,7 @@ body {
 
 /* ── Tastierino numerico ─────────────────────────────────────────────────── */
 #keypad {
-  padding: 10px 16px 8px; display: flex; align-items: stretch; justify-content: center; gap: 10px;
+  padding: 6px 16px 6px; display: flex; align-items: stretch; justify-content: center; gap: 10px;
 }
 .keypad-grid {
   display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
@@ -320,7 +322,7 @@ body {
 /* ── Barra azioni (Undo / Erase / Dark Mode) ────────────────────────────── */
 #actionBar {
   display: flex; align-items: center; justify-content: center; gap: 22px;
-  padding: 8px 16px 6px;
+  padding: 6px 16px 4px;
 }
 .action-toggle, .action-btn {
   display: flex; flex-direction: column; align-items: center; gap: 4px;
@@ -333,7 +335,7 @@ body {
 /* ── Footer di gioco: difficoltà, nuova partita, impostazioni ───────────── */
 #gameFooterBar {
   display: flex; align-items: center; justify-content: center; gap: 14px;
-  padding: 6px 16px calc(14px + env(safe-area-inset-bottom));
+  padding: 4px 16px calc(10px + env(safe-area-inset-bottom));
 }
 
 /* ── Modali ──────────────────────────────────────────────────────────────── */

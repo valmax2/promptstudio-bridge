@@ -10,6 +10,7 @@
   const STORAGE_KEY = 'vsudoku-state-v2';
   const THEME_KEY = 'vsudoku-theme';
   const SOUND_KEY = 'vsudoku-sound';
+  const BOLD_NUMBERS_KEY = 'vsudoku-bold-numbers';
   const MUSIC_ENABLED_KEY = 'vsudoku-music-enabled';
   const MUSIC_TRACK_KEY = 'vsudoku-music-track';
   const PALETTE_KEY = 'vsudoku-palette';
@@ -34,6 +35,7 @@
   const winModal = $('#winModal');
   const darkModeToggle = $('#darkModeToggle');
   const soundToggle = $('#soundToggle');
+  const boldNumbersToggle = $('#boldNumbersToggle');
   const musicToggle = $('#musicToggle');
   const trackPicker = $('#trackPicker');
   const importAudioBtn = $('#importAudioBtn');
@@ -379,6 +381,12 @@
     const meta = document.getElementById('themeColor');
     if (meta) meta.setAttribute('content', theme === 'dark' ? '#17140F' : '#EAE3D5');
     darkModeToggle.checked = theme === 'dark';
+  }
+
+  function applyBoldNumbers(enabled) {
+    document.documentElement.dataset.boldNumbers = enabled ? '1' : '0';
+    try { localStorage.setItem(BOLD_NUMBERS_KEY, enabled ? '1' : '0'); } catch (e) {}
+    boldNumbersToggle.checked = enabled;
   }
 
   /* ── Timer ─────────────────────────────────────────────────────────────── */
@@ -800,6 +808,9 @@
   darkModeToggle.addEventListener('change', () => {
     applyTheme(darkModeToggle.checked ? 'dark' : 'light');
   });
+  boldNumbersToggle.addEventListener('change', () => {
+    applyBoldNumbers(boldNumbersToggle.checked);
+  });
   soundToggle.addEventListener('change', () => {
     soundEnabled = soundToggle.checked;
     try { localStorage.setItem(SOUND_KEY, soundEnabled ? '1' : '0'); } catch (e) {}
@@ -874,6 +885,10 @@
   /* ── Avvio ─────────────────────────────────────────────────────────────── */
   function init() {
     applyTheme(document.documentElement.dataset.theme || 'dark');
+    let boldNumbers = false;
+    try { boldNumbers = localStorage.getItem(BOLD_NUMBERS_KEY) === '1'; } catch (e) {}
+    applyBoldNumbers(boldNumbers);
+
     try { soundEnabled = localStorage.getItem(SOUND_KEY) !== '0'; } catch (e) { soundEnabled = true; }
     soundToggle.checked = soundEnabled;
 

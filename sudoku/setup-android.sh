@@ -39,6 +39,10 @@ allprojects {
     }
 }
 GRADLE_EOF
+
+  echo "▶ Blocco l'orientamento su verticale (portrait)"
+  sed -i 's/android:name="\.MainActivity"/android:name=".MainActivity"\n            android:screenOrientation="portrait"/' \
+    android/app/src/main/AndroidManifest.xml
 fi
 
 echo "▶ Genero icona e splash dal logo (icon.svg)"

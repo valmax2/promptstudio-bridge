@@ -239,7 +239,30 @@ body {
 .cell.error { background: var(--cell-error-bg); color: var(--cell-error-text); }
 .cell.given.error { color: var(--cell-error-text); }
 
-.cell-value { position: relative; z-index: 1; line-height: 1; }
+.cell-value {
+  position: relative; z-index: 1; line-height: 1;
+  display: inline-block; transform-origin: 50% 50%;
+}
+.cell-value.celebrate {
+  animation: cellSpiralSpin .9s var(--cd, 0ms) cubic-bezier(.34, 1.4, .64, 1) 1,
+             cellColorCycle .9s var(--cd, 0ms) linear 1;
+  z-index: 2;
+}
+@keyframes cellSpiralSpin {
+  0% { transform: scale(1) rotate(0deg); }
+  35% { transform: scale(1.5) rotate(200deg); }
+  65% { transform: scale(1.2) rotate(330deg); }
+  100% { transform: scale(1) rotate(360deg); }
+}
+@keyframes cellColorCycle {
+  0% { color: inherit; }
+  16% { color: #E0483C; }
+  33% { color: #E0A23C; }
+  50% { color: #4CAF50; }
+  66% { color: #3C8CE0; }
+  83% { color: #A25CE0; }
+  100% { color: inherit; }
+}
 .cell-notes {
   display: none; position: absolute; inset: 2px;
   grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr);

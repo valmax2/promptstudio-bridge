@@ -505,6 +505,70 @@
     }
   }
 
+  /* ── Animazione "a spirale" quando si completa riga/colonna/riquadro ───── */
+  const BOX_SPIRAL_ORDER = [0, 1, 2, 5, 8, 7, 6, 3, 4]; // indici locali 0-8 (lettura per righe) in ordine a spirale
+
+  function isGroupComplete(cells) {
+    const seen = new Set();
+    for (const [rr, cc] of cells) {
+      const v = state.values[rr][cc];
+      if (v === 0 || seen.has(v)) return false;
+      seen.add(v);
+    }
+    return true;
+  }
+
+  function getCompletedGroups(r, c) {
+    const groups = [];
+    const rowCells = Array.from({ length: SIZE }, (_, i) => [r, i]);
+    if (isGroupComplete(rowCells)) groups.push(rowCells);
+    const colCells = Array.from({ length: SIZE }, (_, i) => [i, c]);
+    if (isGroupComplete(colCells)) groups.push(colCells);
+    const br = r - (r % 3), bc = c - (c % 3);
+    const boxCells = [];
+    for (let rr = 0; rr < 3; rr++) for (let cc = 0; cc < 3; cc++) boxCells.push([br + rr, bc + cc]);
+    if (isGroupComplete(boxCells)) groups.push(boxCells);
+    return groups;
+  }
+
+  function celebrateCompletedGroups(r, c) {
+    const groups = getCompletedGroups(r, c);
+    if (!groups.length) return;
+
+    const orderByKey = new Map(); // "r,c" → indice di ritardo (il più basso vince)
+    groups.forEach((cells) => {
+      const isRow = cells.every(([rr]) => rr === cells[0][0]);
+      const isCol = cells.every(([, cc]) => cc === cells[0][1]);
+      cells.forEach(([rr, cc], i) => {
+        // Riga/colonna: onda in ordine di lettura. Riquadro 3x3: ordine a spirale.
+        const order = (isRow || isCol) ? i : BOX_SPIRAL_ORDER.indexOf((rr % 3) * 3 + (cc % 3));
+        const key = `${rr},${cc}`;
+        if (!orderByKey.has(key) || orderByKey.get(key) > order) orderByKey.set(key, order);
+      });
+    });
+
+    const STEP_MS = 55;
+    const DURATION_MS = 900;
+    let maxDelay = 0;
+    orderByKey.forEach((order, key) => {
+      const [rr, cc] = key.split(',').map(Number);
+      const delay = order * STEP_MS;
+      maxDelay = Math.max(maxDelay, delay);
+      const valueEl = cellEl(rr, cc).querySelector('.cell-value');
+      valueEl.style.setProperty('--cd', `${delay}ms`);
+      valueEl.classList.add('celebrate');
+    });
+
+    setTimeout(() => {
+      orderByKey.forEach((order, key) => {
+        const [rr, cc] = key.split(',').map(Number);
+        const valueEl = cellEl(rr, cc).querySelector('.cell-value');
+        valueEl.classList.remove('celebrate');
+        valueEl.style.removeProperty('--cd');
+      });
+    }, maxDelay + DURATION_MS + 50);
+  }
+
   /* ── Interazioni ───────────────────────────────────────────────────────── */
   function onCellTap(r, c) {
     if (paused || !state) return;
@@ -545,7 +609,8 @@
 
     if (num !== 0) {
       const hasConflict = Engine.getConflictCells(state.values, r, c, num).length > 0;
-      hasConflict ? sfxError() : sfxTap();
+      if (hasConflict) sfxError();
+      else { sfxTap(); celebrateCompletedGroups(r, c); }
     } else {
       sfxTap();
     }
@@ -586,6 +651,7 @@
     renderAll();
     saveState();
     sfxTap();
+    celebrateCompletedGroups(r, c);
 
     if (Engine.isBoardComplete(state.values)) onWin();
   }

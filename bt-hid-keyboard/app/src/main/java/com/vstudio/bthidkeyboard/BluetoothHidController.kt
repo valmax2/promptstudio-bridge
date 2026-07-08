@@ -19,6 +19,10 @@ class BluetoothHidController(private val context: Context, private val onStatusC
     private val mainHandler = Handler(Looper.getMainLooper())
 
     init {
+        setup()
+    }
+
+    private fun setup() {
         try {
             bluetoothAdapter?.name = "VStudio HID Keyboard"
         } catch (e: SecurityException) {

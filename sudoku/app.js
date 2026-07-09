@@ -53,6 +53,7 @@
   const quizRules = $('#quizRules');
   const quizGrid = $('#quizGrid');
   const quizBanner = $('#quizBanner');
+  const quizStartBtn = $('#quizStartBtn');
 
   const DIFFICULTY_NAMES = { easy: 'Facile', medium: 'Medio', hard: 'Difficile' };
 
@@ -708,7 +709,10 @@
     const numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9].sort(() => Math.random() - 0.5);
     colors.forEach((color, i) => {
       const cell = document.createElement('div');
-      cell.className = `quiz-cell ${color}`;
+      // Niente colore per ora: si vedono solo i numeri finché l'utente non
+      // preme "Inizia" (vedi runColorQuiz), per dargli tempo di leggere le
+      // regole prima che parta il conto alla rovescia della memorizzazione.
+      cell.className = 'quiz-cell';
       cell.textContent = numbers[i];
       cell.dataset.color = color;
       quizGrid.appendChild(cell);
@@ -719,11 +723,12 @@
   // (in quel caso viene mostrato un breve banner al posto del video).
   function runColorQuiz() {
     return new Promise((resolve) => {
-      buildQuizGrid();
+      buildQuizGrid(); // solo numeri, niente colori: si vedono premendo "Inizia"
       quizGrid.classList.remove('hidden');
       quizBanner.classList.add('hidden');
       quizRules.classList.remove('hidden');
-      quizStatus.textContent = 'Memorizza i colori…';
+      quizStatus.textContent = 'Leggi con calma, poi premi "Inizia".';
+      quizStartBtn.classList.remove('hidden');
       showModal(quizModal);
       sfxTap();
       // Il banner resta agganciato alla finestra del quiz per tutta la sua durata,
@@ -775,15 +780,27 @@
         }
       }
 
-      setTimeout(() => {
+      // Il conto alla rovescia per memorizzare parte SOLO da quando l'utente
+      // preme "Inizia" (dopo aver letto le regole con calma), non prima.
+      quizStartBtn.addEventListener('click', () => {
         if (finished) return;
-        quizGrid.querySelectorAll('.quiz-cell').forEach((cell) => {
-          cell.classList.remove('blue', 'red', 'yellow');
-        });
+        quizStartBtn.classList.add('hidden');
         quizRules.classList.add('hidden');
-        quizGrid.addEventListener('click', onCellClick);
-        askNext();
-      }, QUIZ_MEMORIZE_MS);
+        quizStatus.textContent = 'Memorizza i colori…';
+        quizGrid.querySelectorAll('.quiz-cell').forEach((cell) => {
+          cell.classList.add(cell.dataset.color);
+        });
+        sfxTap();
+
+        setTimeout(() => {
+          if (finished) return;
+          quizGrid.querySelectorAll('.quiz-cell').forEach((cell) => {
+            cell.classList.remove('blue', 'red', 'yellow');
+          });
+          quizGrid.addEventListener('click', onCellClick);
+          askNext();
+        }, QUIZ_MEMORIZE_MS);
+      }, { once: true });
     });
   }
 

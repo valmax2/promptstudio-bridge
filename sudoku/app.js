@@ -45,6 +45,7 @@
   const customTrackNameEl = $('#customTrackName');
   const palettePicker = $('#palettePicker');
   const notesBtn = $('#notesBtn');
+  const resolveConflictBtn = $('#resolveConflictBtn');
   const quizModal = $('#adQuizModal');
   const quizStatus = $('#quizStatus');
   const quizGrid = $('#quizGrid');
@@ -468,6 +469,19 @@
     }
     renderKeypadCounts();
     notesBtn.classList.toggle('active', notesMode);
+    refreshResolveConflictButton();
+  }
+
+  // Il tasto "Risolvi" si attiva solo quando la casella selezionata è in
+  // conflitto con un'altra (stesso numero su riga/colonna/riquadro).
+  function refreshResolveConflictButton() {
+    let hasConflict = false;
+    if (selected) {
+      const { r, c } = selected;
+      const v = state.values[r][c];
+      hasConflict = v !== 0 && Engine.getConflictCells(state.values, r, c, v).length > 0;
+    }
+    resolveConflictBtn.disabled = !hasConflict;
   }
 
   function renderCell(r, c) {
@@ -638,6 +652,27 @@
     state.values[move.r][move.c] = move.prevValue;
     state.notes[move.r][move.c] = move.prevNotes;
     selected = { r: move.r, c: move.c };
+    renderAll();
+    saveState();
+    sfxTap();
+  }
+
+  // Cancella solo le caselle in conflitto con quella selezionata (stesso numero
+  // su riga/colonna/riquadro), lasciando intatte le altre celle con lo stesso
+  // numero piazzate correttamente altrove sulla griglia.
+  function onResolveConflict() {
+    if (paused || !state || !selected) return;
+    const { r, c } = selected;
+    const v = state.values[r][c];
+    if (v === 0) return;
+    const conflicts = Engine.getConflictCells(state.values, r, c, v);
+    if (!conflicts.length) return;
+
+    const cellsToClear = [[r, c], ...conflicts].filter(([rr, cc]) => !state.given[rr][cc]);
+    cellsToClear.forEach(([rr, cc]) => {
+      pushHistory(rr, cc);
+      state.values[rr][cc] = 0;
+    });
     renderAll();
     saveState();
     sfxTap();
@@ -911,6 +946,7 @@
   $('#pauseBtn').addEventListener('click', () => setPaused(true));
   $('#undoBtn').addEventListener('click', onUndo);
   $('#hintBtn').addEventListener('click', onHint);
+  resolveConflictBtn.addEventListener('click', onResolveConflict);
   notesBtn.addEventListener('click', () => {
     notesMode = !notesMode;
     notesBtn.classList.toggle('active', notesMode);

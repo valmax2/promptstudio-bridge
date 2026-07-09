@@ -324,16 +324,18 @@ body {
 .side-icon { font-size: 19px; }
 .side-btn.active { color: var(--accent); }
 
-/* ── Barra azioni (Dark Mode) ────────────────────────────────────────────── */
+/* ── Barra azioni (Risolvi conflitto / Dark Mode) ───────────────────────── */
 #actionBar {
   display: flex; align-items: center; justify-content: center; gap: 22px;
   padding: 6px 16px 4px;
 }
-.action-toggle {
+.action-toggle, .action-item {
   display: flex; flex-direction: column; align-items: center; gap: 4px;
   background: none; border: none; color: var(--muted); font-size: 11px; font-weight: 700;
   cursor: pointer; text-transform: uppercase; letter-spacing: .03em;
 }
+.action-item:disabled { opacity: .35; cursor: default; }
+.action-item .action-icon { font-size: 18px; }
 .action-label { text-transform: uppercase; letter-spacing: .04em; }
 
 /* ── Footer di gioco: difficoltà, nuova partita, impostazioni ───────────── */

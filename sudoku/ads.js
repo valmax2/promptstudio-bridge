@@ -56,12 +56,20 @@ async function initAds() {
   } catch (e) { /* se AdMob non parte, l'app funziona comunque senza ads */ }
 }
 
+// Ogni GAMES_PER_AD nuove partite è "il momento buono" per un interstitial —
+// ma prima si propone il mini-gioco colori (vedi app.js): true = tocca provare
+// il quiz ora (poi chi chiama decide se mostrare il video o solo il banner).
 let gameCount = 0;
-async function adAfterNewGame() {
+function dueForPeriodicAd() {
   const A = admob();
-  if (!A || !ready || isPro()) return;
+  if (!A || !ready || isPro()) return false;
   gameCount++;
-  if (gameCount % GAMES_PER_AD !== 0) return;
+  return gameCount % GAMES_PER_AD === 0;
+}
+
+async function showInterstitial() {
+  const A = admob();
+  if (!A || isPro()) return;
   try {
     await A.prepareInterstitial({ adId: AD_IDS.interstitial, isTesting: TESTING });
     await A.showInterstitial();
@@ -104,4 +112,4 @@ async function hideBanner() {
   try { await A.hideBanner(); } catch (e) { /* ignora */ }
 }
 
-window.SudokuAds = { initAds, adAfterNewGame, showRewarded, showBanner, hideBanner, isPro, setPro };
+window.SudokuAds = { initAds, dueForPeriodicAd, showInterstitial, showRewarded, showBanner, hideBanner, isPro, setPro };

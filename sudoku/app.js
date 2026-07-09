@@ -895,7 +895,17 @@
     notesMode = false;
     saveState();
     enterGameScreen();
-    if (window.SudokuAds) window.SudokuAds.adAfterNewGame();
+    maybeShowPeriodicAd();
+  }
+
+  // Ogni tot nuove partite (vedi GAMES_PER_AD in ads.js) prima si propone il
+  // mini-gioco colori: se lo indovini l'interstitial viene saltato (ma il
+  // banner agganciato alla finestra del quiz garantisce comunque un guadagno
+  // minimo), se sbagli parte l'interstitial normale.
+  async function maybeShowPeriodicAd() {
+    if (!window.SudokuAds || !window.SudokuAds.dueForPeriodicAd()) return;
+    const won = await runColorQuiz();
+    if (!won && window.SudokuAds.showInterstitial) await window.SudokuAds.showInterstitial();
   }
 
   function resumeGame(saved) {

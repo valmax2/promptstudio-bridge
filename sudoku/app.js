@@ -955,7 +955,14 @@
   }
 
   document.addEventListener('visibilitychange', () => {
-    if (document.hidden) setPaused(true);
+    if (document.hidden) {
+      setPaused(true);
+    } else if (window.SudokuAds && !gameScreen.classList.contains('hidden')) {
+      // Il banner nativo AdMob è legato al ciclo di vita dell'Activity: quando
+      // l'app torna in primo piano (es. dopo blocco schermo, notifica, cambio
+      // app) può sparire e non ricomparire da solo se non lo richiediamo di nuovo.
+      window.SudokuAds.showBanner();
+    }
   });
   window.addEventListener('pagehide', saveState);
   window.addEventListener('beforeunload', saveState);

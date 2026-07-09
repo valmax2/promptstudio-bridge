@@ -726,8 +726,9 @@
       sfxTap();
       // Il banner resta agganciato alla finestra del quiz per tutta la sua durata,
       // sia che l'utente indovini (niente video) sia che sbagli (parte il video):
-      // il guadagno minimo dal banner è comunque garantito.
-      if (window.SudokuAds) window.SudokuAds.showBanner();
+      // il guadagno minimo dal banner è comunque garantito. Slot pubblicitario
+      // separato da quello fisso di gioco (vedi ads.js AD_IDS.bannerQuiz).
+      if (window.SudokuAds) window.SudokuAds.showBanner('quiz');
 
       let finished = false;
       const remaining = QUIZ_COLORS.slice();

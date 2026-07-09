@@ -9,7 +9,11 @@ const AD_IDS = {
   // ID di TEST ufficiali di Google (mostrano annunci finti, sicuri in sviluppo)
   interstitial: 'ca-app-pub-3940256099942544/1033173712',
   rewarded:     'ca-app-pub-3940256099942544/5224354917',
-  banner:       'ca-app-pub-3940256099942544/6300978111',
+  banner:       'ca-app-pub-3940256099942544/6300978111', // banner fisso durante la partita
+  // ⚠️ In produzione: crea un SECONDO ad unit "Banner" in AdMob (diverso da
+  // quello sopra) e mettilo qui, per avere due slot pubblicitari distinti
+  // invece di mostrare due volte lo stesso annuncio. In test va bene uguale.
+  bannerQuiz:   'ca-app-pub-3940256099942544/6300978111', // banner sulla finestra del quiz
 };
 const TESTING = true;         // ⚠️ metti false con gli ID reali in produzione
 const GAMES_PER_AD = 3;       // interstitial ogni N nuove partite iniziate
@@ -99,17 +103,18 @@ async function showRewarded() {
   } catch (e) { return false; }
 }
 
-// Banner: usato al posto del video quando l'utente vince il mini-gioco
-// "indovina i colori" prima dell'hint extra (vedi app.js) — un guadagno
-// minimo comunque garantito, senza mostrare il video intero.
-async function showBanner() {
+// Banner: "main" è quello fisso durante la partita, "quiz" è quello agganciato
+// alla finestra del mini-gioco colori (vedi app.js) — due slot pubblicitari
+// distinti (AD_IDS.banner / AD_IDS.bannerQuiz), non lo stesso annuncio due volte.
+async function showBanner(variant) {
   const A = admob();
   if (!A || isPro()) return;
   try {
     // Stima ragionevole finché non arriva l'evento "bannerAdSizeChanged" con
     // l'altezza esatta (un banner adattivo standard è alto circa 50-60px).
     setBannerHeight(56);
-    await A.showBanner({ adId: AD_IDS.banner, adSize: 'ADAPTIVE_BANNER', position: 'BOTTOM_CENTER', isTesting: TESTING });
+    const adId = variant === 'quiz' ? AD_IDS.bannerQuiz : AD_IDS.banner;
+    await A.showBanner({ adId, adSize: 'ADAPTIVE_BANNER', position: 'BOTTOM_CENTER', isTesting: TESTING });
   } catch (e) { /* ignora */ }
 }
 async function hideBanner() {

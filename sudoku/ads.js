@@ -56,13 +56,20 @@ async function initAds() {
   } catch (e) { /* se AdMob non parte, l'app funziona comunque senza ads */ }
 }
 
+// True se le ads sono davvero attive (nativo + inizializzate + non Pro), senza
+// contare/consumare il ciclo di dueForPeriodicAd() — usato per il trigger "ogni
+// vittoria", che non ha un contatore modulo.
+function adsActive() {
+  const A = admob();
+  return !!(A && ready && !isPro());
+}
+
 // Ogni GAMES_PER_AD nuove partite è "il momento buono" per un interstitial —
 // ma prima si propone il mini-gioco colori (vedi app.js): true = tocca provare
 // il quiz ora (poi chi chiama decide se mostrare il video o solo il banner).
 let gameCount = 0;
 function dueForPeriodicAd() {
-  const A = admob();
-  if (!A || !ready || isPro()) return false;
+  if (!adsActive()) return false;
   gameCount++;
   return gameCount % GAMES_PER_AD === 0;
 }
@@ -112,4 +119,4 @@ async function hideBanner() {
   try { await A.hideBanner(); } catch (e) { /* ignora */ }
 }
 
-window.SudokuAds = { initAds, dueForPeriodicAd, showInterstitial, showRewarded, showBanner, hideBanner, isPro, setPro };
+window.SudokuAds = { initAds, adsActive, dueForPeriodicAd, showInterstitial, showRewarded, showBanner, hideBanner, isPro, setPro };

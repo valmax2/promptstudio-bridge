@@ -65,6 +65,11 @@
   let musicStopFn = null;
   let musicGain = null;
   let notesMode = false;
+  // 'win' | 'abandon' | null — tiene traccia del motivo per cui sta per partire
+  // una nuova partita, per decidere se mostrare il quiz+ad (vedi newGame()).
+  // Serve perché backToMenu() azzera `state` prima che newGame() possa
+  // controllare se la partita precedente era stata vinta o abbandonata.
+  let pendingAdContext = null;
   let audioCtx = null;
   let customTrackName = '';
   let customAudioEl = null;
@@ -878,6 +883,15 @@
 
   /* ── Ciclo partita ─────────────────────────────────────────────────────── */
   function newGame(difficulty) {
+    // Determiniamo PRIMA di sovrascrivere `state` se la partita che sta per
+    // finire era stata vinta (ogni vittoria → quiz+ad sempre) o abbandonata/
+    // ricominciata (ogni GAMES_PER_AD → quiz+ad). Se si arriva dal menu dopo
+    // un backToMenu(), `state` è già null: usiamo pendingAdContext salvato lì.
+    let adContext = null;
+    if (state) adContext = state.completed ? 'win' : 'abandon';
+    else if (pendingAdContext) adContext = pendingAdContext;
+    pendingAdContext = null;
+
     const { puzzle, solution } = Engine.generatePuzzle(difficulty);
     const given = puzzle.map((row) => row.map((v) => v !== 0));
     state = {
@@ -895,17 +909,30 @@
     notesMode = false;
     saveState();
     enterGameScreen();
-    maybeShowPeriodicAd();
+    if (adContext === 'win') maybeShowAdAlways();
+    else if (adContext === 'abandon') maybeShowPeriodicAd();
   }
 
-  // Ogni tot nuove partite (vedi GAMES_PER_AD in ads.js) prima si propone il
-  // mini-gioco colori: se lo indovini l'interstitial viene saltato (ma il
-  // banner agganciato alla finestra del quiz garantisce comunque un guadagno
-  // minimo), se sbagli parte l'interstitial normale.
-  async function maybeShowPeriodicAd() {
-    if (!window.SudokuAds || !window.SudokuAds.dueForPeriodicAd()) return;
+  // Quiz colori + eventuale interstitial (se il quiz viene perso). Condiviso
+  // dai due punti di innesco sotto.
+  async function runQuizGatedAd() {
     const won = await runColorQuiz();
     if (!won && window.SudokuAds.showInterstitial) await window.SudokuAds.showInterstitial();
+  }
+
+  // Dopo OGNI vittoria: momento naturale in cui l'utente è più tollerante.
+  async function maybeShowAdAlways() {
+    if (window.SudokuAds && window.SudokuAds.adsActive && window.SudokuAds.adsActive()) {
+      await runQuizGatedAd();
+    }
+  }
+
+  // Ogni GAMES_PER_AD partite abbandonate/ricominciate senza finirle (vedi
+  // ads.js): diradato rispetto alle vittorie per non penalizzare chi riprova.
+  async function maybeShowPeriodicAd() {
+    if (window.SudokuAds && window.SudokuAds.dueForPeriodicAd()) {
+      await runQuizGatedAd();
+    }
   }
 
   function resumeGame(saved) {
@@ -934,6 +961,10 @@
   function backToMenu() {
     stopTimer();
     saveState();
+    // Partita abbandonata (non vinta): ricordiamolo per newGame(), che altrimenti
+    // non saprebbe più distinguere "vittoria" da "abbandono" una volta che qui
+    // sotto azzeriamo `state`.
+    if (state && !state.completed) pendingAdContext = 'abandon';
     state = null;
     selected = null;
     gameScreen.classList.add('hidden');

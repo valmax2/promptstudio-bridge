@@ -1,20 +1,20 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
   <rect width="512" height="512" rx="112" fill="#FBF8E7"/>
   <g>
-    <rect x="128" y="128" width="85.33" height="85.33" fill="#B7D7E4"/>
-    <rect x="213.33" y="128" width="85.33" height="85.33" fill="#F9C5C8"/>
-    <rect x="298.67" y="128" width="85.33" height="85.33" fill="#B7D7E4"/>
-    <rect x="128" y="213.33" width="85.33" height="85.33" fill="#F9C5C8"/>
-    <rect x="298.67" y="213.33" width="85.33" height="85.33" fill="#F9C5C8"/>
-    <rect x="128" y="298.67" width="85.33" height="85.33" fill="#F9C5C8"/>
-    <rect x="213.33" y="298.67" width="85.33" height="85.33" fill="#B7D7E4"/>
-    <rect x="298.67" y="298.67" width="85.33" height="85.33" fill="#B7D7E4"/>
+    <rect x="70" y="70" width="124" height="124" fill="#B7D7E4"/>
+    <rect x="194" y="70" width="124" height="124" fill="#F9C5C8"/>
+    <rect x="318" y="70" width="124" height="124" fill="#B7D7E4"/>
+    <rect x="70" y="194" width="124" height="124" fill="#F9C5C8"/>
+    <rect x="318" y="194" width="124" height="124" fill="#F9C5C8"/>
+    <rect x="70" y="318" width="124" height="124" fill="#F9C5C8"/>
+    <rect x="194" y="318" width="124" height="124" fill="#B7D7E4"/>
+    <rect x="318" y="318" width="124" height="124" fill="#B7D7E4"/>
   </g>
-  <g stroke="#D9C3A5" stroke-width="6" stroke-linecap="round">
-    <line x1="213.33" y1="128" x2="213.33" y2="384"/>
-    <line x1="298.67" y1="128" x2="298.67" y2="384"/>
-    <line x1="128" y1="213.33" x2="384" y2="213.33"/>
-    <line x1="128" y1="298.67" x2="384" y2="298.67"/>
+  <g stroke="#D9C3A5" stroke-width="9" stroke-linecap="round">
+    <line x1="194" y1="70" x2="194" y2="442"/>
+    <line x1="318" y1="70" x2="318" y2="442"/>
+    <line x1="70" y1="194" x2="442" y2="194"/>
+    <line x1="70" y1="318" x2="442" y2="318"/>
   </g>
-  <text x="256" y="306" text-anchor="middle" font-family="-apple-system,Segoe UI,Roboto,sans-serif" font-size="150" font-weight="800" fill="#7FA5C2">9</text>
+  <text x="256" y="329" text-anchor="middle" font-family="-apple-system,Segoe UI,Roboto,sans-serif" font-size="220" font-weight="800" fill="#7FA5C2">9</text>
 </svg>

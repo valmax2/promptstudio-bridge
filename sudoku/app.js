@@ -1039,7 +1039,9 @@
 
   /* ── Avvio ─────────────────────────────────────────────────────────────── */
   function init() {
-    applyTheme(document.documentElement.dataset.theme || 'dark');
+    let theme = 'light';
+    try { theme = localStorage.getItem(THEME_KEY) || 'light'; } catch (e) {}
+    applyTheme(theme);
     let boldNumbers = false;
     try { boldNumbers = localStorage.getItem(BOLD_NUMBERS_KEY) === '1'; } catch (e) {}
     applyBoldNumbers(boldNumbers);

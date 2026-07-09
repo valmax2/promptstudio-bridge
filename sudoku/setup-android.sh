@@ -14,6 +14,7 @@ echo "▶ Installo Capacitor + strumenti"
 [ -f package.json ] || npm init -y >/dev/null
 npm install @capacitor/core @capacitor/cli @capacitor/android
 npm install --save-dev @capacitor/assets
+npm install @capacitor-community/admob
 
 echo "▶ Copio i file web in www/"
 rm -rf www && mkdir -p www
@@ -42,6 +43,13 @@ GRADLE_EOF
 
   echo "▶ Blocco l'orientamento su verticale (portrait)"
   sed -i 's/android:name="\.MainActivity"/android:name=".MainActivity"\n            android:screenOrientation="portrait"/' \
+    android/app/src/main/AndroidManifest.xml
+
+  echo "▶ Aggiungo l'App ID AdMob (di TEST) al manifest"
+  # ID App di TEST ufficiale di Google (nessun account AdMob reale richiesto finché
+  # TESTING=true in ads.js). Da sostituire con l'App ID reale prima della pubblicazione
+  # (vedi PLAY_ADMOB.md).
+  sed -i 's|android:theme="@style/AppTheme">|android:theme="@style/AppTheme">\n\n        <meta-data\n            android:name="com.google.android.gms.ads.APPLICATION_ID"\n            android:value="ca-app-pub-3940256099942544~3347511713"/>|' \
     android/app/src/main/AndroidManifest.xml
 fi
 

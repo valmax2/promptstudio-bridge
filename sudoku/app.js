@@ -50,6 +50,7 @@
   const resolveConflictBtn = $('#resolveConflictBtn');
   const quizModal = $('#adQuizModal');
   const quizStatus = $('#quizStatus');
+  const quizRules = $('#quizRules');
   const quizGrid = $('#quizGrid');
   const quizBanner = $('#quizBanner');
 
@@ -721,6 +722,7 @@
       buildQuizGrid();
       quizGrid.classList.remove('hidden');
       quizBanner.classList.add('hidden');
+      quizRules.classList.remove('hidden');
       quizStatus.textContent = 'Memorizza i colori…';
       showModal(quizModal);
       sfxTap();
@@ -778,6 +780,7 @@
         quizGrid.querySelectorAll('.quiz-cell').forEach((cell) => {
           cell.classList.remove('blue', 'red', 'yellow');
         });
+        quizRules.classList.add('hidden');
         quizGrid.addEventListener('click', onCellClick);
         askNext();
       }, QUIZ_MEMORIZE_MS);

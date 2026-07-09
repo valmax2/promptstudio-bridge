@@ -474,16 +474,16 @@
     refreshResolveConflictButton();
   }
 
-  // Il tasto "Risolvi" si attiva solo quando la casella selezionata è in
-  // conflitto con un'altra (stesso numero su riga/colonna/riquadro).
+  // Il tasto "Risolvi" si attiva solo quando la casella selezionata contiene
+  // un numero sbagliato (diverso dalla soluzione).
   function refreshResolveConflictButton() {
-    let hasConflict = false;
+    let isWrong = false;
     if (selected) {
       const { r, c } = selected;
       const v = state.values[r][c];
-      hasConflict = v !== 0 && Engine.getConflictCells(state.values, r, c, v).length > 0;
+      isWrong = v !== 0 && v !== state.solution[r][c];
     }
-    resolveConflictBtn.disabled = !hasConflict;
+    resolveConflictBtn.disabled = !isWrong;
   }
 
   function renderCell(r, c) {
@@ -502,7 +502,10 @@
       });
     }
 
-    const hasConflict = v !== 0 && Engine.getConflictCells(state.values, r, c, v).length > 0;
+    // Sbagliato = non combacia con la soluzione, non solo "confligge con un'altra
+    // casella già scritta": così un numero errato viene segnalato subito, anche
+    // se al momento non crea ancora un doppione visibile su riga/colonna/riquadro.
+    const hasConflict = v !== 0 && v !== state.solution[r][c];
     el.classList.toggle('error', hasConflict);
 
     let isPeer = false, isSame = false, isSelected = false;
@@ -638,8 +641,8 @@
     saveState();
 
     if (num !== 0) {
-      const hasConflict = Engine.getConflictCells(state.values, r, c, num).length > 0;
-      if (hasConflict) sfxError();
+      const isWrong = num !== state.solution[r][c];
+      if (isWrong) sfxError();
       else { sfxTap(); celebrateCompletedGroups(r, c); }
     } else {
       sfxTap();
@@ -659,22 +662,17 @@
     sfxTap();
   }
 
-  // Cancella solo le caselle in conflitto con quella selezionata (stesso numero
-  // su riga/colonna/riquadro), lasciando intatte le altre celle con lo stesso
-  // numero piazzate correttamente altrove sulla griglia.
+  // Cancella la casella selezionata se contiene un numero sbagliato (diverso
+  // dalla soluzione), lasciando intatto il resto della griglia.
   function onResolveConflict() {
     if (paused || !state || !selected) return;
     const { r, c } = selected;
+    if (state.given[r][c]) return;
     const v = state.values[r][c];
-    if (v === 0) return;
-    const conflicts = Engine.getConflictCells(state.values, r, c, v);
-    if (!conflicts.length) return;
+    if (v === 0 || v === state.solution[r][c]) return;
 
-    const cellsToClear = [[r, c], ...conflicts].filter(([rr, cc]) => !state.given[rr][cc]);
-    cellsToClear.forEach(([rr, cc]) => {
-      pushHistory(rr, cc);
-      state.values[rr][cc] = 0;
-    });
+    pushHistory(r, c);
+    state.values[r][c] = 0;
     renderAll();
     saveState();
     sfxTap();

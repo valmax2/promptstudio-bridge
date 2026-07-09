@@ -700,13 +700,15 @@
 
   // Modalità diverse ad ogni tentativo, per varietà: a volte si ritrovano i
   // 3 colori in ordine, a volte tutte le caselle di UN colore (in qualsiasi
-  // ordine), a volte le caselle che erano rimaste senza numero.
+  // ordine), a volte le caselle che erano rimaste senza numero, a volte 3
+  // numeri a caso da ritrovare in ordine crescente (la più impegnativa).
   const QUIZ_MODES = [
     { type: 'sequence' },
     { type: 'allColor', color: 'blue' },
     { type: 'allColor', color: 'red' },
     { type: 'allColor', color: 'yellow' },
     { type: 'noNumber' },
+    { type: 'numberOrder' },
   ];
 
   function quizRulesHtml(mode) {
@@ -720,6 +722,12 @@
       return `Tra poco queste caselle diventeranno colorate: 3 blu, 3 rosse, 3 gialle.
         Guardale bene: dovrai ritrovare tutte e 3 le caselle
         <strong>${QUIZ_COLOR_NAMES[mode.color]}</strong> (in qualsiasi ordine).
+        Indovina tutte e salti il video; se sbagli anche una, parte.`;
+    }
+    if (mode.type === 'numberOrder') {
+      return `Guarda bene dove sono i numeri: quando premi "Inizia" te ne
+        verranno indicati <strong>3 a caso</strong>, poi i numeri spariranno.
+        Dovrai ritrovare le caselle giuste <strong>in ordine crescente</strong>.
         Indovina tutte e salti il video; se sbagli anche una, parte.`;
     }
     return `Tra poco 3 di queste caselle perderanno il numero. Guardale bene:
@@ -770,8 +778,9 @@
 
       let finished = false;
       let remainingSequence = null; // modalità 'sequence'
+      let remainingNumbers = null;  // modalità 'numberOrder': array di numeri in ordine crescente
       let targetIndexes = null;     // modalità 'allColor' / 'noNumber': Set di indici
-      let blankedCells = [];        // celle temporaneamente svuotate (modalità 'noNumber')
+      let blankedCells = [];        // celle temporaneamente svuotate ('noNumber' / 'numberOrder')
 
       function cellsArray() { return [...quizGrid.querySelectorAll('.quiz-cell')]; }
 
@@ -780,6 +789,8 @@
           quizStatus.textContent = `Tocca la casella che era ${QUIZ_COLOR_NAMES[remainingSequence[0]]}`;
         } else if (mode.type === 'allColor') {
           quizStatus.textContent = `Tocca le 3 caselle ${QUIZ_COLOR_NAMES[mode.color]}`;
+        } else if (mode.type === 'numberOrder') {
+          quizStatus.textContent = `Tocca la casella che aveva il numero ${remainingNumbers[0]}`;
         } else {
           quizStatus.textContent = 'Tocca le 3 caselle senza numero';
         }
@@ -824,6 +835,21 @@
           return;
         }
 
+        if (mode.type === 'numberOrder') {
+          if (Number(cell.dataset.savedNumber) === remainingNumbers[0]) {
+            cell.textContent = cell.dataset.savedNumber;
+            cell.classList.add('found');
+            remainingNumbers.shift();
+            sfxTap();
+            if (remainingNumbers.length === 0) finish(true);
+            else updateStatus();
+          } else {
+            cell.classList.add('error');
+            finish(false);
+          }
+          return;
+        }
+
         // 'allColor' / 'noNumber': insieme non ordinato di 3 caselle bersaglio.
         const idx = cellsArray().indexOf(cell);
         if (targetIndexes.has(idx)) {
@@ -856,6 +882,19 @@
           targetIndexes = new Set(
             allCells.map((c, i) => (c.dataset.color === mode.color ? i : -1)).filter((i) => i >= 0)
           );
+        } else if (mode.type === 'numberOrder') {
+          // Salviamo il numero di OGNI casella (serve per validare i tocchi anche
+          // dopo averle svuotate tutte), poi scegliamo 3 numeri a caso come bersaglio.
+          allCells.forEach((cell) => { cell.dataset.savedNumber = cell.textContent; });
+          const idxs = allCells.map((_, i) => i);
+          for (let i = idxs.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [idxs[i], idxs[j]] = [idxs[j], idxs[i]];
+          }
+          const targetCells = idxs.slice(0, 3).map((i) => allCells[i]);
+          remainingNumbers = targetCells.map((c) => Number(c.dataset.savedNumber)).sort((a, b) => a - b);
+          quizStatus.textContent = `Ritrova in ordine crescente: ${remainingNumbers.join(' → ')}`;
+          blankedCells = allCells; // tutte le caselle si svuotano, non solo le 3 bersaglio
         } else {
           const idxs = allCells.map((_, i) => i);
           for (let i = idxs.length - 1; i > 0; i--) {
@@ -869,13 +908,15 @@
 
         setTimeout(() => {
           if (finished) return;
-          if (mode.type === 'noNumber') {
+          if (mode.type === 'numberOrder') {
+            blankedCells.forEach((cell) => { cell.textContent = ''; });
+          } else if (mode.type === 'noNumber') {
             blankedCells.forEach((cell) => { cell.textContent = cell.dataset.savedNumber; });
           } else {
             allCells.forEach((cell) => cell.classList.remove('blue', 'red', 'yellow'));
           }
           quizGrid.addEventListener('click', onCellClick);
-          updateStatus();
+          if (mode.type !== 'numberOrder') updateStatus();
         }, QUIZ_MEMORIZE_MS);
       }, { once: true });
     });

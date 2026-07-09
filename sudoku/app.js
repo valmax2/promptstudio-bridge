@@ -45,6 +45,10 @@
   const customTrackNameEl = $('#customTrackName');
   const palettePicker = $('#palettePicker');
   const notesBtn = $('#notesBtn');
+  const quizModal = $('#adQuizModal');
+  const quizStatus = $('#quizStatus');
+  const quizGrid = $('#quizGrid');
+  const quizBanner = $('#quizBanner');
 
   const DIFFICULTY_NAMES = { easy: 'Facile', medium: 'Medio', hard: 'Difficile' };
 
@@ -639,9 +643,108 @@
     sfxTap();
   }
 
-  // Un numero limitato di hint gratuiti al giorno; oltre quello, se disponibile,
-  // un video premiato (AdMob) sblocca l'hint successivo. Su web/senza plugin
-  // configurato, ads.js non blocca nulla (vedi ads.js).
+  /* ── Mini-gioco "indovina i colori" prima del video pubblicitario ────────
+   * Si mostra una griglia 3x3 con 3 celle blu, 3 rosse, 3 gialle per un po';
+   * poi i colori si nascondono e si chiede di ritrovarli, uno alla volta
+   * (blu → rosso → giallo). Se l'utente indovina tutti e tre, il video
+   * pubblicitario NON parte — ma per garantire comunque un minimo di
+   * guadagno si mostra un breve banner al posto del video. Se sbaglia anche
+   * una sola casella, parte il video pubblicitario normale.
+   */
+  const QUIZ_COLORS = ['blue', 'red', 'yellow'];
+  const QUIZ_COLOR_NAMES = { blue: 'BLU', red: 'ROSSO', yellow: 'GIALLO' };
+  const QUIZ_MEMORIZE_MS = 2500;
+  const QUIZ_BANNER_MS = 3000;
+
+  function buildQuizGrid() {
+    quizGrid.innerHTML = '';
+    const colors = [];
+    QUIZ_COLORS.forEach((c) => colors.push(c, c, c));
+    for (let i = colors.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [colors[i], colors[j]] = [colors[j], colors[i]];
+    }
+    const numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9].sort(() => Math.random() - 0.5);
+    colors.forEach((color, i) => {
+      const cell = document.createElement('div');
+      cell.className = `quiz-cell ${color}`;
+      cell.textContent = numbers[i];
+      cell.dataset.color = color;
+      quizGrid.appendChild(cell);
+    });
+  }
+
+  // Ritorna una Promise<boolean>: true se l'utente indovina tutti e 3 i colori
+  // (in quel caso viene mostrato un breve banner al posto del video).
+  function runColorQuiz() {
+    return new Promise((resolve) => {
+      buildQuizGrid();
+      quizGrid.classList.remove('hidden');
+      quizBanner.classList.add('hidden');
+      quizStatus.textContent = 'Memorizza i colori…';
+      showModal(quizModal);
+      sfxTap();
+
+      let finished = false;
+      const remaining = QUIZ_COLORS.slice();
+
+      function askNext() {
+        quizStatus.textContent = `Tocca la casella che era ${QUIZ_COLOR_NAMES[remaining[0]]}`;
+      }
+
+      function finish(result) {
+        if (finished) return;
+        finished = true;
+        quizGrid.removeEventListener('click', onCellClick);
+        if (result) {
+          quizStatus.textContent = 'Hai indovinato tutti i colori! 🎉';
+          quizGrid.classList.add('hidden');
+          quizBanner.classList.remove('hidden');
+          if (window.SudokuAds) window.SudokuAds.showBanner();
+          setTimeout(() => {
+            if (window.SudokuAds) window.SudokuAds.hideBanner();
+            hideModal(quizModal);
+            resolve(true);
+          }, QUIZ_BANNER_MS);
+        } else {
+          quizStatus.textContent = 'Sbagliato! Parte la pubblicità…';
+          sfxError();
+          setTimeout(() => { hideModal(quizModal); resolve(false); }, 900);
+        }
+      }
+
+      function onCellClick(e) {
+        if (finished) return;
+        const cell = e.target.closest('.quiz-cell');
+        if (!cell) return;
+        const target = remaining[0];
+        if (cell.dataset.color === target) {
+          cell.classList.add(target);
+          remaining.shift();
+          sfxTap();
+          if (remaining.length === 0) finish(true);
+          else askNext();
+        } else {
+          cell.classList.add('error');
+          finish(false);
+        }
+      }
+
+      setTimeout(() => {
+        if (finished) return;
+        quizGrid.querySelectorAll('.quiz-cell').forEach((cell) => {
+          cell.classList.remove('blue', 'red', 'yellow');
+        });
+        quizGrid.addEventListener('click', onCellClick);
+        askNext();
+      }, QUIZ_MEMORIZE_MS);
+    });
+  }
+
+  // Un numero limitato di hint gratuiti al giorno; oltre quello, prima si
+  // propone il mini-gioco colori (vedi sopra) e solo se fallisce si passa al
+  // video premiato (AdMob). Su web/senza plugin configurato, ads.js non
+  // blocca nulla (vedi ads.js).
   async function canUseHint() {
     if (window.SudokuAds && window.SudokuAds.isPro()) return true;
     const today = new Date().toISOString().slice(0, 10);
@@ -656,6 +759,8 @@
       try { localStorage.setItem(HINT_USAGE_KEY, JSON.stringify(usage)); } catch (e) {}
       return true;
     }
+    const wonQuiz = await runColorQuiz();
+    if (wonQuiz) return true;
     if (window.SudokuAds && typeof window.SudokuAds.showRewarded === 'function') {
       return await window.SudokuAds.showRewarded();
     }

@@ -9,6 +9,7 @@ const AD_IDS = {
   // ID di TEST ufficiali di Google (mostrano annunci finti, sicuri in sviluppo)
   interstitial: 'ca-app-pub-3940256099942544/1033173712',
   rewarded:     'ca-app-pub-3940256099942544/5224354917',
+  banner:       'ca-app-pub-3940256099942544/6300978111',
 };
 const TESTING = true;         // ⚠️ metti false con gli ID reali in produzione
 const GAMES_PER_AD = 3;       // interstitial ogni N nuove partite iniziate
@@ -69,4 +70,20 @@ async function showRewarded() {
   } catch (e) { return false; }
 }
 
-window.SudokuAds = { initAds, adAfterNewGame, showRewarded, isPro, setPro };
+// Banner: usato al posto del video quando l'utente vince il mini-gioco
+// "indovina i colori" prima dell'hint extra (vedi app.js) — un guadagno
+// minimo comunque garantito, senza mostrare il video intero.
+async function showBanner() {
+  const A = admob();
+  if (!A || isPro()) return;
+  try {
+    await A.showBanner({ adId: AD_IDS.banner, adSize: 'ADAPTIVE_BANNER', position: 'BOTTOM_CENTER', isTesting: TESTING });
+  } catch (e) { /* ignora */ }
+}
+async function hideBanner() {
+  const A = admob();
+  if (!A) return;
+  try { await A.hideBanner(); } catch (e) { /* ignora */ }
+}
+
+window.SudokuAds = { initAds, adAfterNewGame, showRewarded, showBanner, hideBanner, isPro, setPro };

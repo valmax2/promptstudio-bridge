@@ -419,6 +419,31 @@ body {
 .win-icon { font-size: 44px; margin-bottom: 6px; }
 .win-time { font-size: 34px; font-weight: 800; font-variant-numeric: tabular-nums; margin-bottom: 20px; color: var(--accent); }
 
+/* ── Mini-gioco "salta la pubblicità" ────────────────────────────────────── */
+.quiz-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr);
+  gap: 8px; width: 220px; height: 220px; margin: 6px auto 4px;
+}
+.quiz-cell {
+  border-radius: 12px; display: flex; align-items: center; justify-content: center;
+  font-size: 26px; font-weight: 800; cursor: pointer;
+  background: var(--surface-2); color: var(--text);
+  box-shadow: var(--shadow), inset 0 1px 0 var(--btn-top-shine), inset 0 -2px 3px var(--btn-bottom-shade);
+  transition: transform .1s ease, background .2s ease;
+}
+.quiz-cell:active { transform: scale(.94); }
+.quiz-cell.blue { background: #3C6FE0; color: #fff; }
+.quiz-cell.red { background: #E0483C; color: #fff; }
+.quiz-cell.yellow { background: #E0B23C; color: #201206; }
+.quiz-cell.error { background: var(--cell-error-bg); color: var(--cell-error-text); }
+.quiz-banner {
+  height: 50px; border-radius: 10px; margin: 6px 0 4px;
+  background: repeating-linear-gradient(45deg, #3a3a3a, #3a3a3a 10px, #5a5a5a 10px, #5a5a5a 20px);
+  color: #fff; display: flex; align-items: center; justify-content: center;
+  font: 700 11px -apple-system, sans-serif; letter-spacing: .03em;
+  border: 2px dashed #fff;
+}
+
 /* Schermi piccoli: riduci un filo i margini */
 @media (max-width: 340px) {
   .difficulty-grid .btn { min-width: 84px; padding: 12px 10px; font-size: 14px; }

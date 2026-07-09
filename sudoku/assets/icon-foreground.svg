@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <g stroke="#FFFFFF" stroke-width="18" stroke-linecap="round" opacity="0.55">
+    <line x1="426" y1="256" x2="426" y2="768"/>
+    <line x1="598" y1="256" x2="598" y2="768"/>
+    <line x1="256" y1="426" x2="768" y2="426"/>
+    <line x1="256" y1="598" x2="768" y2="598"/>
+  </g>
+  <text x="512" y="612" text-anchor="middle" font-family="-apple-system,Segoe UI,Roboto,sans-serif" font-size="380" font-weight="800" fill="#FFFFFF">9</text>
+</svg>

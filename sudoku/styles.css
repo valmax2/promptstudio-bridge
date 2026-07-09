@@ -150,6 +150,18 @@ body {
 .difficulty-grid .btn[data-difficulty="hard"] .diff-dot { background: #A3402A; }
 
 .start-settings { position: absolute; top: calc(16px + env(safe-area-inset-top)); right: calc(16px + env(safe-area-inset-right)); }
+.start-stats { position: absolute; top: calc(16px + env(safe-area-inset-top)); left: calc(16px + env(safe-area-inset-left)); }
+
+/* ── Statistiche ─────────────────────────────────────────────────────────── */
+.stats-list { display: flex; flex-direction: column; gap: 10px; margin: 18px 0; text-align: left; }
+.stats-row {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--surface-2); border-radius: 12px; padding: 10px 14px;
+}
+.stats-diff-label { display: flex; align-items: center; gap: 8px; font-weight: 700; flex: 1; }
+.stats-diff-label .diff-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+.stats-wins { font-size: 13px; color: var(--muted); font-weight: 600; }
+.stats-best { font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; min-width: 46px; text-align: right; }
 
 /* ── Pulsanti: rilievo 3D (sfumatura + luce superiore/ombra inferiore) ──────
    Stessa ricetta applicata a tutti i controlli "a bottone" dell'app, per un

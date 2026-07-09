@@ -18,6 +18,7 @@
   const CUSTOM_TRACK_STORE = 'tracks';
   const CUSTOM_TRACK_ID = 'custom';
   const HINT_USAGE_KEY = 'vsudoku-hint-usage';
+  const STATS_KEY = 'vsudoku-stats';
   const FREE_HINTS_PER_DAY = 3;
 
   const $ = (sel) => document.querySelector(sel);
@@ -35,6 +36,7 @@
   const settingsModal = $('#settingsModal');
   const confirmModal = $('#confirmModal');
   const winModal = $('#winModal');
+  const statsModal = $('#statsModal');
   const darkModeToggle = $('#darkModeToggle');
   const soundToggle = $('#soundToggle');
   const boldNumbersToggle = $('#boldNumbersToggle');
@@ -837,9 +839,43 @@
     stopTimer();
     saveState();
     sfxWin();
+    recordWin(state.difficulty, state.elapsedSeconds);
     $('#winDifficulty').textContent = DIFFICULTY_NAMES[state.difficulty] || '';
     $('#winTime').textContent = formatTime(state.elapsedSeconds);
     showModal(winModal);
+  }
+
+  /* ── Statistiche (partite vinte e miglior tempo per difficoltà) ─────────── */
+  function loadStats() {
+    const empty = { easy: { wins: 0, best: null }, medium: { wins: 0, best: null }, hard: { wins: 0, best: null } };
+    try {
+      const raw = localStorage.getItem(STATS_KEY);
+      if (!raw) return empty;
+      const parsed = JSON.parse(raw);
+      return { ...empty, ...parsed };
+    } catch (e) { return empty; }
+  }
+
+  function recordWin(difficulty, seconds) {
+    const stats = loadStats();
+    const entry = stats[difficulty] || { wins: 0, best: null };
+    entry.wins++;
+    if (entry.best == null || seconds < entry.best) entry.best = seconds;
+    stats[difficulty] = entry;
+    try { localStorage.setItem(STATS_KEY, JSON.stringify(stats)); } catch (e) {}
+  }
+
+  function renderStats() {
+    const stats = loadStats();
+    const totalWins = (stats.easy.wins || 0) + (stats.medium.wins || 0) + (stats.hard.wins || 0);
+    $('#statsTotalWins').textContent = `${totalWins} partit${totalWins === 1 ? 'a vinta' : 'e vinte'} in totale`;
+
+    const rows = { easy: 'Easy', medium: 'Medium', hard: 'Hard' };
+    Object.keys(rows).forEach((key) => {
+      const entry = stats[key] || { wins: 0, best: null };
+      $(`#stats${rows[key]}Wins`).textContent = `${entry.wins} vint${entry.wins === 1 ? 'a' : 'e'}`;
+      $(`#stats${rows[key]}Best`).textContent = entry.best != null ? formatTime(entry.best) : '—';
+    });
   }
 
   /* ── Ciclo partita ─────────────────────────────────────────────────────── */
@@ -970,6 +1006,8 @@
   $('#settingsBtn').addEventListener('click', () => showModal(settingsModal));
   $('#startSettingsBtn').addEventListener('click', () => showModal(settingsModal));
   $('#closeSettingsBtn').addEventListener('click', () => hideModal(settingsModal));
+  $('#statsBtn').addEventListener('click', () => { renderStats(); showModal(statsModal); });
+  $('#statsCloseBtn').addEventListener('click', () => hideModal(statsModal));
   $('#menuBtn').addEventListener('click', () => {
     hideModal(settingsModal);
     backToMenu();

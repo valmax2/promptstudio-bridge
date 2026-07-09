@@ -56,6 +56,7 @@
     </div>
 
     <button id="startSettingsBtn" class="icon-btn start-settings" type="button" aria-label="Impostazioni">⚙</button>
+    <button id="statsBtn" class="icon-btn start-stats" type="button" aria-label="Statistiche">📊</button>
   </section>
 
   <!-- ── Schermata di gioco ──────────────────────────────────────────────── -->
@@ -196,6 +197,34 @@
       <p class="modal-text">Hai completato lo schema <span id="winDifficulty"></span> in</p>
       <p class="win-time" id="winTime">00:00</p>
       <button id="winNewGameBtn" class="btn primary" type="button">Nuova partita</button>
+    </div>
+  </div>
+
+  <!-- ── Modale statistiche ──────────────────────────────────────────────── -->
+  <div id="statsModal" class="modal hidden">
+    <div class="modal-card">
+      <h2>Statistiche</h2>
+      <p class="modal-text" id="statsTotalWins">0 partite vinte in totale</p>
+
+      <div class="stats-list">
+        <div class="stats-row">
+          <span class="stats-diff-label"><span class="diff-dot" style="background:#6B8F5A"></span>Facile</span>
+          <span id="statsEasyWins" class="stats-wins">0 vinte</span>
+          <span id="statsEasyBest" class="stats-best">—</span>
+        </div>
+        <div class="stats-row">
+          <span class="stats-diff-label"><span class="diff-dot" style="background:#C48A3E"></span>Medio</span>
+          <span id="statsMediumWins" class="stats-wins">0 vinte</span>
+          <span id="statsMediumBest" class="stats-best">—</span>
+        </div>
+        <div class="stats-row">
+          <span class="stats-diff-label"><span class="diff-dot" style="background:#A3402A"></span>Difficile</span>
+          <span id="statsHardWins" class="stats-wins">0 vinte</span>
+          <span id="statsHardBest" class="stats-best">—</span>
+        </div>
+      </div>
+
+      <button id="statsCloseBtn" class="btn ghost" type="button">Chiudi</button>
     </div>
   </div>
 

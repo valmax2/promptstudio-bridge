@@ -39,15 +39,18 @@ echo "▶ Inizializzo il progetto npm e installo Capacitor"
 # (.capacitor-build), che npm rifiuta perché inizia con un punto.
 echo '{"name":"sudoku-vstudio-capacitor-build","version":"1.0.0","private":true}' > package.json
 npm install @capacitor/core @capacitor/cli @capacitor/android >/dev/null
-npm install --save-dev @capacitor/assets >/dev/null
 
 echo "▶ Inizializzo Capacitor ($APP_ID)"
+# Fatto PRIMA di installare @capacitor/assets: quel pacchetto porta con sé
+# "typescript", e se è già presente "cap init" genera capacitor.config.ts
+# invece di .json, il cui parser TS nella CLI va in errore in questo setup.
 npx cap init "$APP_NAME" "$APP_ID" --web-dir=www
 
 echo "▶ Aggiungo la piattaforma Android"
 npx cap add android
 
 echo "▶ Genero icona e splash dal logo (assets/)"
+npm install --save-dev @capacitor/assets >/dev/null
 npx capacitor-assets generate --android
 
 npx cap sync android

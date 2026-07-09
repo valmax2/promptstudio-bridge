@@ -684,6 +684,10 @@
       quizStatus.textContent = 'Memorizza i colori…';
       showModal(quizModal);
       sfxTap();
+      // Il banner resta agganciato alla finestra del quiz per tutta la sua durata,
+      // sia che l'utente indovini (niente video) sia che sbagli (parte il video):
+      // il guadagno minimo dal banner è comunque garantito.
+      if (window.SudokuAds) window.SudokuAds.showBanner();
 
       let finished = false;
       const remaining = QUIZ_COLORS.slice();
@@ -700,10 +704,8 @@
           quizStatus.textContent = 'Hai indovinato tutti i colori! 🎉';
           quizGrid.classList.add('hidden');
           quizBanner.classList.remove('hidden');
-          if (window.SudokuAds) window.SudokuAds.showBanner();
           setTimeout(() => {
             hideModal(quizModal);
-            // Il banner resta visibile: durante la partita è già persistente in basso.
             resolve(true);
           }, QUIZ_BANNER_MS);
         } else {

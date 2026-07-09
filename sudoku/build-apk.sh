@@ -30,6 +30,7 @@ mkdir -p "$BUILD/www"
 # Copia i file statici dell'app nella cartella 'www' che Capacitor userà come webdir
 cp "$HERE"/index.html "$HERE"/privacy.html "$HERE"/styles.css "$HERE"/sudoku-engine.js "$HERE"/ads.js "$HERE"/billing.js "$HERE"/app.js \
    "$HERE"/manifest.webmanifest "$HERE"/sw.js "$HERE"/icon.svg "$BUILD/www/"
+cp -r "$HERE"/assets "$BUILD/assets"
 
 cd "$BUILD"
 
@@ -38,12 +39,17 @@ echo "▶ Inizializzo il progetto npm e installo Capacitor"
 # (.capacitor-build), che npm rifiuta perché inizia con un punto.
 echo '{"name":"sudoku-vstudio-capacitor-build","version":"1.0.0","private":true}' > package.json
 npm install @capacitor/core @capacitor/cli @capacitor/android >/dev/null
+npm install --save-dev @capacitor/assets >/dev/null
 
 echo "▶ Inizializzo Capacitor ($APP_ID)"
 npx cap init "$APP_NAME" "$APP_ID" --web-dir=www
 
 echo "▶ Aggiungo la piattaforma Android"
 npx cap add android
+
+echo "▶ Genero icona e splash dal logo (assets/)"
+npx capacitor-assets generate --android
+
 npx cap sync android
 
 echo "▶ Forzo una versione coerente di kotlin-stdlib"

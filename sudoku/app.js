@@ -695,8 +695,37 @@
    */
   const QUIZ_COLORS = ['blue', 'red', 'yellow'];
   const QUIZ_COLOR_NAMES = { blue: 'BLU', red: 'ROSSO', yellow: 'GIALLO' };
-  const QUIZ_MEMORIZE_MS = 2500;
+  const QUIZ_MEMORIZE_MS = 1800;
   const QUIZ_BANNER_MS = 3000;
+
+  // Modalità diverse ad ogni tentativo, per varietà: a volte si ritrovano i
+  // 3 colori in ordine, a volte tutte le caselle di UN colore (in qualsiasi
+  // ordine), a volte le caselle che erano rimaste senza numero.
+  const QUIZ_MODES = [
+    { type: 'sequence' },
+    { type: 'allColor', color: 'blue' },
+    { type: 'allColor', color: 'red' },
+    { type: 'allColor', color: 'yellow' },
+    { type: 'noNumber' },
+  ];
+
+  function quizRulesHtml(mode) {
+    if (mode.type === 'sequence') {
+      return `Tra poco queste caselle diventeranno colorate: 3 blu, 3 rosse, 3 gialle.
+        Guardale bene, perché subito dopo si nasconderanno e dovrai ritrovarle
+        nell'ordine <strong>blu → rosso → giallo</strong>, una alla volta.
+        Indovina tutte e salti il video; se sbagli anche una, parte.`;
+    }
+    if (mode.type === 'allColor') {
+      return `Tra poco queste caselle diventeranno colorate: 3 blu, 3 rosse, 3 gialle.
+        Guardale bene: dovrai ritrovare tutte e 3 le caselle
+        <strong>${QUIZ_COLOR_NAMES[mode.color]}</strong> (in qualsiasi ordine).
+        Indovina tutte e salti il video; se sbagli anche una, parte.`;
+    }
+    return `Tra poco 3 di queste caselle perderanno il numero. Guardale bene:
+      dovrai ritrovare le <strong>3 caselle senza numero</strong> (in qualsiasi ordine).
+      Indovina tutte e salti il video; se sbagli anche una, parte.`;
+  }
 
   function buildQuizGrid() {
     quizGrid.innerHTML = '';
@@ -719,13 +748,15 @@
     });
   }
 
-  // Ritorna una Promise<boolean>: true se l'utente indovina tutti e 3 i colori
-  // (in quel caso viene mostrato un breve banner al posto del video).
+  // Ritorna una Promise<boolean>: true se l'utente supera la sfida (in quel
+  // caso viene mostrato un breve banner al posto del video pubblicitario).
   function runColorQuiz() {
     return new Promise((resolve) => {
+      const mode = QUIZ_MODES[Math.floor(Math.random() * QUIZ_MODES.length)];
       buildQuizGrid(); // solo numeri, niente colori: si vedono premendo "Inizia"
       quizGrid.classList.remove('hidden');
       quizBanner.classList.add('hidden');
+      quizRules.innerHTML = quizRulesHtml(mode);
       quizRules.classList.remove('hidden');
       quizStatus.textContent = 'Leggi con calma, poi premi "Inizia".';
       quizStartBtn.classList.remove('hidden');
@@ -738,10 +769,20 @@
       if (window.SudokuAds) window.SudokuAds.showBanner('quiz');
 
       let finished = false;
-      const remaining = QUIZ_COLORS.slice();
+      let remainingSequence = null; // modalità 'sequence'
+      let targetIndexes = null;     // modalità 'allColor' / 'noNumber': Set di indici
+      let blankedCells = [];        // celle temporaneamente svuotate (modalità 'noNumber')
 
-      function askNext() {
-        quizStatus.textContent = `Tocca la casella che era ${QUIZ_COLOR_NAMES[remaining[0]]}`;
+      function cellsArray() { return [...quizGrid.querySelectorAll('.quiz-cell')]; }
+
+      function updateStatus() {
+        if (mode.type === 'sequence') {
+          quizStatus.textContent = `Tocca la casella che era ${QUIZ_COLOR_NAMES[remainingSequence[0]]}`;
+        } else if (mode.type === 'allColor') {
+          quizStatus.textContent = `Tocca le 3 caselle ${QUIZ_COLOR_NAMES[mode.color]}`;
+        } else {
+          quizStatus.textContent = 'Tocca le 3 caselle senza numero';
+        }
       }
 
       function finish(result) {
@@ -749,7 +790,7 @@
         finished = true;
         quizGrid.removeEventListener('click', onCellClick);
         if (result) {
-          quizStatus.textContent = 'Hai indovinato tutti i colori! 🎉';
+          quizStatus.textContent = 'Hai indovinato! 🎉';
           quizGrid.classList.add('hidden');
           quizBanner.classList.remove('hidden');
           setTimeout(() => {
@@ -767,13 +808,29 @@
         if (finished) return;
         const cell = e.target.closest('.quiz-cell');
         if (!cell) return;
-        const target = remaining[0];
-        if (cell.dataset.color === target) {
-          cell.classList.add(target);
-          remaining.shift();
+
+        if (mode.type === 'sequence') {
+          const target = remainingSequence[0];
+          if (cell.dataset.color === target) {
+            cell.classList.add(target);
+            remainingSequence.shift();
+            sfxTap();
+            if (remainingSequence.length === 0) finish(true);
+            else updateStatus();
+          } else {
+            cell.classList.add('error');
+            finish(false);
+          }
+          return;
+        }
+
+        // 'allColor' / 'noNumber': insieme non ordinato di 3 caselle bersaglio.
+        const idx = cellsArray().indexOf(cell);
+        if (targetIndexes.has(idx)) {
+          cell.classList.add(mode.type === 'allColor' ? mode.color : 'found');
+          targetIndexes.delete(idx);
           sfxTap();
-          if (remaining.length === 0) finish(true);
-          else askNext();
+          if (targetIndexes.size === 0) finish(true);
         } else {
           cell.classList.add('error');
           finish(false);
@@ -786,19 +843,39 @@
         if (finished) return;
         quizStartBtn.classList.add('hidden');
         quizRules.classList.add('hidden');
-        quizStatus.textContent = 'Memorizza i colori…';
-        quizGrid.querySelectorAll('.quiz-cell').forEach((cell) => {
-          cell.classList.add(cell.dataset.color);
-        });
+        quizStatus.textContent = 'Memorizza…';
         sfxTap();
+
+        const allCells = cellsArray();
+
+        if (mode.type === 'sequence') {
+          remainingSequence = QUIZ_COLORS.slice();
+          allCells.forEach((cell) => cell.classList.add(cell.dataset.color));
+        } else if (mode.type === 'allColor') {
+          allCells.forEach((cell) => cell.classList.add(cell.dataset.color));
+          targetIndexes = new Set(
+            allCells.map((c, i) => (c.dataset.color === mode.color ? i : -1)).filter((i) => i >= 0)
+          );
+        } else {
+          const idxs = allCells.map((_, i) => i);
+          for (let i = idxs.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [idxs[i], idxs[j]] = [idxs[j], idxs[i]];
+          }
+          targetIndexes = new Set(idxs.slice(0, 3));
+          blankedCells = [...targetIndexes].map((i) => allCells[i]);
+          blankedCells.forEach((cell) => { cell.dataset.savedNumber = cell.textContent; cell.textContent = ''; });
+        }
 
         setTimeout(() => {
           if (finished) return;
-          quizGrid.querySelectorAll('.quiz-cell').forEach((cell) => {
-            cell.classList.remove('blue', 'red', 'yellow');
-          });
+          if (mode.type === 'noNumber') {
+            blankedCells.forEach((cell) => { cell.textContent = cell.dataset.savedNumber; });
+          } else {
+            allCells.forEach((cell) => cell.classList.remove('blue', 'red', 'yellow'));
+          }
           quizGrid.addEventListener('click', onCellClick);
-          askNext();
+          updateStatus();
         }, QUIZ_MEMORIZE_MS);
       }, { once: true });
     });

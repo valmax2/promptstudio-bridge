@@ -458,6 +458,7 @@ body {
 .quiz-cell.red { background: #E0483C; color: #fff; }
 .quiz-cell.yellow { background: #E0B23C; color: #201206; }
 .quiz-cell.error { background: var(--cell-error-bg); color: var(--cell-error-text); }
+.quiz-cell.found { background: var(--cell-selected); color: var(--text); }
 .quiz-banner {
   height: 50px; border-radius: 10px; margin: 6px 0 4px;
   background: repeating-linear-gradient(45deg, #3a3a3a, #3a3a3a 10px, #5a5a5a 10px, #5a5a5a 20px);
@@ -465,6 +466,13 @@ body {
   font: 700 11px -apple-system, sans-serif; letter-spacing: .03em;
   border: 2px dashed #fff;
 }
+#quizStartBtn { margin-top: 6px; width: 100%; }
+
+/* Il banner nativo AdMob (vedi --ad-banner-height) è agganciato in basso allo
+   SCHERMO, non alla finestra: per farlo sembrare parte del bordo inferiore
+   della finestra del quiz, ancoriamo la finestra in basso e riserviamo lo
+   spazio esatto del banner subito sotto, senza spazio vuoto in mezzo. */
+#adQuizModal { align-items: flex-end; padding-bottom: var(--ad-banner-height, 24px); }
 
 /* Schermi piccoli: riduci un filo i margini */
 @media (max-width: 340px) {

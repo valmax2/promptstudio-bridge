@@ -702,8 +702,8 @@
           quizBanner.classList.remove('hidden');
           if (window.SudokuAds) window.SudokuAds.showBanner();
           setTimeout(() => {
-            if (window.SudokuAds) window.SudokuAds.hideBanner();
             hideModal(quizModal);
+            // Il banner resta visibile: durante la partita è già persistente in basso.
             resolve(true);
           }, QUIZ_BANNER_MS);
         } else {
@@ -847,6 +847,7 @@
     pauseOverlay.classList.add('hidden');
     if (!state.completed) startTimer();
     refreshMusic();
+    if (window.SudokuAds) window.SudokuAds.showBanner();
   }
 
   function backToMenu() {
@@ -858,6 +859,7 @@
     startScreen.classList.remove('hidden');
     refreshResumeButton();
     refreshMusic();
+    if (window.SudokuAds) window.SudokuAds.hideBanner();
   }
 
   function refreshResumeButton() {

@@ -335,7 +335,10 @@ body {
 /* ── Footer di gioco: difficoltà, nuova partita, impostazioni ───────────── */
 #gameFooterBar {
   display: flex; align-items: center; justify-content: center; gap: 14px;
-  padding: 4px 16px calc(10px + env(safe-area-inset-bottom));
+  /* --ad-banner-height (impostata da ads.js) riserva lo spazio occupato dal banner
+     nativo AdMob, che è disegnato sopra la webview e coprirebbe altrimenti questi
+     pulsanti. */
+  padding: 4px 16px calc(10px + env(safe-area-inset-bottom) + var(--ad-banner-height, 0px));
 }
 
 /* ── Modali ──────────────────────────────────────────────────────────────── */

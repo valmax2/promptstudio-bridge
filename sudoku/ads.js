@@ -23,6 +23,13 @@ function admob() {
 function isPro() { try { return localStorage.getItem('vsudoku-pro') === '1'; } catch (e) { return false; } }
 function setPro(v) { try { localStorage.setItem('vsudoku-pro', v ? '1' : '0'); } catch (e) {} }
 
+// Riserva, nell'interfaccia HTML, lo spazio occupato dal banner nativo AdMob
+// (disegnato SOPRA la webview e non dentro): senza questo i pulsanti in fondo
+// allo schermo restano coperti. Vedi --ad-banner-height in styles.css.
+function setBannerHeight(px) {
+  try { document.documentElement.style.setProperty('--ad-banner-height', `${px}px`); } catch (e) {}
+}
+
 let ready = false;
 async function initAds() {
   const A = admob();
@@ -38,6 +45,13 @@ async function initAds() {
         }
       } catch (e) { /* prosegui senza consenso esplicito */ }
     }
+    // Altezza esatta del banner (varia in base alla larghezza dello schermo, essendo
+    // "ADAPTIVE_BANNER"): la applichiamo non appena il plugin la comunica.
+    try {
+      await A.addListener('bannerAdSizeChanged', (size) => {
+        if (size && typeof size.height === 'number') setBannerHeight(size.height);
+      });
+    } catch (e) {}
     ready = true;
   } catch (e) { /* se AdMob non parte, l'app funziona comunque senza ads */ }
 }
@@ -77,12 +91,16 @@ async function showBanner() {
   const A = admob();
   if (!A || isPro()) return;
   try {
+    // Stima ragionevole finché non arriva l'evento "bannerAdSizeChanged" con
+    // l'altezza esatta (un banner adattivo standard è alto circa 50-60px).
+    setBannerHeight(56);
     await A.showBanner({ adId: AD_IDS.banner, adSize: 'ADAPTIVE_BANNER', position: 'BOTTOM_CENTER', isTesting: TESTING });
   } catch (e) { /* ignora */ }
 }
 async function hideBanner() {
   const A = admob();
   if (!A) return;
+  setBannerHeight(0);
   try { await A.hideBanner(); } catch (e) { /* ignora */ }
 }
 

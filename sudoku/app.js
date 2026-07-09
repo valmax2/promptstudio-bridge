@@ -910,9 +910,7 @@
 
   $('#pauseBtn').addEventListener('click', () => setPaused(true));
   $('#undoBtn').addEventListener('click', onUndo);
-  $('#undoBtn2').addEventListener('click', onUndo);
   $('#hintBtn').addEventListener('click', onHint);
-  $('#eraseBtn2').addEventListener('click', () => onKeyTap(0));
   notesBtn.addEventListener('click', () => {
     notesMode = !notesMode;
     notesBtn.classList.toggle('active', notesMode);

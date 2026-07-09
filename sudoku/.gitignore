@@ -1,5 +1,6 @@
 # Capacitor / Android / build
 .capacitor-build/
+.capacitor-build-release/
 android/
 www/
 node_modules/

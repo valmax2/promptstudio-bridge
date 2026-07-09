@@ -1,16 +1,20 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="512" y2="512">
-      <stop offset="0" stop-color="#C46A3F"/>
-      <stop offset="1" stop-color="#8A3F22"/>
-    </linearGradient>
-  </defs>
-  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
-  <g stroke="#FFFFFF" stroke-width="9" stroke-linecap="round" opacity="0.55">
-    <line x1="213" y1="128" x2="213" y2="384"/>
-    <line x1="299" y1="128" x2="299" y2="384"/>
-    <line x1="128" y1="213" x2="384" y2="213"/>
-    <line x1="128" y1="299" x2="384" y2="299"/>
+  <rect width="512" height="512" rx="112" fill="#FBF8E7"/>
+  <g>
+    <rect x="128" y="128" width="85.33" height="85.33" fill="#B7D7E4"/>
+    <rect x="213.33" y="128" width="85.33" height="85.33" fill="#F9C5C8"/>
+    <rect x="298.67" y="128" width="85.33" height="85.33" fill="#B7D7E4"/>
+    <rect x="128" y="213.33" width="85.33" height="85.33" fill="#F9C5C8"/>
+    <rect x="298.67" y="213.33" width="85.33" height="85.33" fill="#F9C5C8"/>
+    <rect x="128" y="298.67" width="85.33" height="85.33" fill="#F9C5C8"/>
+    <rect x="213.33" y="298.67" width="85.33" height="85.33" fill="#B7D7E4"/>
+    <rect x="298.67" y="298.67" width="85.33" height="85.33" fill="#B7D7E4"/>
   </g>
-  <text x="256" y="306" text-anchor="middle" font-family="-apple-system,Segoe UI,Roboto,sans-serif" font-size="190" font-weight="800" fill="#FFFFFF">9</text>
+  <g stroke="#D9C3A5" stroke-width="6" stroke-linecap="round">
+    <line x1="213.33" y1="128" x2="213.33" y2="384"/>
+    <line x1="298.67" y1="128" x2="298.67" y2="384"/>
+    <line x1="128" y1="213.33" x2="384" y2="213.33"/>
+    <line x1="128" y1="298.67" x2="384" y2="298.67"/>
+  </g>
+  <text x="256" y="306" text-anchor="middle" font-family="-apple-system,Segoe UI,Roboto,sans-serif" font-size="150" font-weight="800" fill="#7FA5C2">9</text>
 </svg>

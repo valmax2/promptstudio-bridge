@@ -211,7 +211,12 @@ body {
   min-height: 0;
 }
 #board {
-  --cell: min(10.4vw, calc((100dvh - 300px) / 9));
+  /* "410px" stima lo spazio fisso occupato da header + tastierino + barra azioni
+     + footer sotto la griglia (misurato); --ad-banner-height (riservata in
+     #gameFooterBar per il banner nativo AdMob) va sottratta anche qui, altrimenti
+     su schermi non altissimi la griglia resta troppo grande e finisce per
+     sovrapporsi alla tastiera numerica sottostante. */
+  --cell: min(10.4vw, calc((100dvh - 424px - var(--ad-banner-height, 0px)) / 9));
   display: grid;
   grid-template-columns: repeat(9, var(--cell));
   grid-template-rows: repeat(9, var(--cell));

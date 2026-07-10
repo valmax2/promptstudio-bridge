@@ -83,6 +83,61 @@
 
     <div class="setup-cta">
       <button class="btn-primary" id="startBtn">Inizia partita →</button>
+      <button class="btn-secondary" id="openBluetoothBtn">🔵 Pulsanti fisici (Bluetooth)</button>
+    </div>
+  </section>
+
+  <!-- ============ BLUETOOTH ============ -->
+  <section id="view-bluetooth" class="view">
+    <div class="game-topbar">
+      <button class="icon-btn" id="btBackBtn" aria-label="Indietro">←</button>
+      <div class="serve-badge"><span class="serve-text">Pulsanti fisici</span></div>
+      <div style="width:42px;flex-shrink:0"></div>
+    </div>
+    <div class="setup-scroll">
+
+      <div class="card">
+        <h2>Come funziona</h2>
+        <p class="hint-text">Ci sono due tipi di pulsante fisico collegabile: un <b>telecomando</b> (selfie remote,
+        pulsante smartwatch — quasi tutti funzionano) oppure un <b>portachiavi Bluetooth con GPS</b> (funziona solo
+        se non è legato a un'app esclusiva: i tracker Apple/Samsung/Google in genere sono bloccati per sicurezza
+        anti-stalking, quelli generici spesso si collegano).</p>
+      </div>
+
+      <div class="card bt-card">
+        <h2>Telecomando — Squadra A</h2>
+        <div class="bt-status" id="remoteStatusA">Nessun tasto registrato</div>
+        <button class="btn-secondary" id="learnRemoteA">Registra tasto</button>
+      </div>
+      <div class="card bt-card">
+        <h2>Telecomando — Squadra B</h2>
+        <div class="bt-status" id="remoteStatusB">Nessun tasto registrato</div>
+        <button class="btn-secondary" id="learnRemoteB">Registra tasto</button>
+      </div>
+
+      <div class="card bt-card">
+        <h2>Portachiavi Bluetooth — Squadra A</h2>
+        <div class="bt-status" id="bleStatusA">Non collegato</div>
+        <button class="btn-secondary" id="scanBleA">Cerca e collega</button>
+        <button class="btn-secondary bt-disconnect hidden" id="disconnectBleA">Disconnetti</button>
+        <details class="bt-advanced">
+          <summary>Avanzate: UUID manuale (con app nRF Connect)</summary>
+          <input type="text" class="name-input" id="bleServiceA" placeholder="Service UUID (facoltativo)">
+          <input type="text" class="name-input" id="bleCharA" placeholder="Characteristic UUID (facoltativo)">
+        </details>
+      </div>
+      <div class="card bt-card">
+        <h2>Portachiavi Bluetooth — Squadra B</h2>
+        <div class="bt-status" id="bleStatusB">Non collegato</div>
+        <button class="btn-secondary" id="scanBleB">Cerca e collega</button>
+        <button class="btn-secondary bt-disconnect hidden" id="disconnectBleB">Disconnetti</button>
+        <details class="bt-advanced">
+          <summary>Avanzate: UUID manuale (con app nRF Connect)</summary>
+          <input type="text" class="name-input" id="bleServiceB" placeholder="Service UUID (facoltativo)">
+          <input type="text" class="name-input" id="bleCharB" placeholder="Characteristic UUID (facoltativo)">
+        </details>
+      </div>
+
     </div>
   </section>
 
@@ -146,6 +201,7 @@
       <div class="sheet-handle"></div>
       <div class="sheet-title">Impostazioni partita</div>
       <button class="sheet-item" id="restartMatchBtn"><span class="ic">↺</span> Ricomincia partita</button>
+      <button class="sheet-item" id="openBluetoothFromGameBtn"><span class="ic">🔵</span> Pulsanti fisici (Bluetooth)</button>
       <button class="sheet-item" id="backToSetupBtn"><span class="ic">⚙</span> Torna al setup</button>
       <button class="sheet-cancel" id="closeSheetBtn">Chiudi</button>
     </div>

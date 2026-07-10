@@ -24,6 +24,7 @@
     setsToWin: 2,
     firstServer: 'A',
     voiceAnnouncer: true, // "arbitro" vocale che annuncia punteggio/game/set
+    remoteKeys: { A: null, B: null }, // tasti telecomando Bluetooth (HID) registrati
     teamA: { name: '', players: ['', ''], colorId: 'indigo' },
     teamB: { name: '', players: ['', ''], colorId: 'orange' },
   };
@@ -227,6 +228,7 @@
 
   const viewSetup = $('view-setup');
   const viewGame = $('view-game');
+  const viewBluetooth = $('view-bluetooth');
 
   const modeGroup = $('modeGroup');
   const formatGroup = $('formatGroup');
@@ -475,21 +477,157 @@
   });
 
   // ============================================================
+  // Telecomando Bluetooth (HID): telecomandi selfie / pulsante smartwatch.
+  // Una volta accoppiato dalle impostazioni Bluetooth del telefono, si comporta
+  // come una tastiera: registriamo quale tasto preme e lo usiamo per segnare.
+  // ============================================================
+  let remoteLearning = null; // 'A' | 'B' | null
+
+  function renderRemoteStatus() {
+    $('remoteStatusA').textContent = config.remoteKeys.A ? `Tasto registrato ✓ (${config.remoteKeys.A})` : 'Nessun tasto registrato';
+    $('remoteStatusB').textContent = config.remoteKeys.B ? `Tasto registrato ✓ (${config.remoteKeys.B})` : 'Nessun tasto registrato';
+  }
+
+  function startLearnRemote(team) {
+    remoteLearning = team;
+    $(`remoteStatus${team}`).textContent = 'Premi ora il pulsante del telecomando…';
+  }
+
+  $('learnRemoteA').addEventListener('click', () => startLearnRemote('A'));
+  $('learnRemoteB').addEventListener('click', () => startLearnRemote('B'));
+
+  window.addEventListener('keydown', (e) => {
+    if (remoteLearning) {
+      config.remoteKeys[remoteLearning] = e.code;
+      persist();
+      renderRemoteStatus();
+      remoteLearning = null;
+      e.preventDefault();
+      return;
+    }
+    if (!match || match.finished || !viewGame.classList.contains('active')) return;
+    if (config.remoteKeys.A && e.code === config.remoteKeys.A) { addPoint('A'); render(); e.preventDefault(); }
+    else if (config.remoteKeys.B && e.code === config.remoteKeys.B) { addPoint('B'); render(); e.preventDefault(); }
+  });
+
+  // ============================================================
+  // Portachiavi Bluetooth con GPS (Web Bluetooth / BLE)
+  // I tracker dei grandi marchi (Apple/Samsung/Google) bloccano l'accesso al
+  // pulsante da app esterne per sicurezza anti-stalking: qui copriamo i
+  // protocolli più comuni nei tracker generici, più un campo UUID manuale
+  // per i casi non riconosciuti automaticamente (trovabile con l'app nRF Connect).
+  // ============================================================
+  const BATTERY_SERVICE = 'battery_service';
+  const NUS_SERVICE = '6e400001-b5a3-f393-e0a9-e50e24dcca9e';   // Nordic UART Service: molto comune nei gadget BLE economici
+  const NUS_TX_CHAR = '6e400003-b5a3-f393-e0a9-e50e24dcca9e';   // canale notifiche del Nordic UART Service
+
+  const bleConnections = { A: null, B: null };
+
+  async function connectBle(team) {
+    const statusEl = $(`bleStatus${team}`);
+    if (!navigator.bluetooth) {
+      statusEl.textContent = 'Bluetooth non disponibile in questo browser/contesto.';
+      return;
+    }
+    const manualService = $(`bleService${team}`).value.trim();
+    const manualChar = $(`bleChar${team}`).value.trim();
+    const optionalServices = [BATTERY_SERVICE, NUS_SERVICE];
+    if (manualService) optionalServices.push(manualService);
+
+    try {
+      statusEl.textContent = 'Ricerca dispositivo…';
+      const device = await navigator.bluetooth.requestDevice({ acceptAllDevices: true, optionalServices });
+      const server = await device.gatt.connect();
+      bleConnections[team] = { device, characteristic: null };
+      let label = device.name || 'Dispositivo';
+
+      try {
+        const battService = await server.getPrimaryService(BATTERY_SERVICE);
+        const battChar = await battService.getCharacteristic('battery_level');
+        const battValue = await battChar.readValue();
+        label += ` · Batteria ${battValue.getUint8(0)}%`;
+      } catch (e) { /* servizio batteria non esposto: ignora */ }
+
+      const servUuid = manualService || NUS_SERVICE;
+      const charUuid = manualChar || NUS_TX_CHAR;
+      try {
+        const service = await server.getPrimaryService(servUuid);
+        const characteristic = await service.getCharacteristic(charUuid);
+        await characteristic.startNotifications();
+        characteristic.addEventListener('characteristicvaluechanged', () => {
+          if (match && !match.finished && viewGame.classList.contains('active')) { addPoint(team); render(); }
+        });
+        bleConnections[team].characteristic = characteristic;
+        statusEl.textContent = `${label} — pronto, premi il pulsante per segnare`;
+      } catch (e) {
+        statusEl.textContent = `${label} — collegato, ma pulsante non trovato automaticamente. `
+          + 'Usa "Avanzate" con l\'app nRF Connect per trovare gli UUID esatti del dispositivo.';
+      }
+
+      device.addEventListener('gattserverdisconnected', () => {
+        statusEl.textContent = 'Disconnesso';
+        $(`disconnectBle${team}`).classList.add('hidden');
+        bleConnections[team] = null;
+      });
+      $(`disconnectBle${team}`).classList.remove('hidden');
+    } catch (e) {
+      statusEl.textContent = e.name === 'NotFoundError' ? 'Nessun dispositivo selezionato.' : ('Connessione non riuscita: ' + e.message);
+    }
+  }
+
+  function disconnectBle(team) {
+    const conn = bleConnections[team];
+    if (conn && conn.device.gatt.connected) conn.device.gatt.disconnect();
+    bleConnections[team] = null;
+    $(`bleStatus${team}`).textContent = 'Non collegato';
+    $(`disconnectBle${team}`).classList.add('hidden');
+  }
+
+  $('scanBleA').addEventListener('click', () => connectBle('A'));
+  $('scanBleB').addEventListener('click', () => connectBle('B'));
+  $('disconnectBleA').addEventListener('click', () => disconnectBle('A'));
+  $('disconnectBleB').addEventListener('click', () => disconnectBle('B'));
+
+  // ============================================================
   // Navigazione viste
   // ============================================================
+  let bluetoothReturnView = 'setup';
+
   function showSetup() {
     viewGame.classList.remove('active');
+    viewBluetooth.classList.remove('active');
     viewSetup.classList.add('active');
     syncInputsFromConfig();
   }
 
   function showGame() {
     viewSetup.classList.remove('active');
+    viewBluetooth.classList.remove('active');
     viewGame.classList.add('active');
     winOverlay.dataset.shownFor = '';
     winOverlay.classList.add('hidden');
     render();
   }
+
+  function showBluetooth(fromView) {
+    bluetoothReturnView = fromView;
+    viewSetup.classList.remove('active');
+    viewGame.classList.remove('active');
+    viewBluetooth.classList.add('active');
+    renderRemoteStatus();
+  }
+
+  function closeBluetooth() {
+    if (bluetoothReturnView === 'game' && match) showGame();
+    else showSetup();
+  }
+
+  $('openBluetoothBtn').addEventListener('click', () => showBluetooth('setup'));
+  $('openBluetoothFromGameBtn').addEventListener('click', () => {
+    settingsBackdrop.classList.add('hidden');
+    showBluetooth('game');
+  });
+  $('btBackBtn').addEventListener('click', closeBluetooth);
 
   // ============================================================
   // Avvio

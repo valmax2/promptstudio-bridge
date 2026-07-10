@@ -23,6 +23,21 @@ funziona **offline**. Si impacchetta in un vero **APK** con lo script incluso.
 - **Ripresa automatica**: se chiudi l'app a metà partita, la ritrovi come l'hai lasciata
   (salvataggio locale)
 - Vibrazione leggera ad ogni punto (se supportata dal dispositivo)
+- **Arbitro vocale**: annuncia il punteggio a voce ("15 pari", "Vantaggio...", "Game, set e
+  partita..."). Esce dall'altoparlante che il telefono/tablet sta usando in quel momento —
+  se hai già accoppiato delle **casse Bluetooth dalle impostazioni di sistema**, la voce
+  esce da lì in automatico, come qualsiasi altro audio. Si disattiva con l'icona 🔊 in alto.
+- **Layout adattivo**: ottimizzata anche per **tablet** e per l'**orientamento orizzontale**
+  (schermata di gioco e setup si riorganizzano automaticamente)
+- **Pulsanti fisici Bluetooth** (schermata dedicata, raggiungibile dal setup o dal menu
+  impostazioni in partita):
+  - **Telecomando** (selfie remote, pulsante smartwatch): accoppialo dalle impostazioni
+    Bluetooth del telefono, poi in app premi "Registra tasto" e premi il pulsante fisico —
+    da quel momento segna punti per la squadra scelta. Funziona con la quasi totalità di
+    questi dispositivi economici.
+  - **Portachiavi Bluetooth con GPS**: collegamento diretto per i modelli generici più
+    comuni; per i modelli non riconosciuti automaticamente c'è un campo UUID manuale
+    (vedi nota sotto).
 
 ## Provala subito sul telefono (modo più veloce)
 
@@ -62,7 +77,23 @@ installalo (abilita "installa da origini sconosciute").
 
 ## Note
 
-- Bluetooth (pulsanti fisici esterni) e login/account **non sono ancora inclusi**: è la
-  prima versione, scoring-only. Si possono aggiungere in un secondo momento.
+- **Login/account non incluso**: nessun accesso richiesto, per scelta (vedi decisione
+  presa insieme). Si può aggiungere in un secondo momento se serve sincronizzare le
+  partite online.
 - Il tiebreak semplifica la rotazione del servizio (l'alternanza server/lato durante il
   tiebreak segue la logica standard di inizio/fine game, non il cambio ogni 2 punti).
+- **Portachiavi Bluetooth GPS — limite tecnico reale**: i tracker dei grandi marchi
+  (Apple **Find My**, Samsung **SmartTag**, tracker sulla rete **Find My Device** di
+  Google) **bloccano di proposito** l'accesso al pulsante da parte di app esterne, per
+  motivi di sicurezza anti-stalking. Non è un limite di questa app: nessuna app di terzi
+  può leggerli. Funzionano invece i tracker **generici/economici** non legati a un
+  ecosistema esclusivo (l'app prova prima il "Nordic UART Service", molto comune in
+  questi dispositivi). Se il tuo modello non si collega automaticamente, scarica
+  l'app gratuita **nRF Connect** (Google Play), apri il dispositivo, annota il "Service
+  UUID" e il "Characteristic UUID" del canale che si aggiorna quando premi il pulsante,
+  e incollali nei campi "Avanzate" della schermata Bluetooth dell'app.
+- **Test reale col telefono**: la connessione Bluetooth va provata sul dispositivo vero
+  (qui in sviluppo cloud non c'è un adattatore Bluetooth). Per l'APK compilato con
+  Capacitor potrebbe servire aggiungere il plugin nativo `@capacitor-community/bluetooth-le`
+  se il Web Bluetooth della WebView di sistema risultasse instabile — lo verifichiamo
+  insieme quando fai il primo test reale sul tuo PC/telefono.

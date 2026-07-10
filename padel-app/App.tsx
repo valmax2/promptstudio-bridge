@@ -3,6 +3,7 @@ import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ThemeProvider, useAppTheme } from './src/theme/ThemeContext';
+import { ProfileProvider } from './src/features/profile/ProfileContext';
 import { RootNavigator } from './src/navigation/RootNavigator';
 
 function StatusBarForTheme() {
@@ -15,8 +16,10 @@ export default function App() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <ThemeProvider>
-          <RootNavigator />
-          <StatusBarForTheme />
+          <ProfileProvider>
+            <RootNavigator />
+            <StatusBarForTheme />
+          </ProfileProvider>
         </ThemeProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>

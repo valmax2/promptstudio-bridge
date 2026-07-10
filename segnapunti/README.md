@@ -67,6 +67,32 @@ cd android && ./gradlew assembleDebug
 Genera `android/app/build/outputs/apk/debug/app-debug.apk`. Copialo sul telefono e
 installalo (abilita "installa da origini sconosciute").
 
+## iOS (App Store) — richiede un Mac
+
+Lo stesso codice funziona anche su iOS tramite Capacitor, **ma compilarlo richiede
+obbligatoriamente un Mac con Xcode** — è una regola di Apple, non aggirabile da nessun
+tool (Windows/Linux non bastano, nemmeno in questa app). Quando avrai accesso a un Mac
+(fisico o in cloud, es. Codemagic/GitHub Actions con runner macOS):
+
+```bash
+cd segnapunti
+bash setup-ios.sh
+npx cap open ios   # apre Xcode: scegli simulatore o iPhone e premi ▶
+```
+
+Per pubblicarla su App Store serve anche un account Apple Developer (99$/anno).
+
+**Differenze reali su iOS** (limiti della piattaforma, non di questa app):
+- ❌ **Portachiavi Bluetooth GPS**: Apple non implementa il Web Bluetooth su
+  Safari/iPhone. Il pulsante "Cerca e collega" mostrerà semplicemente "non disponibile" —
+  nessun crash, ma quella funzione lì non c'è. Per averla serve un lavoro nativo aggiuntivo
+  (plugin `@capacitor-community/bluetooth-le`, richiede anch'esso Xcode/Mac).
+- ✅ **Telecomando Bluetooth (HID)**: funziona normalmente, perché usa la tastiera di
+  sistema e non il Web Bluetooth.
+- ❌ **Vibrazione**: iOS non supporta la Vibration API dei siti web; l'app se ne accorge
+  da sola e semplicemente non vibra (nessun errore).
+- ✅ **Arbitro vocale, tema, tutto il resto**: identico ad Android.
+
 ## File
 
 | File | Ruolo |
@@ -77,6 +103,18 @@ installalo (abilita "installa da origini sconosciute").
 | `manifest.webmanifest`, `sw.js`, `icon.svg` | installazione PWA / offline |
 | `serve.js` | server locale per provarla sul telefono |
 | `setup-android.sh` | crea il progetto Android (Capacitor) per generare l'APK |
+| `setup-ios.sh` | crea il progetto iOS (Capacitor) per Xcode — richiede un Mac |
+
+## Monetizzazione (predisposizione, non ancora attiva)
+
+Nessun network pubblicitario è collegato: nessun account creato, nessun SDK caricato,
+nessun dato inviato a terzi. È stato riservato solo lo **spazio nel layout** per un
+banner (`#bannerSlot` in fondo alla schermata di setup, sotto i pulsanti — mai sulla
+schermata di gioco, per non rischiare tap sbagliati durante il punteggio), tenuto
+nascosto finché non si decide il network da usare. Quando deciderai tra banner,
+abbonamento o altro, si attiva riempiendo quello slot (es. con AdMob, seguendo lo
+schema già usato in `3d-reducer/ads.js` in questo stesso repository) senza dover
+ritoccare il resto del layout.
 
 ## Note
 

@@ -149,6 +149,15 @@ button,input,.team-panel{-webkit-tap-highlight-color:transparent}
   display:flex;align-items:center;justify-content:center;gap:8px;margin-top:10px;
 }
 
+/* ============ Spazio banner (riservato, inattivo finché non si collega un ad network) ============ */
+.banner-slot{
+  flex-shrink:0;width:100%;min-height:52px;
+  padding:6px 18px calc(6px + var(--safe-bottom));
+  display:flex;align-items:center;justify-content:center;
+  background:var(--bg);
+}
+.banner-slot.hidden{display:none}
+
 /* ============ Game screen ============ */
 #view-game{background:var(--bg)}
 

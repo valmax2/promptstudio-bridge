@@ -7,35 +7,112 @@ import {
 } from '../scoring.js';
 import { navigate } from '../router.js';
 import { toast } from '../app.js';
+import { enableRemote, disableRemote, listenHardwareKeys } from '../ble-remote.js';
 
 let match = null;
 let history = [];
 let ttsEnabled = true;
+let setupMode = 'doubles';
+let stopHwKeys = () => {};
 
 export async function renderScoreboard(el) {
   const { settings } = getState();
   ttsEnabled = settings.ttsEnabled;
-  if (!match) match = createMatch({
-    goldenPoint: settings.goldenPoint,
-    superTiebreak3rdSet: settings.superTiebreak3rdSet,
-  });
 
   document.getElementById('bottom-nav').classList.add('hidden');
-  paint(el);
+  if (match) startLive(el);
+  else paintSetup(el);
+
   return () => {
     stopSpeech();
+    stopHwKeys();
+    disableRemote();
     document.getElementById('bottom-nav').classList.remove('hidden');
   };
 }
 
+function startLive(el) {
+  paint(el);
+  const { settings } = getState();
+  stopHwKeys();
+  if (settings.bleRemoteEnabled) {
+    enableRemote();
+    stopHwKeys = listenHardwareKeys((keyCode) => {
+      const map = getState().settings.bleKeyMap;
+      if (keyCode === map.pointA) onPoint('A');
+      else if (keyCode === map.pointB) onPoint('B');
+      else if (keyCode === map.undo) onUndo();
+    });
+  } else {
+    disableRemote();
+  }
+}
+
+// ===== New match setup =====
+
+function paintSetup(el) {
+  const singles = setupMode === 'singles';
+  el.innerHTML = `
+    <div class="sb-root">
+      <div class="sb-topbar">
+        <button id="sb-back">←</button>
+        <div class="sb-mode">Nuova partita</div>
+        <span></span>
+      </div>
+      <div class="app" style="flex:1;min-height:0;overflow-y:auto;padding-top:16px;">
+        <div class="card">
+          <h2>Modalità</h2>
+          <div class="segmented">
+            <button data-mode="doubles" class="${!singles ? 'active' : ''}">👥 Doppio</button>
+            <button data-mode="singles" class="${singles ? 'active' : ''}">🙋 Singolo</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="field">
+            <label>${singles ? 'Giocatore 1' : 'Squadra 1'}</label>
+            <input id="name-a" value="${singles ? 'Giocatore 1' : 'Squadra A'}" maxlength="24">
+          </div>
+          <div class="field mb0">
+            <label>${singles ? 'Giocatore 2' : 'Squadra 2'}</label>
+            <input id="name-b" value="${singles ? 'Giocatore 2' : 'Squadra B'}" maxlength="24">
+          </div>
+        </div>
+        <button class="btn primary block" id="start-match">Inizia partita</button>
+      </div>
+    </div>
+  `;
+
+  el.querySelector('#sb-back').addEventListener('click', () => navigate('home'));
+  el.querySelectorAll('[data-mode]').forEach((btn) => btn.addEventListener('click', () => {
+    setupMode = btn.dataset.mode;
+    paintSetup(el);
+  }));
+  el.querySelector('#start-match').addEventListener('click', () => {
+    const { settings } = getState();
+    const teamAName = el.querySelector('#name-a').value.trim().slice(0, 24) || (singles ? 'Giocatore 1' : 'Squadra A');
+    const teamBName = el.querySelector('#name-b').value.trim().slice(0, 24) || (singles ? 'Giocatore 2' : 'Squadra B');
+    match = createMatch({
+      teamAName, teamBName,
+      mode: setupMode,
+      goldenPoint: settings.goldenPoint,
+      superTiebreak3rdSet: settings.superTiebreak3rdSet,
+    });
+    history = [];
+    startLive(el);
+  });
+}
+
+// ===== Live scoreboard =====
+
 function paint(el) {
   const modeLabel = match.matchOver ? 'Partita conclusa' : match.inMatchTiebreak ? 'Super tie-break' : match.inTiebreak ? 'Tie-break' : `Set ${match.sets.length + 1}`;
+  const modeBadge = match.mode === 'singles' ? 'Singolo' : 'Doppio';
 
   el.innerHTML = `
     <div class="sb-root">
       <div class="sb-topbar">
         <button id="sb-back">←</button>
-        <div class="sb-mode">${modeLabel}</div>
+        <div class="sb-mode">${modeLabel} · ${modeBadge}</div>
         <button id="sb-mute">${ttsEnabled ? '🔊' : '🔇'}</button>
       </div>
       <div class="sb-halves">
@@ -120,7 +197,7 @@ function matchOverOverlay() {
 }
 
 function onPoint(team) {
-  if (match.matchOver) return;
+  if (!match || match.matchOver) return;
   history.push(structuredClone(match));
   const { match: next, announcement, events } = addPoint(match, team);
   match = next;
@@ -130,7 +207,7 @@ function onPoint(team) {
 }
 
 function onUndo() {
-  if (!history.length) return;
+  if (!match || !history.length) return;
   match = history.pop();
   stopSpeech();
   paint(document.querySelector('.screen'));
@@ -138,22 +215,17 @@ function onUndo() {
 
 function onReset() {
   if (!confirm('Iniziare una nuova partita? Il punteggio attuale andrà perso se non salvato.')) return;
-  const { settings } = getState();
-  const teamAName = match.teamAName;
-  const teamBName = match.teamBName;
-  match = createMatch({
-    teamAName, teamBName,
-    goldenPoint: settings.goldenPoint,
-    superTiebreak3rdSet: settings.superTiebreak3rdSet,
-  });
+  match = null;
   history = [];
   stopSpeech();
-  paint(document.querySelector('.screen'));
+  stopHwKeys();
+  disableRemote();
+  paintSetup(document.querySelector('.screen'));
 }
 
 function onEditName(team, el) {
   const current = team === 'A' ? match.teamAName : match.teamBName;
-  const next = prompt(`Nome squadra ${team === 'A' ? '1' : '2'}`, current);
+  const next = prompt(`Nome ${match.mode === 'singles' ? 'giocatore' : 'squadra'} ${team === 'A' ? '1' : '2'}`, current);
   if (!next) return;
   if (team === 'A') match.teamAName = next.trim().slice(0, 24) || current;
   else match.teamBName = next.trim().slice(0, 24) || current;
@@ -165,6 +237,7 @@ async function onSaveMatch(el) {
     date: new Date().toISOString(),
     teamAName: match.teamAName,
     teamBName: match.teamBName,
+    mode: match.mode,
     sets: match.sets,
     winner: match.matchWinner,
     golden: match.goldenPoint,

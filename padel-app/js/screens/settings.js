@@ -4,6 +4,7 @@ import { isCloudReady } from '../cloud.js';
 import { firebaseAvailable, currentUser, registerPushToken } from '../firebase.js';
 import { say, speechSupported } from '../speech.js';
 import { toast } from '../app.js';
+import { KEY_LABELS, remoteSupported, captureNextKey } from '../ble-remote.js';
 
 const FONTS = [
   { id: "'Segoe UI', Roboto, system-ui, -apple-system, sans-serif", label: 'Predefinito' },
@@ -57,9 +58,21 @@ export async function renderSettings(el) {
     </div>
 
     <div class="card">
-      <h2>📡 Telecomando remoto (BLE)</h2>
-      <p class="small">Il supporto per telecomandi Bluetooth e tasti fotocamera di smartwatch sarà disponibile in un prossimo aggiornamento — richiede un plugin nativo Android dedicato.</p>
-      <button class="btn ghost block" disabled>Prossimamente</button>
+      <h2>📡 Telecomando remoto</h2>
+      ${remoteSupported() ? `
+        <p class="small">Funziona con telecomandi Bluetooth economici ("selfie remote"), smartwatch in modalità scatto foto, e la maggior parte dei tasti fisici che si accoppiano come tastiera Bluetooth. <strong>Prima accoppia il dispositivo dalle Impostazioni Bluetooth di Android</strong> (come una tastiera), poi torna qui e assegna i tasti.</p>
+        <p class="small">I portachiavi "trova oggetto" generici spesso usano un protocollo proprietario e potrebbero non funzionare.</p>
+        <div class="toggle-row">
+          <div><strong>Abilita telecomando</strong><p class="mb0 small">Attivo solo nella schermata Segnapunti</p></div>
+          <label class="switch"><input type="checkbox" id="ble-enabled" ${settings.bleRemoteEnabled ? 'checked' : ''}><span class="slider"></span></label>
+        </div>
+        ${settings.bleRemoteEnabled ? `
+        <div class="mt">
+          ${keyAssignRow('pointA', 'Punto Squadra / Giocatore 1', settings.bleKeyMap.pointA)}
+          ${keyAssignRow('pointB', 'Punto Squadra / Giocatore 2', settings.bleKeyMap.pointB)}
+          ${keyAssignRow('undo', 'Annulla ultimo punto', settings.bleKeyMap.undo)}
+        </div>` : ''}
+      ` : `<p class="small">Il telecomando Bluetooth richiede l'app installata come APK Android (non funziona nell'anteprima da browser).</p>`}
     </div>
 
     <div class="card">
@@ -96,6 +109,34 @@ export async function renderSettings(el) {
   el.querySelector('#super-tb').addEventListener('change', (e) => { updateSettings({ superTiebreak3rdSet: e.target.checked }); syncSettings(); });
   el.querySelector('#test-voice')?.addEventListener('click', () => say('40 pari, punto d\'oro'));
 
+  el.querySelector('#ble-enabled')?.addEventListener('change', (e) => {
+    updateSettings({ bleRemoteEnabled: e.target.checked });
+    renderSettings(el);
+    syncSettings();
+  });
+  el.querySelectorAll('[data-assign-key]').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const slot = btn.dataset.assignKey;
+      btn.disabled = true;
+      btn.textContent = 'Premi un tasto sul telecomando…';
+      const keyCode = await captureNextKey(8000);
+      if (keyCode == null) {
+        toast('Nessun tasto rilevato, riprova');
+      } else {
+        updateSettings({ bleKeyMap: { ...getState().settings.bleKeyMap, [slot]: keyCode } });
+        toast(`Assegnato: ${KEY_LABELS[keyCode] || keyCode}`);
+        syncSettings();
+      }
+      renderSettings(el);
+    });
+  });
+  el.querySelectorAll('[data-clear-key]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      updateSettings({ bleKeyMap: { ...getState().settings.bleKeyMap, [btn.dataset.clearKey]: null } });
+      renderSettings(el);
+      syncSettings();
+    });
+  });
   el.querySelector('#cloud-sync')?.addEventListener('change', (e) => { updateSettings({ cloudSyncEnabled: e.target.checked }); syncSettings(); });
   el.querySelector('#sync-now')?.addEventListener('click', async () => {
     await syncSettings();
@@ -110,6 +151,19 @@ export async function renderSettings(el) {
       toast('Impossibile attivare le notifiche (permesso negato?)');
     }
   });
+}
+
+function keyAssignRow(slot, label, keyCode) {
+  const assigned = keyCode != null;
+  return `
+    <div class="toggle-row">
+      <div><strong>${label}</strong><p class="mb0 small">${assigned ? `Tasto: ${KEY_LABELS[keyCode] || keyCode}` : 'Non assegnato'}</p></div>
+      <div class="row" style="gap:6px;">
+        ${assigned ? `<button class="btn ghost small" data-clear-key="${slot}">✕</button>` : ''}
+        <button class="btn secondary small" data-assign-key="${slot}">${assigned ? 'Riassegna' : 'Assegna'}</button>
+      </div>
+    </div>
+  `;
 }
 
 async function syncSettings() {

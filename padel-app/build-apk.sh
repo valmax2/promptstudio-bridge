@@ -68,6 +68,11 @@ allprojects {
 }
 EOF
 
+echo "▶ Installo il plugin nativo del telecomando Bluetooth (tasti hardware)"
+JAVA_PKG_DIR="android/app/src/main/java/com/padelapp/app"
+mkdir -p "$JAVA_PKG_DIR"
+cp "$HERE"/native-android/com/padelapp/app/*.java "$JAVA_PKG_DIR/"
+
 echo "▶ Compilo l'APK di debug (gradlew assembleDebug)"
 cd android
 chmod +x ./gradlew

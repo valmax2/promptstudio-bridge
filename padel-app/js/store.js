@@ -10,6 +10,8 @@ const DEFAULT_STATE = {
     goldenPoint: true,
     superTiebreak3rdSet: true,
     cloudSyncEnabled: true,
+    bleRemoteEnabled: false,
+    bleKeyMap: { pointA: null, pointB: null, undo: null },
   },
   profile: {
     uid: null,

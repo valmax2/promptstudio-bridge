@@ -41,7 +41,7 @@ function matchRow(m) {
     <div class="avatar">${won ? '🏆' : '➖'}</div>
     <div class="meta">
       <strong>${escapeHtml(m.teamAName)} vs ${escapeHtml(m.teamBName)}</strong>
-      <span>${(m.sets || []).map((s) => `${s.a}-${s.b}`).join(', ')} · ${new Date(m.date).toLocaleDateString('it-IT')}</span>
+      <span>${m.mode === 'singles' ? 'Singolo' : 'Doppio'} · ${(m.sets || []).map((s) => `${s.a}-${s.b}`).join(', ')} · ${new Date(m.date).toLocaleDateString('it-IT')}</span>
     </div>
     <span class="badge ${won ? 'accent' : ''}">${won ? 'Vinta' : 'Persa'}</span>
   </div>`;

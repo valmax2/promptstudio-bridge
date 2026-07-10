@@ -11,12 +11,14 @@ export function createMatch({
   teamBName = 'Squadra B',
   goldenPoint = true,
   superTiebreak3rdSet = true,
+  mode = 'doubles',
 } = {}) {
   return {
     teamAName,
     teamBName,
     goldenPoint,
     superTiebreak3rdSet,
+    mode,
     sets: [],
     setsWonA: 0,
     setsWonB: 0,

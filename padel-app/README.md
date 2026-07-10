@@ -9,6 +9,7 @@ statistiche, gamification e sincronizzazione cloud.
 | Modulo | Stato |
 |---|---|
 | Segnapunti (punteggio padel completo, punto d'oro, super tie-break, annuncio vocale TTS) | ✅ Funzionante, offline |
+| Modalità Doppio / Singolo, con schermata di impostazione nuova partita | ✅ Funzionante, offline |
 | Schermata segnapunti a schermo intero, cifre enormi, ottimizzata per tablet | ✅ Funzionante, offline — tocca l'intera metà colorata della squadra per assegnare il punto |
 | Tema scuro/chiaro, font e dimensione testo | ✅ Funzionante, offline |
 | Login con numero di telefono | ✅ Funzionante *(richiede Firebase configurato)* |
@@ -18,7 +19,8 @@ statistiche, gamification e sincronizzazione cloud.
 | Gamification (XP, avatar e cornici sbloccabili) | ✅ Funzionante, offline |
 | Sincronizzazione cloud di impostazioni/avatar/statistiche | ✅ Funzionante *(richiede Firebase)* |
 | Audio su cassa Bluetooth | ✅ L'annuncio vocale usa il motore di sintesi vocale **nativo** di Android (plugin Capacitor, non il Web Speech API del browser — che nella WebView di Android spesso non produce alcun suono). L'audio esce dall'uscita attiva del telefono, quindi anche da una cassa Bluetooth già collegata — nessuna configurazione nell'app |
-| Telecomando BLE / tasti fotocamera smartwatch | 🚧 Non ancora incluso: richiede lo sviluppo di un plugin nativo Android dedicato, da testare con il tuo telecomando specifico. La voce è già presente (disattivata) nelle Impostazioni |
+| Telecomando Bluetooth / tasti fotocamera smartwatch | ✅ Funzionante per dispositivi che si accoppiano come tastiera Bluetooth (la maggior parte dei telecomandi economici e degli smartwatch in modalità scatto foto): accoppia il dispositivo dalle Impostazioni Bluetooth di Android, poi assegna i tasti dalle Impostazioni dell'app. I portachiavi "trova oggetto" generici usano spesso un protocollo proprietario e potrebbero non essere supportati |
+| Altre modalità di gioco (Americano, Killer/Eliminazione) | 🚧 In programma — le regole variano da circolo a circolo, servono le tue preferenze prima di implementarle |
 
 Senza configurare Firebase, l'app funziona comunque in **modalità locale**:
 segnapunti, tema, statistiche e progressi restano salvati sul telefono.
@@ -149,10 +151,12 @@ padel-app/
   index.html, styles.css        UI shell + tema dark/light
   js/app.js                     bootstrap, routing, tema
   js/scoring.js                 motore punteggio padel (regole di gioco)
-  js/speech.js                  annuncio vocale (Web Speech API)
+  js/speech.js                  annuncio vocale (plugin TTS nativo)
+  js/ble-remote.js              mappatura tasti hardware -> azioni segnapunti
   js/store.js                   stato locale + persistenza (localStorage)
   js/firebase.js, js/cloud.js   integrazione Firebase (auth, Firestore, Storage, FCM)
   js/screens/                   una schermata per modulo (home, scoreboard, community, events, stats, gamification, settings, profile, login)
+  native-android/               sorgenti Java del plugin telecomando (copiati nel progetto Android ad ogni build)
   functions/                    Cloud Functions (notifiche push inviti/RSVP)
   firestore.rules, storage.rules, firestore.indexes.json
   capacitor.config.json, build-apk.sh, setup-android.sh
@@ -167,3 +171,31 @@ padel-app/
 - Partita al meglio dei 3 set. **Super tie-break al 3° set** (impostazione
   attivabile): invece di giocare l'intero terzo set, si gioca un tie-break
   decisivo fino a 10 punti.
+- Modalità **Doppio** o **Singolo** selezionabile all'inizio di ogni partita
+  (stesse regole di punteggio, cambia solo l'etichetta squadra/giocatore).
+
+## Telecomando Bluetooth
+
+La maggior parte dei telecomandi Bluetooth economici ("selfie remote") e
+degli smartwatch in modalità scatto foto si accoppiano con Android come una
+normale **tastiera Bluetooth**, inviando un tasto standard (volume su/giù,
+fotocamera, play/pausa, tasti multimediali...). L'app intercetta questi
+tasti tramite un piccolo plugin Android nativo (`native-android/`) e li
+espone a schermo in Impostazioni → Telecomando remoto, dove puoi assegnare
+liberamente tre azioni: Punto squadra/giocatore 1, Punto squadra/giocatore
+2, Annulla ultimo punto.
+
+**Uso:**
+1. Accoppia il telecomando/smartwatch dalle Impostazioni Bluetooth di
+   Android (come faresti con una tastiera).
+2. In Padel App, vai in Impostazioni → Telecomando remoto → attiva il
+   toggle → per ciascuna delle tre azioni tocca "Assegna" e premi il tasto
+   corrispondente sul telecomando entro 8 secondi.
+3. Il telecomando resta attivo solo mentre sei nella schermata Segnapunti
+   (altrove i tasti volume/media funzionano normalmente).
+
+I portachiavi Bluetooth "trova oggetto" generici (tipo antifurto chiavi) di
+solito **non** si accoppiano come tastiera ma usano un protocollo
+proprietario diverso per ogni produttore: potrebbero non funzionare. Se hai
+un dispositivo che non viene rilevato, fammi sapere modello/marca così
+posso valutare un supporto dedicato.

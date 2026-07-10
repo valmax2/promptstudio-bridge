@@ -36,6 +36,11 @@ allprojects {
 EOF
 fi
 
+echo "▶ Installo/aggiorno il plugin nativo del telecomando Bluetooth (tasti hardware)"
+JAVA_PKG_DIR="android/app/src/main/java/com/padelapp/app"
+mkdir -p "$JAVA_PKG_DIR"
+cp native-android/com/padelapp/app/*.java "$JAVA_PKG_DIR/"
+
 echo "▶ Genero icona e splash dal logo (icon.svg)"
 mkdir -p assets
 cp icon.svg assets/icon-only.svg 2>/dev/null || true

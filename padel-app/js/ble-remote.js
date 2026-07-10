@@ -95,12 +95,12 @@ export function bleTagSupported() {
 
 export async function scanBleTags() {
   const plugin = bleTag();
-  if (!plugin) return [];
+  if (!plugin) return { devices: [], error: null };
   try {
     const res = await plugin.scan();
-    return res.devices || [];
-  } catch {
-    return [];
+    return { devices: res.devices || [], error: null };
+  } catch (err) {
+    return { devices: [], error: err?.message || String(err) };
   }
 }
 

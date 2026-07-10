@@ -37,13 +37,17 @@ import java.util.UUID;
 // notifiable characteristic the connected device exposes and treats any
 // notification as a "button pressed" event - this covers most of these
 // devices regardless of brand/chipset.
+// Two separate permission aliases rather than one combined list: on Android
+// 12+ (API 31) ACCESS_FINE_LOCATION is capped out of the manifest via
+// maxSdkVersion (BLUETOOTH_SCAN/CONNECT replace it), so on those devices
+// that permission can never be granted and would permanently fail a combined
+// check. Request only the alias that's actually relevant for the running OS
+// version.
 @CapacitorPlugin(
     name = "BleTag",
     permissions = {
-        @Permission(
-            strings = { Manifest.permission.BLUETOOTH_SCAN, Manifest.permission.BLUETOOTH_CONNECT, Manifest.permission.ACCESS_FINE_LOCATION },
-            alias = "ble"
-        )
+        @Permission(strings = { Manifest.permission.ACCESS_FINE_LOCATION }, alias = "location"),
+        @Permission(strings = { Manifest.permission.BLUETOOTH_SCAN, Manifest.permission.BLUETOOTH_CONNECT }, alias = "ble"),
     }
 )
 public class BleTagPlugin extends Plugin {
@@ -54,10 +58,15 @@ public class BleTagPlugin extends Plugin {
     private BluetoothGatt gatt;
     private final Map<String, BluetoothDevice> foundDevices = new HashMap<>();
 
+    private String scanPermissionAlias() {
+        return Build.VERSION.SDK_INT >= 31 ? "ble" : "location";
+    }
+
     @PluginMethod
     public void scan(PluginCall call) {
-        if (getPermissionState("ble") != PermissionState.GRANTED) {
-            requestPermissionForAlias("ble", call, "scanPermCallback");
+        String alias = scanPermissionAlias();
+        if (getPermissionState(alias) != PermissionState.GRANTED) {
+            requestPermissionForAlias(alias, call, "scanPermCallback");
             return;
         }
         doScan(call);
@@ -65,10 +74,10 @@ public class BleTagPlugin extends Plugin {
 
     @PermissionCallback
     private void scanPermCallback(PluginCall call) {
-        if (getPermissionState("ble") == PermissionState.GRANTED) {
+        if (getPermissionState(scanPermissionAlias()) == PermissionState.GRANTED) {
             doScan(call);
         } else {
-            call.reject("Permesso Bluetooth negato");
+            call.reject("Permesso Bluetooth/posizione negato. Vai in Impostazioni > App > Padel App > Autorizzazioni e concedi \"Dispositivi vicini\" (o \"Posizione\" su Android più vecchi).");
         }
     }
 

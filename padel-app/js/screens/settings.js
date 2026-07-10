@@ -182,9 +182,11 @@ export async function renderSettings(el) {
     bleScanning = true;
     bleScanResults = [];
     renderSettings(el);
-    bleScanResults = await scanBleTags();
+    const { devices, error } = await scanBleTags();
+    bleScanResults = devices;
     bleScanning = false;
-    if (!bleScanResults.length) toast('Nessun dispositivo trovato. Assicurati che sia acceso e vicino.');
+    if (error) toast('Errore: ' + error);
+    else if (!bleScanResults.length) toast('Nessun dispositivo trovato. Assicurati che sia acceso e vicino, e che la Localizzazione del telefono sia attiva.');
     renderSettings(el);
   });
   el.querySelectorAll('[data-tag-connect]').forEach((btn) => {

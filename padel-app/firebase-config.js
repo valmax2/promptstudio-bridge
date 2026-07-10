@@ -7,16 +7,17 @@
 // sul telefono, ma login, community, eventi e sync cloud restano disattivati.
 // ============================================================================
 export const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_PROJECT.firebaseapp.com",
-  projectId: "YOUR_PROJECT",
-  storageBucket: "YOUR_PROJECT.appspot.com",
-  messagingSenderId: "YOUR_SENDER_ID",
-  appId: "YOUR_APP_ID",
+  apiKey: "AIzaSyCdf0kfYXvaY_9ZkIJxNN8v-iIoGMu6xos",
+  authDomain: "padel-app-c9592.firebaseapp.com",
+  projectId: "padel-app-c9592",
+  storageBucket: "padel-app-c9592.firebasestorage.app",
+  messagingSenderId: "501348619857",
+  appId: "1:501348619857:web:571278a4b37aad2020ca70",
 };
 
 // Chiave pubblica VAPID per le notifiche push web (Firebase Console →
 // Project Settings → Cloud Messaging → Web Push certificates).
+// TODO: da impostare al passo "notifiche push" della guida.
 export const vapidKey = "YOUR_VAPID_KEY";
 
 export const isFirebaseConfigured =

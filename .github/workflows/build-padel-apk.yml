@@ -1,0 +1,68 @@
+name: Build Padel App APK (debug, per test)
+
+# Compila un APK di debug (non firmato per il Play Store, ma perfettamente
+# installabile su un telefono per testare l'app) e lo pubblica sia come
+# artifact che come GitHub Release, per avere un link diretto scaricabile
+# anche da telefono. Solo su richiesta manuale.
+on:
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: padel-app
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Imposta JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Imposta Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Installa e configura l'Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Installa le dipendenze
+        run: npm ci
+
+      - name: Genera il progetto nativo Android
+        run: npx expo prebuild --platform android
+
+      - name: Compilo l'APK di debug
+        working-directory: padel-app/android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug
+
+      - name: Rinomino l'APK
+        run: cp android/app/build/outputs/apk/debug/app-debug.apk padel-app-debug-${{ github.run_number }}.apk
+
+      - name: Carico l'APK come artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: padel-app-debug-${{ github.run_number }}
+          path: padel-app/padel-app-debug-${{ github.run_number }}.apk
+          retention-days: 30
+
+      - name: Pubblico una Release con l'APK scaricabile direttamente
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "padel-apk-${{ github.run_number }}" \
+            "padel-app-debug-${{ github.run_number }}.apk" \
+            --title "Padel App - build di test #${{ github.run_number }}" \
+            --notes "APK di debug generata automaticamente per test su telefono. Non firmata per il Play Store." \
+            --repo "${{ github.repository }}"

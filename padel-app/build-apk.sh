@@ -55,6 +55,19 @@ echo "▶ Aggiungo la piattaforma Android"
 npx cap add android
 npx cap sync android
 
+echo "▶ Correggo un conflitto Gradle noto (classi Kotlin duplicate: kotlin-stdlib"
+echo "  1.8+ include già le estensioni jdk7/jdk8, incluse anche separatamente"
+echo "  dalle dipendenze legacy di Capacitor/Cordova)"
+cat >> android/build.gradle <<'EOF'
+
+allprojects {
+    configurations.all {
+        exclude group: 'org.jetbrains.kotlin', module: 'kotlin-stdlib-jdk7'
+        exclude group: 'org.jetbrains.kotlin', module: 'kotlin-stdlib-jdk8'
+    }
+}
+EOF
+
 echo "▶ Compilo l'APK di debug (gradlew assembleDebug)"
 cd android
 chmod +x ./gradlew

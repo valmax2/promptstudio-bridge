@@ -23,6 +23,19 @@ cp -r js www/js
 echo "▶ Creo il progetto Android (usa capacitor.config.json)"
 [ -d android ] || npx cap add android
 
+if ! grep -q "kotlin-stdlib-jdk7" android/build.gradle 2>/dev/null; then
+  echo "▶ Correggo un conflitto Gradle noto (classi Kotlin duplicate)"
+  cat >> android/build.gradle <<'EOF'
+
+allprojects {
+    configurations.all {
+        exclude group: 'org.jetbrains.kotlin', module: 'kotlin-stdlib-jdk7'
+        exclude group: 'org.jetbrains.kotlin', module: 'kotlin-stdlib-jdk8'
+    }
+}
+EOF
+fi
+
 echo "▶ Genero icona e splash dal logo (icon.svg)"
 mkdir -p assets
 cp icon.svg assets/icon-only.svg 2>/dev/null || true

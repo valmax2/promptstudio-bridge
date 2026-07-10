@@ -12,6 +12,8 @@ import { renderStats } from './screens/stats.js';
 import { renderGamification } from './screens/gamification.js';
 import { renderSettings } from './screens/settings.js';
 import { renderProfile } from './screens/profile.js';
+import { renderAmericano } from './screens/americano.js';
+import { renderKiller } from './screens/killer.js';
 
 const appEl = document.getElementById('app');
 const navEl = document.getElementById('bottom-nav');
@@ -55,6 +57,8 @@ registerRoute('stats', renderStats);
 registerRoute('gamification', renderGamification);
 registerRoute('settings', renderSettings);
 registerRoute('profile', renderProfile);
+registerRoute('americano', renderAmericano);
+registerRoute('killer', renderKiller);
 
 navEl.addEventListener('click', (e) => {
   const btn = e.target.closest('.nav-btn');

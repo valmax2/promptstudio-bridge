@@ -20,7 +20,8 @@ statistiche, gamification e sincronizzazione cloud.
 | Sincronizzazione cloud di impostazioni/avatar/statistiche | ✅ Funzionante *(richiede Firebase)* |
 | Audio su cassa Bluetooth | ✅ L'annuncio vocale usa il motore di sintesi vocale **nativo** di Android (plugin Capacitor, non il Web Speech API del browser — che nella WebView di Android spesso non produce alcun suono). L'audio esce dall'uscita attiva del telefono, quindi anche da una cassa Bluetooth già collegata — nessuna configurazione nell'app |
 | Telecomando Bluetooth / tasti fotocamera smartwatch | ✅ Funzionante per dispositivi che si accoppiano come tastiera Bluetooth (la maggior parte dei telecomandi economici e degli smartwatch in modalità scatto foto): accoppia il dispositivo dalle Impostazioni Bluetooth di Android, poi assegna i tasti dalle Impostazioni dell'app. I portachiavi "trova oggetto" generici usano spesso un protocollo proprietario e potrebbero non essere supportati |
-| Altre modalità di gioco (Americano, Killer/Eliminazione) | 🚧 In programma — le regole variano da circolo a circolo, servono le tue preferenze prima di implementarle |
+| Modalità Americano (rotazione compagni, classifica individuale) | ✅ Funzionante, offline |
+| Modalità Killer / Eliminazione (a vite, in coda, "re del campo") | ✅ Funzionante, offline |
 
 Senza configurare Firebase, l'app funziona comunque in **modalità locale**:
 segnapunti, tema, statistiche e progressi restano salvati sul telefono.
@@ -153,9 +154,11 @@ padel-app/
   js/scoring.js                 motore punteggio padel (regole di gioco)
   js/speech.js                  annuncio vocale (plugin TTS nativo)
   js/ble-remote.js              mappatura tasti hardware -> azioni segnapunti
+  js/americano.js               motore rotazione compagni + classifica Americano
+  js/killer.js                  motore coda/vite/eliminazione Killer
   js/store.js                   stato locale + persistenza (localStorage)
   js/firebase.js, js/cloud.js   integrazione Firebase (auth, Firestore, Storage, FCM)
-  js/screens/                   una schermata per modulo (home, scoreboard, community, events, stats, gamification, settings, profile, login)
+  js/screens/                   una schermata per modulo (home, scoreboard, americano, killer, community, events, stats, gamification, settings, profile, login)
   native-android/               sorgenti Java del plugin telecomando (copiati nel progetto Android ad ogni build)
   functions/                    Cloud Functions (notifiche push inviti/RSVP)
   firestore.rules, storage.rules, firestore.indexes.json
@@ -173,6 +176,28 @@ padel-app/
   decisivo fino a 10 punti.
 - Modalità **Doppio** o **Singolo** selezionabile all'inizio di ogni partita
   (stesse regole di punteggio, cambia solo l'etichetta squadra/giocatore).
+
+## Modalità Americano
+
+Torneo a rotazione per gruppi di 4 o più giocatori (dalla Home → "🔄
+Americano"): ogni turno l'app forma automaticamente le coppie cercando di
+far giocare ciascun giocatore con compagni diversi il più possibile
+(algoritmo che minimizza le coppie ripetute); se il numero di giocatori non
+è multiplo di 4, chi ha giocato più turni riposa a rotazione. Inserisci il
+punteggio di ogni campo a fine turno (i due punteggi si aggiornano a
+specchio sul totale impostato, es. 21), l'app somma i punti individuali di
+ogni giocatore turno dopo turno. Classifica live sempre visibile; puoi
+terminare il torneo in qualsiasi momento.
+
+## Modalità Killer (Eliminazione)
+
+"Re del campo" con vite (dalla Home → "🔪 Killer"): due giocatori sono in
+campo, gli altri sono in coda. Il perdente del round (un game intero, o un
+singolo punto in modalità "punto secco" — scelta in fase di impostazione)
+perde una vita e va in fondo alla coda; il vincitore resta in campo contro
+il prossimo sfidante. Chi esaurisce le vite (2-3, configurabile) viene
+eliminato; vince l'ultimo rimasto. Il game di ogni round usa le stesse
+regole di punteggio del segnapunti principale (punto d'oro incluso).
 
 ## Telecomando Bluetooth
 

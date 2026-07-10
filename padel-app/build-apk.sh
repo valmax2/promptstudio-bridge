@@ -40,7 +40,12 @@ cp -r "$HERE"/js "$BUILD/www/js"
 cd "$BUILD"
 
 echo "▶ Inizializzo il progetto npm e installo Capacitor"
-npm init -y >/dev/null
+# Scriviamo il package.json a mano: "npm init -y" deriva il nome pacchetto
+# dal nome della cartella, e ".capacitor-build" (che inizia con un punto)
+# viene rifiutato da npm come nome non valido.
+cat > package.json <<'EOF'
+{ "name": "padel-app-capacitor-build", "version": "1.0.0", "private": true }
+EOF
 npm install @capacitor/core @capacitor/cli @capacitor/android >/dev/null
 
 echo "▶ Inizializzo Capacitor ($APP_ID)"

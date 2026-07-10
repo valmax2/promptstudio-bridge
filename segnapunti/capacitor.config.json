@@ -1,0 +1,9 @@
+{
+  "appId": "com.segnapunti.app",
+  "appName": "Segnapunti",
+  "webDir": "www",
+  "backgroundColor": "#0B0D12FF",
+  "android": {
+    "backgroundColor": "#0B0D12FF"
+  }
+}

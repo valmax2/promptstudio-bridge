@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#0B0D12">
+<title>Segnapunti</title>
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="icon" href="./icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="./icon.svg">
+<link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+<div id="app">
+
+  <!-- ============ SETUP ============ -->
+  <section id="view-setup" class="view active">
+    <header class="setup-header">
+      <div class="brand-mark"></div>
+      <div class="brand-text">
+        <h1>Segnapunti</h1>
+        <p>Padel · Tennis · Punti liberi</p>
+      </div>
+    </header>
+
+    <div class="setup-scroll">
+
+      <div class="card">
+        <h2>Modalità</h2>
+        <div class="segmented" id="modeGroup">
+          <button class="seg-btn active" data-value="tennis">Tennis / Padel</button>
+          <button class="seg-btn" data-value="free">Punti liberi</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Formazione</h2>
+        <div class="segmented" id="formatGroup">
+          <button class="seg-btn active" data-value="singles">Singolo</button>
+          <button class="seg-btn" data-value="doubles">Doppio</button>
+        </div>
+      </div>
+
+      <div class="card team-card" id="teamCardA">
+        <div class="team-card-head">
+          <h2>Squadra A</h2>
+          <div class="color-dot-current" id="colorPreviewA"></div>
+        </div>
+        <input type="text" class="name-input" id="teamNameA" placeholder="Nome squadra (opzionale)" maxlength="18">
+        <input type="text" class="name-input" id="player1A" placeholder="Giocatore 1" maxlength="14">
+        <input type="text" class="name-input hidden" id="player2A" placeholder="Giocatore 2" maxlength="14">
+        <div class="color-picker" id="colorPickerA"></div>
+      </div>
+
+      <div class="card team-card" id="teamCardB">
+        <div class="team-card-head">
+          <h2>Squadra B</h2>
+          <div class="color-dot-current" id="colorPreviewB"></div>
+        </div>
+        <input type="text" class="name-input" id="teamNameB" placeholder="Nome squadra (opzionale)" maxlength="18">
+        <input type="text" class="name-input" id="player1B" placeholder="Giocatore 1" maxlength="14">
+        <input type="text" class="name-input hidden" id="player2B" placeholder="Giocatore 2" maxlength="14">
+        <div class="color-picker" id="colorPickerB"></div>
+      </div>
+
+      <div class="card" id="tennisOptions">
+        <h2>Set per vincere</h2>
+        <div class="segmented" id="setsGroup">
+          <button class="seg-btn" data-value="1">1</button>
+          <button class="seg-btn active" data-value="2">2 su 3</button>
+          <button class="seg-btn" data-value="3">3 su 5</button>
+        </div>
+        <h2 style="margin-top:16px">Chi serve per primo</h2>
+        <div class="segmented" id="serverGroup">
+          <button class="seg-btn active" data-value="A">Squadra A</button>
+          <button class="seg-btn" data-value="B">Squadra B</button>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="setup-cta">
+      <button class="btn-primary" id="startBtn">Inizia partita →</button>
+    </div>
+  </section>
+
+  <!-- ============ GAME ============ -->
+  <section id="view-game" class="view">
+    <div class="game-topbar">
+      <button class="icon-btn" id="homeBtn" aria-label="Home">←</button>
+      <div class="serve-badge">
+        <span class="serve-dot" id="serveDot"></span>
+        <span class="serve-text" id="serveText">—</span>
+      </div>
+      <button class="icon-btn" id="settingsBtn" aria-label="Impostazioni">⚙</button>
+    </div>
+
+    <div class="scoreboard">
+      <button class="team-panel" id="panelA">
+        <div class="team-panel-inner">
+          <div class="team-name" id="gameNameA">Squadra A</div>
+          <div class="score-main" id="scoreA">0</div>
+          <div class="score-sub" id="subA">
+            <div class="sub-item"><span class="sub-label">GAME</span><span class="sub-value" id="gamesA">0</span></div>
+            <div class="sub-item"><span class="sub-label">SET</span><span class="sub-value" id="setsA">0</span></div>
+          </div>
+          <div class="tiebreak-flag hidden" id="tieFlagA">Tiebreak</div>
+        </div>
+      </button>
+      <div class="score-divider"></div>
+      <button class="team-panel" id="panelB">
+        <div class="team-panel-inner">
+          <div class="team-name" id="gameNameB">Squadra B</div>
+          <div class="score-main" id="scoreB">0</div>
+          <div class="score-sub" id="subB">
+            <div class="sub-item"><span class="sub-label">GAME</span><span class="sub-value" id="gamesB">0</span></div>
+            <div class="sub-item"><span class="sub-label">SET</span><span class="sub-value" id="setsB">0</span></div>
+          </div>
+          <div class="tiebreak-flag hidden" id="tieFlagB">Tiebreak</div>
+        </div>
+      </button>
+    </div>
+
+    <div class="game-bottombar">
+      <button class="undo-btn" id="undoBtn" disabled><span class="ic">↺</span> Annulla punto</button>
+    </div>
+  </section>
+
+  <!-- ============ WIN OVERLAY ============ -->
+  <div class="overlay hidden" id="winOverlay">
+    <div class="overlay-card">
+      <div class="overlay-trophy">🏆</div>
+      <div class="overlay-title" id="winTitle">Squadra A vince!</div>
+      <div class="overlay-sub" id="winSub">2 set a 0</div>
+      <button class="btn-primary" id="rematchBtn">Rivincita</button>
+      <button class="btn-secondary" id="toSetupBtn">Torna al setup</button>
+    </div>
+  </div>
+
+  <!-- ============ SETTINGS SHEET ============ -->
+  <div class="sheet-backdrop hidden" id="settingsBackdrop">
+    <div class="sheet">
+      <div class="sheet-handle"></div>
+      <div class="sheet-title">Impostazioni partita</div>
+      <button class="sheet-item" id="restartMatchBtn"><span class="ic">↺</span> Ricomincia partita</button>
+      <button class="sheet-item" id="backToSetupBtn"><span class="ic">⚙</span> Torna al setup</button>
+      <button class="sheet-cancel" id="closeSheetBtn">Chiudi</button>
+    </div>
+  </div>
+
+</div>
+<script src="./app.js"></script>
+</body>
+</html>

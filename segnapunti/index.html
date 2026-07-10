@@ -41,26 +41,28 @@
         </div>
       </div>
 
-      <div class="card team-card" id="teamCardA">
-        <div class="team-card-head">
-          <h2>Squadra A</h2>
-          <div class="color-dot-current" id="colorPreviewA"></div>
+      <div class="teams-row">
+        <div class="card team-card" id="teamCardA">
+          <div class="team-card-head">
+            <h2>Squadra A</h2>
+            <div class="color-dot-current" id="colorPreviewA"></div>
+          </div>
+          <input type="text" class="name-input" id="teamNameA" placeholder="Nome squadra (opzionale)" maxlength="18">
+          <input type="text" class="name-input" id="player1A" placeholder="Giocatore 1" maxlength="14">
+          <input type="text" class="name-input hidden" id="player2A" placeholder="Giocatore 2" maxlength="14">
+          <div class="color-picker" id="colorPickerA"></div>
         </div>
-        <input type="text" class="name-input" id="teamNameA" placeholder="Nome squadra (opzionale)" maxlength="18">
-        <input type="text" class="name-input" id="player1A" placeholder="Giocatore 1" maxlength="14">
-        <input type="text" class="name-input hidden" id="player2A" placeholder="Giocatore 2" maxlength="14">
-        <div class="color-picker" id="colorPickerA"></div>
-      </div>
 
-      <div class="card team-card" id="teamCardB">
-        <div class="team-card-head">
-          <h2>Squadra B</h2>
-          <div class="color-dot-current" id="colorPreviewB"></div>
+        <div class="card team-card" id="teamCardB">
+          <div class="team-card-head">
+            <h2>Squadra B</h2>
+            <div class="color-dot-current" id="colorPreviewB"></div>
+          </div>
+          <input type="text" class="name-input" id="teamNameB" placeholder="Nome squadra (opzionale)" maxlength="18">
+          <input type="text" class="name-input" id="player1B" placeholder="Giocatore 1" maxlength="14">
+          <input type="text" class="name-input hidden" id="player2B" placeholder="Giocatore 2" maxlength="14">
+          <div class="color-picker" id="colorPickerB"></div>
         </div>
-        <input type="text" class="name-input" id="teamNameB" placeholder="Nome squadra (opzionale)" maxlength="18">
-        <input type="text" class="name-input" id="player1B" placeholder="Giocatore 1" maxlength="14">
-        <input type="text" class="name-input hidden" id="player2B" placeholder="Giocatore 2" maxlength="14">
-        <div class="color-picker" id="colorPickerB"></div>
       </div>
 
       <div class="card" id="tennisOptions">
@@ -92,6 +94,7 @@
         <span class="serve-dot" id="serveDot"></span>
         <span class="serve-text" id="serveText">—</span>
       </div>
+      <button class="icon-btn" id="voiceBtn" aria-label="Arbitro vocale">🔊</button>
       <button class="icon-btn" id="settingsBtn" aria-label="Impostazioni">⚙</button>
     </div>
 

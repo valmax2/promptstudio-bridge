@@ -23,6 +23,7 @@
     format: 'singles',    // 'singles' | 'doubles'
     setsToWin: 2,
     firstServer: 'A',
+    voiceAnnouncer: true, // "arbitro" vocale che annuncia punteggio/game/set
     teamA: { name: '', players: ['', ''], colorId: 'indigo' },
     teamB: { name: '', players: ['', ''], colorId: 'orange' },
   };
@@ -97,12 +98,14 @@
   function addPoint(team) {
     if (match.finished) return;
     pushHistory();
+    let eventType = 'point';
     if (match.mode === 'free') {
       match.free[team]++;
     } else {
-      match.tiebreak ? tiebreakPoint(team) : tennisPoint(team);
+      eventType = match.tiebreak ? tiebreakPoint(team) : tennisPoint(team);
     }
     match.side = match.side === 'DX' ? 'SX' : 'DX';
+    announce(eventType, team);
     persist();
     haptic();
   }
@@ -110,11 +113,12 @@
   function tennisPoint(team) {
     const opp = other(team);
     const p = match.points;
-    if (p[team] === 'Adv') { winGame(team); return; }
-    if (p[opp] === 'Adv') { p[opp] = 3; return; }
-    if (p[team] === 3 && p[opp] === 3) { p[team] = 'Adv'; return; }
-    if (p[team] === 3 && p[opp] < 3) { winGame(team); return; }
+    if (p[team] === 'Adv') return winGame(team);
+    if (p[opp] === 'Adv') { p[opp] = 3; return 'point'; }
+    if (p[team] === 3 && p[opp] === 3) { p[team] = 'Adv'; return 'point'; }
+    if (p[team] === 3 && p[opp] < 3) return winGame(team);
     p[team]++;
+    return 'point';
   }
 
   function winGame(team) {
@@ -122,12 +126,14 @@
     match.games[team]++;
     const opp = other(team);
     if (match.games[team] >= 6 && match.games[team] - match.games[opp] >= 2) {
-      finalizeSet(team);
+      return finalizeSet(team);
     } else if (match.games[team] === 6 && match.games[opp] === 6) {
       match.tiebreak = true;
       match.tiePoints = { A: 0, B: 0 };
+      return 'game';
     } else {
       switchServer();
+      return 'game';
     }
   }
 
@@ -138,8 +144,9 @@
       match.games[team]++;
       match.tiebreak = false;
       match.tiePoints = { A: 0, B: 0 };
-      finalizeSet(team);
+      return finalizeSet(team);
     }
+    return 'point';
   }
 
   function finalizeSet(team) {
@@ -149,8 +156,10 @@
     if (match.sets[team] >= config.setsToWin) {
       match.finished = true;
       match.winner = team;
+      return 'match';
     } else {
       switchServer();
+      return 'set';
     }
   }
 
@@ -171,6 +180,44 @@
 
   function haptic() {
     try { if (navigator.vibrate) navigator.vibrate(14); } catch (e) { /* no-op */ }
+  }
+
+  // ============================================================
+  // Arbitro vocale (Text-to-Speech)
+  // ============================================================
+  function speak(text) {
+    if (!config.voiceAnnouncer) return;
+    if (!('speechSynthesis' in window)) return;
+    try {
+      window.speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = 'it-IT';
+      u.rate = 1.0;
+      window.speechSynthesis.speak(u);
+    } catch (e) { /* sintesi vocale non disponibile: ignora */ }
+  }
+
+  function announce(eventType, team) {
+    if (!config.voiceAnnouncer) return;
+    let text;
+    if (match.mode === 'free') {
+      text = `${match.free.A} a ${match.free.B}`;
+    } else if (eventType === 'match') {
+      text = `Game, set e partita, ${teamLabel(team)}`;
+    } else if (eventType === 'set') {
+      text = `Game e set, ${teamLabel(team)}`;
+    } else if (eventType === 'game') {
+      text = `Game, ${teamLabel(team)}`;
+    } else if (match.tiebreak) {
+      text = `${match.tiePoints.A} a ${match.tiePoints.B}`;
+    } else {
+      const p = match.points;
+      if (p.A === 'Adv') text = `Vantaggio ${teamLabel('A')}`;
+      else if (p.B === 'Adv') text = `Vantaggio ${teamLabel('B')}`;
+      else if (p.A === p.B) text = `${TENNIS_POINTS[p.A]} pari`;
+      else text = `${TENNIS_POINTS[p.A]} a ${TENNIS_POINTS[p.B]}`;
+    }
+    speak(text);
   }
 
   // ============================================================
@@ -197,6 +244,7 @@
   const startBtn = $('startBtn');
   const homeBtn = $('homeBtn');
   const settingsBtn = $('settingsBtn');
+  const voiceBtn = $('voiceBtn');
   const undoBtn = $('undoBtn');
   const panelA = $('panelA'), panelB = $('panelB');
 
@@ -350,6 +398,7 @@
     }
 
     undoBtn.disabled = match.history.length === 0;
+    voiceBtn.textContent = config.voiceAnnouncer ? '🔊' : '🔇';
     applyTeamColors();
 
     if (match.finished && !winOverlay.dataset.shownFor) {
@@ -372,6 +421,14 @@
       : `Punti: ${match.free.A} - ${match.free.B}`;
     winOverlay.classList.remove('hidden');
   }
+
+  voiceBtn.addEventListener('click', () => {
+    config.voiceAnnouncer = !config.voiceAnnouncer;
+    if (config.voiceAnnouncer) speak('Arbitro vocale attivo');
+    else if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+    persist();
+    render();
+  });
 
   panelA.addEventListener('click', () => { addPoint('A'); render(); });
   panelB.addEventListener('click', () => { addPoint('B'); render(); });

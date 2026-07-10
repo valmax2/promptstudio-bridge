@@ -187,32 +187,133 @@ label { font-size: 0.85em; color: var(--text-dim); display: block; margin-bottom
 }
 .banner.hidden { display: none; }
 
-/* ===== Scoreboard ===== */
-.scoreboard {
-  display: flex; flex-direction: column; gap: 14px;
+/* ===== Scoreboard (full-screen, tablet-friendly) ===== */
+.sb-root {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  background: #000;
+  color: #fff;
+  padding-top: var(--safe-top);
+  padding-bottom: var(--safe-bottom);
 }
-.score-team {
-  border-radius: var(--radius);
-  padding: 18px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  display: flex; align-items: center; justify-content: space-between;
-  gap: 12px;
+.sb-topbar {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px;
+  background: #000;
 }
-.score-team.serving { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent) inset; }
-.score-team .team-name { font-weight: 700; font-size: 1.05em; }
-.score-team .sets { color: var(--text-dim); font-size: 0.85em; }
-.score-points {
-  font-size: 2.6em; font-weight: 800; min-width: 1.6em; text-align: center;
-  color: var(--accent);
+.sb-topbar button {
+  background: none; border: none; color: #fff; font-size: 1.3em;
+  padding: 8px 10px; border-radius: 10px; line-height: 1;
 }
-.set-history { display: flex; gap: 6px; margin-top: 4px; }
-.set-history span {
-  background: var(--surface-2); border-radius: 6px; padding: 2px 7px; font-size: 0.75em;
+.sb-topbar button:active { background: rgba(255,255,255,0.15); }
+.sb-mode { font-size: 0.85em; letter-spacing: 0.03em; opacity: 0.85; text-transform: uppercase; }
+
+.sb-halves {
+  flex: 1 1 auto;
+  display: flex;
+  min-height: 0;
+  position: relative;
 }
-.score-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 6px; }
-.score-actions .btn { padding: 22px 12px; font-size: 1.1em; }
-.score-toolbar { display: flex; gap: 10px; justify-content: center; margin-top: 8px; }
+.sb-half {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  border: none;
+  cursor: pointer;
+  position: relative;
+  color: #fff;
+}
+.sb-half:active { filter: brightness(1.08); }
+.sb-half.sb-a { background: var(--team-a-color, #1565C0); }
+.sb-half.sb-b { background: var(--team-b-color, #F2A900); }
+
+.sb-name-row {
+  flex: 0 0 auto;
+  padding: clamp(8px, 2vh, 18px) 8px;
+  text-align: center;
+  font-weight: 800;
+  font-size: clamp(1rem, 3vw, 1.6rem);
+  letter-spacing: 0.02em;
+  background: rgba(0,0,0,0.12);
+  border-bottom: 2px solid rgba(255,255,255,0.25);
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sb-name-row .serve-ball { margin-left: 6px; }
+
+.sb-stack {
+  flex: 1 1 auto;
+  display: grid;
+  grid-template-rows: 3fr 1fr 1.4fr 1fr 1.4fr;
+  min-height: 0;
+}
+.sb-stack > div { display: flex; align-items: center; justify-content: center; }
+.sb-point {
+  font-size: min(30vw, 32vh);
+  font-weight: 800;
+  line-height: 1;
+  background: rgba(0,0,0,0.08);
+}
+.sb-cap {
+  font-size: clamp(0.7rem, 2vw, 1.1rem);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  opacity: 0.85;
+  background: rgba(0,0,0,0.22);
+}
+.sb-mid {
+  font-size: min(14vw, 15vh);
+  font-weight: 800;
+  line-height: 1;
+  background: rgba(0,0,0,0.14);
+}
+.sb-badge {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0,0,0,0.55);
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 0.75em;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.sb-controls {
+  flex: 0 0 auto;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  background: #111;
+}
+.sb-controls button {
+  background: none; border: none; color: #fff;
+  padding: clamp(10px, 1.6vh, 16px) 6px;
+  font-size: clamp(0.75rem, 1.6vw, 1rem);
+  font-weight: 700;
+  border-right: 1px solid rgba(255,255,255,0.12);
+}
+.sb-controls button:last-child { border-right: none; }
+.sb-controls button:disabled { opacity: 0.35; }
+.sb-controls button:active:not(:disabled) { background: rgba(255,255,255,0.12); }
+
+.sb-overlay {
+  position: absolute; inset: 0;
+  background: rgba(0,0,0,0.72);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 16px; text-align: center; padding: 24px; z-index: 5;
+}
+.sb-overlay h2 { font-size: clamp(1.4rem, 4vw, 2.2rem); }
+.sb-overlay .btn { font-size: 1.1em; padding: 16px 28px; }
 
 /* Segmented control */
 .segmented { display: flex; background: var(--surface-2); border-radius: var(--radius-sm); padding: 4px; }

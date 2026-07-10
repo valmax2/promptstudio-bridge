@@ -9,6 +9,7 @@ statistiche, gamification e sincronizzazione cloud.
 | Modulo | Stato |
 |---|---|
 | Segnapunti (punteggio padel completo, punto d'oro, super tie-break, annuncio vocale TTS) | ✅ Funzionante, offline |
+| Schermata segnapunti a schermo intero, cifre enormi, ottimizzata per tablet | ✅ Funzionante, offline — tocca l'intera metà colorata della squadra per assegnare il punto |
 | Tema scuro/chiaro, font e dimensione testo | ✅ Funzionante, offline |
 | Login con numero di telefono | ✅ Funzionante *(richiede Firebase configurato)* |
 | Community: amici e cerchie chiuse | ✅ Funzionante *(richiede Firebase; modalità locale limitata senza login)* |
@@ -16,7 +17,7 @@ statistiche, gamification e sincronizzazione cloud.
 | Statistiche partite e trend | ✅ Funzionante, offline |
 | Gamification (XP, avatar e cornici sbloccabili) | ✅ Funzionante, offline |
 | Sincronizzazione cloud di impostazioni/avatar/statistiche | ✅ Funzionante *(richiede Firebase)* |
-| Audio su cassa Bluetooth | ✅ Funziona automaticamente: l'annuncio vocale (TTS di sistema) esce dall'uscita audio attiva del telefono, quindi anche da una cassa Bluetooth già collegata — nessuna configurazione nell'app |
+| Audio su cassa Bluetooth | ✅ L'annuncio vocale usa il motore di sintesi vocale **nativo** di Android (plugin Capacitor, non il Web Speech API del browser — che nella WebView di Android spesso non produce alcun suono). L'audio esce dall'uscita attiva del telefono, quindi anche da una cassa Bluetooth già collegata — nessuna configurazione nell'app |
 | Telecomando BLE / tasti fotocamera smartwatch | 🚧 Non ancora incluso: richiede lo sviluppo di un plugin nativo Android dedicato, da testare con il tuo telecomando specifico. La voce è già presente (disattivata) nelle Impostazioni |
 
 Senza configurare Firebase, l'app funziona comunque in **modalità locale**:

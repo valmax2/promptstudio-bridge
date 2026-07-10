@@ -12,7 +12,7 @@ cd "$HERE"
 
 echo "▶ Installo Capacitor + strumenti"
 [ -f package.json ] || npm init -y >/dev/null
-npm install @capacitor/core @capacitor/cli @capacitor/android
+npm install @capacitor/core @capacitor/cli @capacitor/android @capacitor-community/text-to-speech
 npm install --save-dev @capacitor/assets
 
 echo "▶ Copio i file web in www/"

@@ -103,6 +103,7 @@
 
     <div class="setup-cta">
       <button class="btn-primary" id="startBtn">Inizia partita →</button>
+      <button class="btn-secondary" id="openCommunityBtn">👥 Community</button>
       <button class="btn-secondary" id="openBluetoothBtn">🔵 Pulsanti fisici (Bluetooth)</button>
     </div>
 
@@ -164,6 +165,95 @@
         </details>
       </div>
 
+    </div>
+  </section>
+
+  <!-- ============ COMMUNITY ============ -->
+  <section id="view-community" class="view">
+    <div class="game-topbar">
+      <button class="icon-btn" id="communityBackBtn" aria-label="Indietro">←</button>
+      <div class="serve-badge"><span class="serve-text">Community</span></div>
+      <div style="width:42px;flex-shrink:0"></div>
+    </div>
+
+    <!-- Stato: Supabase non ancora configurato -->
+    <div class="setup-scroll" id="communityNotConfigured">
+      <div class="card">
+        <h2>Community non ancora attiva</h2>
+        <p class="hint-text">Per amici, eventi e conferme di disponibilità serve un account gratuito
+        Supabase (5 minuti, nessuna carta di credito). Istruzioni complete in
+        <b>README.md § Community</b> di questo progetto: crea il progetto, esegui la migration SQL
+        inclusa, e incolla URL + chiave in <b>community-config.js</b>.</p>
+      </div>
+    </div>
+
+    <!-- Stato: non loggato -->
+    <div class="setup-scroll hidden" id="communityAuth">
+      <div class="card">
+        <h2>Accedi</h2>
+        <input type="email" class="name-input" id="authEmail" placeholder="Email" autocomplete="email">
+        <input type="password" class="name-input" id="authPassword" placeholder="Password (min. 6 caratteri)" autocomplete="current-password">
+        <div class="bt-status hidden" id="authMessage"></div>
+        <button class="btn-primary" id="authLoginBtn">Accedi</button>
+        <button class="btn-secondary" id="authSignupBtn">Registrati</button>
+      </div>
+    </div>
+
+    <!-- Stato: loggato -->
+    <div class="setup-scroll hidden" id="communityMain">
+      <div class="card">
+        <div class="team-card-head">
+          <h2>Il mio profilo</h2>
+          <button class="icon-btn" id="logoutBtn" aria-label="Esci" style="width:36px;height:36px;font-size:15px">⏻</button>
+        </div>
+        <input type="text" class="name-input" id="profileDisplayName" placeholder="Nome visualizzato" maxlength="24">
+        <input type="text" class="name-input" id="profileUsername" placeholder="Username" maxlength="20">
+        <div class="color-picker" id="avatarColorPicker"></div>
+        <button class="btn-secondary" id="saveProfileBtn">Salva profilo</button>
+        <div class="bt-status hidden" id="profileMessage"></div>
+      </div>
+
+      <div class="segmented" id="communityTabs">
+        <button class="seg-btn active" data-value="friends">Amici</button>
+        <button class="seg-btn" data-value="events">Partite</button>
+      </div>
+
+      <!-- Tab Amici -->
+      <div id="communityFriendsTab">
+        <div class="card">
+          <h2>Aggiungi amico</h2>
+          <input type="text" class="name-input" id="friendSearchInput" placeholder="Cerca per username">
+          <button class="btn-secondary" id="friendSearchBtn">Cerca</button>
+          <div id="friendSearchResults"></div>
+        </div>
+        <div class="card">
+          <h2>Richieste in attesa</h2>
+          <div id="friendRequestsList" class="hint-text">Nessuna richiesta al momento.</div>
+        </div>
+        <div class="card">
+          <h2>I miei amici</h2>
+          <div id="friendsList" class="hint-text">Non hai ancora amici in lista.</div>
+        </div>
+      </div>
+
+      <!-- Tab Partite -->
+      <div id="communityEventsTab" class="hidden">
+        <div class="card">
+          <h2>Proponi una partita</h2>
+          <input type="text" class="name-input" id="eventTitle" placeholder="Titolo (es. Padel al circolo)" maxlength="40">
+          <input type="date" class="name-input" id="eventDate">
+          <input type="time" class="name-input" id="eventTime">
+          <input type="text" class="name-input" id="eventLocation" placeholder="Luogo (facoltativo)" maxlength="60">
+          <h2 style="margin-top:4px">Invita amici</h2>
+          <div id="eventInviteFriends" class="hint-text">Aggiungi prima qualche amico per poterlo invitare.</div>
+          <button class="btn-primary" id="createEventBtn">Proponi partita</button>
+          <div class="bt-status hidden" id="eventMessage"></div>
+        </div>
+        <div class="card">
+          <h2>Le mie partite</h2>
+          <div id="eventsList" class="hint-text">Nessuna partita in programma.</div>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -240,6 +330,9 @@
   </div>
 
 </div>
+<script src="./vendor/supabase.js"></script>
+<script src="./community-config.js"></script>
+<script src="./community.js"></script>
 <script src="./app.js"></script>
 </body>
 </html>

@@ -17,7 +17,8 @@ npm install --save-dev @capacitor/assets
 
 echo "▶ Copio i file web in www/"
 rm -rf www && mkdir -p www
-cp index.html styles.css app.js manifest.webmanifest sw.js icon.svg www/
+cp index.html styles.css app.js manifest.webmanifest sw.js icon.svg community.js community-config.js www/
+cp -r vendor www/vendor
 
 echo "▶ Creo il progetto Android (usa capacitor.config.json)"
 [ -d android ] || npx cap add android

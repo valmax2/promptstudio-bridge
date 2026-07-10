@@ -41,6 +41,9 @@ funziona **offline**. Si impacchetta in un vero **APK** con lo script incluso.
   - **Portachiavi Bluetooth con GPS**: collegamento diretto per i modelli generici più
     comuni; per i modelli non riconosciuti automaticamente c'è un campo UUID manuale
     (vedi nota sotto).
+- **Community** (account, amici, eventi — vedi sezione dedicata sotto): profilo con
+  avatar colorato, ricerca amici per username, richieste di amicizia, proposta di
+  partite con conferma di disponibilità sì/no per ogni invitato.
 
 ## Provala subito sul telefono (modo più veloce)
 
@@ -93,6 +96,46 @@ Per pubblicarla su App Store serve anche un account Apple Developer (99$/anno).
   da sola e semplicemente non vibra (nessun errore).
 - ✅ **Arbitro vocale, tema, tutto il resto**: identico ad Android.
 
+## Community (amici, eventi) — setup gratuito, 5 minuti
+
+La sezione "👥 Community" richiede un account gratuito su **Supabase** (nessuna carta di
+credito, nessun abbonamento). Finché non lo configuri, l'app mostra solo un avviso e non
+prova a connettersi a niente.
+
+**1. Crea il progetto (una volta sola)**
+1. Vai su [supabase.com](https://supabase.com) → "Start your project" → registrati gratis
+2. "New project" → dai un nome (es. "segnapunti"), scegli una password del database
+   (salvala da qualche parte, non serve nell'app ma è utile tenerla) → crea
+3. Aspetta 1-2 minuti che il progetto sia pronto
+
+**2. Crea le tabelle (amici, eventi, ecc.)**
+1. Nel progetto Supabase, apri **SQL Editor** (menu a sinistra) → "New query"
+2. Apri il file `segnapunti/supabase/migrations/0001_community.sql` di questo progetto,
+   copia tutto il contenuto e incollalo nell'editor
+3. Premi **Run**. Se va tutto bene non vedi errori (questa migration è già stata
+   testata a fondo, incluse le regole di sicurezza, prima di essere inclusa qui)
+
+**3. Collega l'app**
+1. Nel progetto Supabase: **Project Settings → API**
+2. Copia il **Project URL** e la chiave **anon public**
+3. Apri `segnapunti/community-config.js` e incollali al posto dei due segnaposto
+4. Ricarica l'app: la sezione Community ora mostra login/registrazione invece
+   dell'avviso
+
+**Nota su email di conferma**: per default Supabase invia un'email di conferma alla
+registrazione. Per i test con gli amici va benissimo così; se vuoi saltarla, in
+**Authentication → Providers → Email** disattiva "Confirm email".
+
+**Sicurezza**: ogni tabella ha regole (Row Level Security) testate che garantiscono che
+un utente veda/modifichi solo i propri dati, le proprie amicizie e gli eventi a cui è
+invitato — mai i dati di sconosciuti. La chiave "anon" che incolli nell'app è pensata per
+stare nel codice pubblico: da sola non basta per leggere dati altrui, è proprio la
+sicurezza a livello di database a proteggerli.
+
+**Fase 2 (non ancora inclusa)**: la chat vera e propria tra amici. La struttura attuale
+(eventi + inviti con conferma sì/no) è pensata apposta per essere estesa con una tabella
+`messages` senza dover ridisegnare nulla, quando vorrai aggiungerla.
+
 ## File
 
 | File | Ruolo |
@@ -103,6 +146,9 @@ Per pubblicarla su App Store serve anche un account Apple Developer (99$/anno).
 | `manifest.webmanifest`, `sw.js`, `icon.svg` | installazione PWA / offline |
 | `serve.js` | server locale per provarla sul telefono |
 | `setup-android.sh` | crea il progetto Android (Capacitor) per generare l'APK |
+| `community.js`, `community-config.js` | logica e configurazione Community (amici, eventi) |
+| `vendor/supabase.js` | libreria client Supabase, inclusa (nessun CDN esterno) |
+| `supabase/migrations/0001_community.sql` | tabelle + regole di sicurezza da eseguire su Supabase |
 | `setup-ios.sh` | crea il progetto iOS (Capacitor) per Xcode — richiede un Mac |
 
 ## Monetizzazione (predisposizione, non ancora attiva)

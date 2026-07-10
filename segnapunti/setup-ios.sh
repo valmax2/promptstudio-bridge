@@ -24,7 +24,8 @@ npm install @capacitor/core @capacitor/cli @capacitor/ios
 
 echo "▶ Copio i file web in www/"
 rm -rf www && mkdir -p www
-cp index.html styles.css app.js manifest.webmanifest sw.js icon.svg www/
+cp index.html styles.css app.js manifest.webmanifest sw.js icon.svg community.js community-config.js www/
+cp -r vendor www/vendor
 
 echo "▶ Creo il progetto iOS (usa capacitor.config.json)"
 [ -d ios ] || npx cap add ios

@@ -1,5 +1,8 @@
-const CACHE = 'segnapunti-v1';
-const ASSETS = ['./', './index.html', './styles.css', './app.js', './manifest.webmanifest', './icon.svg'];
+const CACHE = 'segnapunti-v2';
+const ASSETS = [
+  './', './index.html', './styles.css', './app.js', './manifest.webmanifest', './icon.svg',
+  './community.js', './community-config.js', './vendor/supabase.js',
+];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS)));

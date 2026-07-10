@@ -1,0 +1,15 @@
+{
+  "name": "Segnapunti",
+  "short_name": "Segnapunti",
+  "description": "Segnapunti per padel, tennis e altri giochi a punti: squadre, colori, game/set e servizio.",
+  "lang": "it",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0B0D12",
+  "theme_color": "#0B0D12",
+  "icons": [
+    { "src": "./icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}

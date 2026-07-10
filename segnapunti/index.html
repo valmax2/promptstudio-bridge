@@ -1,0 +1,338 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" id="metaThemeColor" content="#0B0D12">
+<title>Segnapunti</title>
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="icon" href="./icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="./icon.svg">
+<link rel="stylesheet" href="./styles.css">
+<script>
+// Applica subito il tema salvato (prima del primo render) per evitare lo sfarfallio.
+(function(){
+  try {
+    var saved = JSON.parse(localStorage.getItem('segnapunti.v1') || 'null');
+    var theme = (saved && saved.config && saved.config.theme) || 'dark';
+    if (theme === 'auto') theme = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    document.documentElement.dataset.theme = theme;
+  } catch (e) { document.documentElement.dataset.theme = 'dark'; }
+})();
+</script>
+</head>
+<body>
+<div id="app">
+
+  <!-- ============ SETUP ============ -->
+  <section id="view-setup" class="view active">
+    <header class="setup-header">
+      <div class="brand-mark"></div>
+      <div class="brand-text">
+        <h1>Segnapunti</h1>
+        <p>Padel · Tennis · Punti liberi</p>
+      </div>
+    </header>
+
+    <div class="setup-scroll">
+
+      <div class="card">
+        <h2>Modalità</h2>
+        <div class="segmented" id="modeGroup">
+          <button class="seg-btn active" data-value="tennis">Tennis / Padel</button>
+          <button class="seg-btn" data-value="free">Punti liberi</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Formazione</h2>
+        <div class="segmented" id="formatGroup">
+          <button class="seg-btn active" data-value="singles">Singolo</button>
+          <button class="seg-btn" data-value="doubles">Doppio</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Aspetto</h2>
+        <div class="segmented" id="themeGroup">
+          <button class="seg-btn active" data-value="dark">🌙 Scuro</button>
+          <button class="seg-btn" data-value="light">☀️ Chiaro</button>
+          <button class="seg-btn" data-value="auto">📱 Sistema</button>
+        </div>
+      </div>
+
+      <div class="teams-row">
+        <div class="card team-card" id="teamCardA">
+          <div class="team-card-head">
+            <h2>Squadra A</h2>
+            <div class="color-dot-current" id="colorPreviewA"></div>
+          </div>
+          <input type="text" class="name-input" id="teamNameA" placeholder="Nome squadra (opzionale)" maxlength="18">
+          <input type="text" class="name-input" id="player1A" placeholder="Giocatore 1" maxlength="14">
+          <input type="text" class="name-input hidden" id="player2A" placeholder="Giocatore 2" maxlength="14">
+          <div class="color-picker" id="colorPickerA"></div>
+        </div>
+
+        <div class="card team-card" id="teamCardB">
+          <div class="team-card-head">
+            <h2>Squadra B</h2>
+            <div class="color-dot-current" id="colorPreviewB"></div>
+          </div>
+          <input type="text" class="name-input" id="teamNameB" placeholder="Nome squadra (opzionale)" maxlength="18">
+          <input type="text" class="name-input" id="player1B" placeholder="Giocatore 1" maxlength="14">
+          <input type="text" class="name-input hidden" id="player2B" placeholder="Giocatore 2" maxlength="14">
+          <div class="color-picker" id="colorPickerB"></div>
+        </div>
+      </div>
+
+      <div class="card" id="tennisOptions">
+        <h2>Set per vincere</h2>
+        <div class="segmented" id="setsGroup">
+          <button class="seg-btn" data-value="1">1</button>
+          <button class="seg-btn active" data-value="2">2 su 3</button>
+          <button class="seg-btn" data-value="3">3 su 5</button>
+        </div>
+        <h2 style="margin-top:16px">Chi serve per primo</h2>
+        <div class="segmented" id="serverGroup">
+          <button class="seg-btn active" data-value="A">Squadra A</button>
+          <button class="seg-btn" data-value="B">Squadra B</button>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="setup-cta">
+      <button class="btn-primary" id="startBtn">Inizia partita →</button>
+      <button class="btn-secondary" id="openCommunityBtn">👥 Community</button>
+      <button class="btn-secondary" id="openBluetoothBtn">🔵 Pulsanti fisici (Bluetooth)</button>
+    </div>
+
+    <!-- Spazio riservato per un futuro banner pubblicitario. Vuoto e nascosto
+         finché non si collega un vero network pubblicitario (vedi README § Monetizzazione).
+         Mai sulla schermata di gioco: lì i pannelli devono restare a piena larghezza/altezza
+         per non far sbagliare tap durante il punteggio. -->
+    <div class="banner-slot hidden" id="bannerSlot"></div>
+  </section>
+
+  <!-- ============ BLUETOOTH ============ -->
+  <section id="view-bluetooth" class="view">
+    <div class="game-topbar">
+      <button class="icon-btn" id="btBackBtn" aria-label="Indietro">←</button>
+      <div class="serve-badge"><span class="serve-text">Pulsanti fisici</span></div>
+      <div style="width:42px;flex-shrink:0"></div>
+    </div>
+    <div class="setup-scroll">
+
+      <div class="card">
+        <h2>Come funziona</h2>
+        <p class="hint-text">Ci sono due tipi di pulsante fisico collegabile: un <b>telecomando</b> (selfie remote,
+        pulsante smartwatch — quasi tutti funzionano) oppure un <b>portachiavi Bluetooth con GPS</b> (funziona solo
+        se non è legato a un'app esclusiva: i tracker Apple/Samsung/Google in genere sono bloccati per sicurezza
+        anti-stalking, quelli generici spesso si collegano).</p>
+      </div>
+
+      <div class="card bt-card">
+        <h2>Telecomando — Squadra A</h2>
+        <div class="bt-status" id="remoteStatusA">Nessun tasto registrato</div>
+        <button class="btn-secondary" id="learnRemoteA">Registra tasto</button>
+      </div>
+      <div class="card bt-card">
+        <h2>Telecomando — Squadra B</h2>
+        <div class="bt-status" id="remoteStatusB">Nessun tasto registrato</div>
+        <button class="btn-secondary" id="learnRemoteB">Registra tasto</button>
+      </div>
+
+      <div class="card bt-card">
+        <h2>Portachiavi Bluetooth — Squadra A</h2>
+        <div class="bt-status" id="bleStatusA">Non collegato</div>
+        <button class="btn-secondary" id="scanBleA">Cerca e collega</button>
+        <button class="btn-secondary bt-disconnect hidden" id="disconnectBleA">Disconnetti</button>
+        <details class="bt-advanced">
+          <summary>Avanzate: UUID manuale (con app nRF Connect)</summary>
+          <input type="text" class="name-input" id="bleServiceA" placeholder="Service UUID (facoltativo)">
+          <input type="text" class="name-input" id="bleCharA" placeholder="Characteristic UUID (facoltativo)">
+        </details>
+      </div>
+      <div class="card bt-card">
+        <h2>Portachiavi Bluetooth — Squadra B</h2>
+        <div class="bt-status" id="bleStatusB">Non collegato</div>
+        <button class="btn-secondary" id="scanBleB">Cerca e collega</button>
+        <button class="btn-secondary bt-disconnect hidden" id="disconnectBleB">Disconnetti</button>
+        <details class="bt-advanced">
+          <summary>Avanzate: UUID manuale (con app nRF Connect)</summary>
+          <input type="text" class="name-input" id="bleServiceB" placeholder="Service UUID (facoltativo)">
+          <input type="text" class="name-input" id="bleCharB" placeholder="Characteristic UUID (facoltativo)">
+        </details>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ============ COMMUNITY ============ -->
+  <section id="view-community" class="view">
+    <div class="game-topbar">
+      <button class="icon-btn" id="communityBackBtn" aria-label="Indietro">←</button>
+      <div class="serve-badge"><span class="serve-text">Community</span></div>
+      <div style="width:42px;flex-shrink:0"></div>
+    </div>
+
+    <!-- Stato: Supabase non ancora configurato -->
+    <div class="setup-scroll" id="communityNotConfigured">
+      <div class="card">
+        <h2>Community non ancora attiva</h2>
+        <p class="hint-text">Per amici, eventi e conferme di disponibilità serve un account gratuito
+        Supabase (5 minuti, nessuna carta di credito). Istruzioni complete in
+        <b>README.md § Community</b> di questo progetto: crea il progetto, esegui la migration SQL
+        inclusa, e incolla URL + chiave in <b>community-config.js</b>.</p>
+      </div>
+    </div>
+
+    <!-- Stato: non loggato -->
+    <div class="setup-scroll hidden" id="communityAuth">
+      <div class="card">
+        <h2>Accedi</h2>
+        <input type="email" class="name-input" id="authEmail" placeholder="Email" autocomplete="email">
+        <input type="password" class="name-input" id="authPassword" placeholder="Password (min. 6 caratteri)" autocomplete="current-password">
+        <div class="bt-status hidden" id="authMessage"></div>
+        <button class="btn-primary" id="authLoginBtn">Accedi</button>
+        <button class="btn-secondary" id="authSignupBtn">Registrati</button>
+      </div>
+    </div>
+
+    <!-- Stato: loggato -->
+    <div class="setup-scroll hidden" id="communityMain">
+      <div class="card">
+        <div class="team-card-head">
+          <h2>Il mio profilo</h2>
+          <button class="icon-btn" id="logoutBtn" aria-label="Esci" style="width:36px;height:36px;font-size:15px">⏻</button>
+        </div>
+        <input type="text" class="name-input" id="profileDisplayName" placeholder="Nome visualizzato" maxlength="24">
+        <input type="text" class="name-input" id="profileUsername" placeholder="Username" maxlength="20">
+        <div class="color-picker" id="avatarColorPicker"></div>
+        <button class="btn-secondary" id="saveProfileBtn">Salva profilo</button>
+        <div class="bt-status hidden" id="profileMessage"></div>
+      </div>
+
+      <div class="segmented" id="communityTabs">
+        <button class="seg-btn active" data-value="friends">Amici</button>
+        <button class="seg-btn" data-value="events">Partite</button>
+      </div>
+
+      <!-- Tab Amici -->
+      <div id="communityFriendsTab">
+        <div class="card">
+          <h2>Aggiungi amico</h2>
+          <input type="text" class="name-input" id="friendSearchInput" placeholder="Cerca per username">
+          <button class="btn-secondary" id="friendSearchBtn">Cerca</button>
+          <div id="friendSearchResults"></div>
+        </div>
+        <div class="card">
+          <h2>Richieste in attesa</h2>
+          <div id="friendRequestsList" class="hint-text">Nessuna richiesta al momento.</div>
+        </div>
+        <div class="card">
+          <h2>I miei amici</h2>
+          <div id="friendsList" class="hint-text">Non hai ancora amici in lista.</div>
+        </div>
+      </div>
+
+      <!-- Tab Partite -->
+      <div id="communityEventsTab" class="hidden">
+        <div class="card">
+          <h2>Proponi una partita</h2>
+          <input type="text" class="name-input" id="eventTitle" placeholder="Titolo (es. Padel al circolo)" maxlength="40">
+          <input type="date" class="name-input" id="eventDate">
+          <input type="time" class="name-input" id="eventTime">
+          <input type="text" class="name-input" id="eventLocation" placeholder="Luogo (facoltativo)" maxlength="60">
+          <h2 style="margin-top:4px">Invita amici</h2>
+          <div id="eventInviteFriends" class="hint-text">Aggiungi prima qualche amico per poterlo invitare.</div>
+          <button class="btn-primary" id="createEventBtn">Proponi partita</button>
+          <div class="bt-status hidden" id="eventMessage"></div>
+        </div>
+        <div class="card">
+          <h2>Le mie partite</h2>
+          <div id="eventsList" class="hint-text">Nessuna partita in programma.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ GAME ============ -->
+  <section id="view-game" class="view">
+    <div class="game-topbar">
+      <button class="icon-btn" id="homeBtn" aria-label="Home">←</button>
+      <div class="serve-badge">
+        <span class="serve-dot" id="serveDot"></span>
+        <span class="serve-text" id="serveText">—</span>
+      </div>
+      <button class="icon-btn" id="voiceBtn" aria-label="Arbitro vocale">🔊</button>
+      <button class="icon-btn" id="settingsBtn" aria-label="Impostazioni">⚙</button>
+    </div>
+
+    <div class="scoreboard">
+      <button class="team-panel" id="panelA">
+        <div class="team-panel-inner">
+          <div class="team-name" id="gameNameA">Squadra A</div>
+          <div class="score-main" id="scoreA">0</div>
+          <div class="score-sub" id="subA">
+            <div class="sub-item"><span class="sub-label">GAME</span><span class="sub-value" id="gamesA">0</span></div>
+            <div class="sub-item"><span class="sub-label">SET</span><span class="sub-value" id="setsA">0</span></div>
+          </div>
+          <div class="tiebreak-flag hidden" id="tieFlagA">Tiebreak</div>
+        </div>
+      </button>
+      <div class="score-divider"></div>
+      <button class="team-panel" id="panelB">
+        <div class="team-panel-inner">
+          <div class="team-name" id="gameNameB">Squadra B</div>
+          <div class="score-main" id="scoreB">0</div>
+          <div class="score-sub" id="subB">
+            <div class="sub-item"><span class="sub-label">GAME</span><span class="sub-value" id="gamesB">0</span></div>
+            <div class="sub-item"><span class="sub-label">SET</span><span class="sub-value" id="setsB">0</span></div>
+          </div>
+          <div class="tiebreak-flag hidden" id="tieFlagB">Tiebreak</div>
+        </div>
+      </button>
+    </div>
+
+    <div class="game-bottombar">
+      <button class="undo-btn" id="undoBtn" disabled><span class="ic">↺</span> Annulla punto</button>
+    </div>
+  </section>
+
+  <!-- ============ WIN OVERLAY ============ -->
+  <div class="overlay hidden" id="winOverlay">
+    <div class="overlay-card">
+      <div class="overlay-trophy">🏆</div>
+      <div class="overlay-title" id="winTitle">Squadra A vince!</div>
+      <div class="overlay-sub" id="winSub">2 set a 0</div>
+      <button class="btn-primary" id="rematchBtn">Rivincita</button>
+      <button class="btn-secondary" id="toSetupBtn">Torna al setup</button>
+    </div>
+  </div>
+
+  <!-- ============ SETTINGS SHEET ============ -->
+  <div class="sheet-backdrop hidden" id="settingsBackdrop">
+    <div class="sheet">
+      <div class="sheet-handle"></div>
+      <div class="sheet-title">Aspetto</div>
+      <div class="segmented" id="themeGroupSheet" style="margin-bottom:16px">
+        <button class="seg-btn active" data-value="dark">🌙 Scuro</button>
+        <button class="seg-btn" data-value="light">☀️ Chiaro</button>
+        <button class="seg-btn" data-value="auto">📱 Sistema</button>
+      </div>
+      <div class="sheet-title">Impostazioni partita</div>
+      <button class="sheet-item" id="restartMatchBtn"><span class="ic">↺</span> Ricomincia partita</button>
+      <button class="sheet-item" id="openBluetoothFromGameBtn"><span class="ic">🔵</span> Pulsanti fisici (Bluetooth)</button>
+      <button class="sheet-item" id="backToSetupBtn"><span class="ic">⚙</span> Torna al setup</button>
+      <button class="sheet-cancel" id="closeSheetBtn">Chiudi</button>
+    </div>
+  </div>
+
+</div>
+<script src="./vendor/supabase.js"></script>
+<script src="./community-config.js"></script>
+<script src="./community.js"></script>
+<script src="./app.js"></script>
+</body>
+</html>

@@ -25,6 +25,7 @@
     firstServer: 'A',
     voiceAnnouncer: true, // "arbitro" vocale che annuncia punteggio/game/set
     remoteKeys: { A: null, B: null }, // tasti telecomando Bluetooth (HID) registrati
+    theme: 'dark',         // 'dark' | 'light' | 'auto' (segue il sistema)
     teamA: { name: '', players: ['', ''], colorId: 'indigo' },
     teamB: { name: '', players: ['', ''], colorId: 'orange' },
   };
@@ -232,6 +233,8 @@
 
   const modeGroup = $('modeGroup');
   const formatGroup = $('formatGroup');
+  const themeGroup = $('themeGroup');
+  const themeGroupSheet = $('themeGroupSheet');
   const setsGroup = $('setsGroup');
   const serverGroup = $('serverGroup');
   const tennisOptions = $('tennisOptions');
@@ -280,6 +283,30 @@
 
   bindSegmented(setsGroup, (v) => { config.setsToWin = Number(v); });
   bindSegmented(serverGroup, (v) => { config.firstServer = v; });
+
+  // ---------- Tema (scuro / chiaro / sistema) ----------
+  const systemDarkQuery = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
+  const metaThemeColor = $('metaThemeColor');
+  const THEME_BG = { dark: '#0B0D12', light: '#F2F3FA' };
+
+  function resolveTheme() {
+    if (config.theme === 'auto') return (systemDarkQuery && !systemDarkQuery.matches) ? 'light' : 'dark';
+    return config.theme;
+  }
+
+  function applyTheme() {
+    const resolved = resolveTheme();
+    document.documentElement.dataset.theme = resolved;
+    if (metaThemeColor) metaThemeColor.setAttribute('content', THEME_BG[resolved]);
+    [themeGroup, themeGroupSheet].forEach((group) => {
+      if (!group) return;
+      [...group.children].forEach((b) => b.classList.toggle('active', b.dataset.value === config.theme));
+    });
+  }
+
+  bindSegmented(themeGroup, (v) => { config.theme = v; applyTheme(); persist(); });
+  bindSegmented(themeGroupSheet, (v) => { config.theme = v; applyTheme(); persist(); });
+  if (systemDarkQuery) systemDarkQuery.addEventListener('change', () => { if (config.theme === 'auto') applyTheme(); });
 
   function renderColorPicker(container, team) {
     container.innerHTML = '';
@@ -330,6 +357,7 @@
     player2A.classList.toggle('hidden', config.format !== 'doubles');
     player2B.classList.toggle('hidden', config.format !== 'doubles');
     refreshColorUI();
+    applyTheme();
   }
 
   [teamNameA, player1A, player2A].forEach(inp => inp.addEventListener('input', () => {

@@ -1,5 +1,6 @@
 /* ============ Design tokens ============ */
-:root{
+:root,
+:root[data-theme="dark"]{
   --bg:#0b0d12;
   --surface:#151822;
   --surface-2:#1c202c;
@@ -12,11 +13,34 @@
   --accent-2:#7C93FF;
   --danger:#ef4444;
   --success:#22c55e;
+  --shadow-card:0 10px 30px rgba(0,0,0,.35);
+  --shadow-overlay:0 30px 60px rgba(0,0,0,.5);
+  --scrim:rgba(5,6,10,.72);
+}
+
+:root[data-theme="light"]{
+  --bg:#f2f3fa;
+  --surface:#ffffff;
+  --surface-2:#edeff7;
+  --surface-3:#e1e4f0;
+  --text:#15171f;
+  --text-dim:#5a5f74;
+  --text-faint:#9297ab;
+  --border:rgba(21,23,31,.09);
+  --accent:#4453e8;
+  --accent-2:#6875f0;
+  --danger:#d1332c;
+  --success:#16884a;
+  --shadow-card:0 10px 26px rgba(30,35,60,.10);
+  --shadow-overlay:0 24px 50px rgba(30,35,60,.22);
+  --scrim:rgba(30,32,46,.45);
+}
+
+:root{
   --radius-lg:24px;
   --radius-md:16px;
   --radius-sm:12px;
   --radius-pill:999px;
-  --shadow-card:0 10px 30px rgba(0,0,0,.35);
   --safe-top:env(safe-area-inset-top,0px);
   --safe-bottom:env(safe-area-inset-bottom,0px);
   --tap:56px;
@@ -85,7 +109,7 @@ button,input,.team-panel{-webkit-tap-highlight-color:transparent}
 .team-card{border-left:4px solid var(--team-color,var(--accent))}
 .team-card-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
 .team-card-head h2{margin-bottom:0}
-.color-dot-current{width:22px;height:22px;border-radius:50%;background:var(--team-color,var(--accent));box-shadow:0 0 0 3px rgba(255,255,255,.08)}
+.color-dot-current{width:22px;height:22px;border-radius:50%;background:var(--team-color,var(--accent));box-shadow:0 0 0 3px var(--border)}
 
 .name-input{
   width:100%;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-sm);
@@ -200,12 +224,12 @@ button,input,.team-panel{-webkit-tap-highlight-color:transparent}
 /* ============ Overlays ============ */
 .overlay{
   position:fixed;inset:0;z-index:40;display:flex;align-items:center;justify-content:center;
-  background:rgba(5,6,10,.72);backdrop-filter:blur(6px);padding:24px;
+  background:var(--scrim);backdrop-filter:blur(6px);padding:24px;
 }
 .overlay.hidden{display:none}
 .overlay-card{
   width:100%;max-width:360px;background:var(--surface);border:1px solid var(--border);
-  border-radius:var(--radius-lg);padding:30px 26px 26px;text-align:center;box-shadow:0 30px 60px rgba(0,0,0,.5);
+  border-radius:var(--radius-lg);padding:30px 26px 26px;text-align:center;box-shadow:var(--shadow-overlay);
 }
 .overlay-trophy{font-size:42px;margin-bottom:12px}
 .overlay-title{font-size:22px;font-weight:800;letter-spacing:-.3px;margin-bottom:6px}
@@ -213,7 +237,7 @@ button,input,.team-panel{-webkit-tap-highlight-color:transparent}
 
 /* Settings sheet */
 .sheet-backdrop{
-  position:fixed;inset:0;z-index:50;background:rgba(5,6,10,.6);
+  position:fixed;inset:0;z-index:50;background:var(--scrim);
   display:flex;align-items:flex-end;
 }
 .sheet-backdrop.hidden{display:none}

@@ -3,12 +3,23 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover, user-scalable=no">
-<meta name="theme-color" content="#0B0D12">
+<meta name="theme-color" id="metaThemeColor" content="#0B0D12">
 <title>Segnapunti</title>
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="icon" href="./icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="./icon.svg">
 <link rel="stylesheet" href="./styles.css">
+<script>
+// Applica subito il tema salvato (prima del primo render) per evitare lo sfarfallio.
+(function(){
+  try {
+    var saved = JSON.parse(localStorage.getItem('segnapunti.v1') || 'null');
+    var theme = (saved && saved.config && saved.config.theme) || 'dark';
+    if (theme === 'auto') theme = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    document.documentElement.dataset.theme = theme;
+  } catch (e) { document.documentElement.dataset.theme = 'dark'; }
+})();
+</script>
 </head>
 <body>
 <div id="app">
@@ -38,6 +49,15 @@
         <div class="segmented" id="formatGroup">
           <button class="seg-btn active" data-value="singles">Singolo</button>
           <button class="seg-btn" data-value="doubles">Doppio</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Aspetto</h2>
+        <div class="segmented" id="themeGroup">
+          <button class="seg-btn active" data-value="dark">🌙 Scuro</button>
+          <button class="seg-btn" data-value="light">☀️ Chiaro</button>
+          <button class="seg-btn" data-value="auto">📱 Sistema</button>
         </div>
       </div>
 
@@ -199,6 +219,12 @@
   <div class="sheet-backdrop hidden" id="settingsBackdrop">
     <div class="sheet">
       <div class="sheet-handle"></div>
+      <div class="sheet-title">Aspetto</div>
+      <div class="segmented" id="themeGroupSheet" style="margin-bottom:16px">
+        <button class="seg-btn active" data-value="dark">🌙 Scuro</button>
+        <button class="seg-btn" data-value="light">☀️ Chiaro</button>
+        <button class="seg-btn" data-value="auto">📱 Sistema</button>
+      </div>
       <div class="sheet-title">Impostazioni partita</div>
       <button class="sheet-item" id="restartMatchBtn"><span class="ic">↺</span> Ricomincia partita</button>
       <button class="sheet-item" id="openBluetoothFromGameBtn"><span class="ic">🔵</span> Pulsanti fisici (Bluetooth)</button>

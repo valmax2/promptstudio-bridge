@@ -29,6 +29,9 @@ funziona **offline**. Si impacchetta in un vero **APK** con lo script incluso.
   esce da lì in automatico, come qualsiasi altro audio. Si disattiva con l'icona 🔊 in alto.
 - **Layout adattivo**: ottimizzata anche per **tablet** e per l'**orientamento orizzontale**
   (schermata di gioco e setup si riorganizzano automaticamente)
+- **Tema Scuro / Chiaro / Sistema**: palette dedicata per ciascun tema (non un semplice
+  invertitore di colori), selezionabile dal setup o dal menu impostazioni in partita;
+  in modalità "Sistema" segue il tema del telefono e si aggiorna anche a runtime
 - **Pulsanti fisici Bluetooth** (schermata dedicata, raggiungibile dal setup o dal menu
   impostazioni in partita):
   - **Telecomando** (selfie remote, pulsante smartwatch): accoppialo dalle impostazioni

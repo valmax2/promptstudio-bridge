@@ -4,7 +4,15 @@ import { isCloudReady } from '../cloud.js';
 import { firebaseAvailable, currentUser, registerPushToken } from '../firebase.js';
 import { say, speechSupported } from '../speech.js';
 import { toast } from '../app.js';
-import { KEY_LABELS, remoteSupported, captureNextKey } from '../ble-remote.js';
+import {
+  KEY_LABELS, remoteSupported, captureNextKey,
+  bleTagSupported, scanBleTags, connectBleTag, disconnectBleTag,
+} from '../ble-remote.js';
+import { escapeHtml } from '../utils.js';
+
+let bleScanResults = [];
+let bleScanning = false;
+let bleConnecting = false;
 
 const FONTS = [
   { id: "'Segoe UI', Roboto, system-ui, -apple-system, sans-serif", label: 'Predefinito' },
@@ -76,6 +84,39 @@ export async function renderSettings(el) {
     </div>
 
     <div class="card">
+      <h2>🔑 Portachiavi / tag Bluetooth (sperimentale)</h2>
+      ${bleTagSupported() ? `
+        <p class="small">Per portachiavi "trova oggetto" e dispositivi simili che non si accoppiano come tastiera. La app si collega direttamente e prova ad ascoltare il pulsante — funziona con molti modelli economici, ma non è garantito su tutti.</p>
+        ${settings.bleTag.address ? `
+          <div class="toggle-row">
+            <div><strong>${escapeHtml(settings.bleTag.deviceName || 'Dispositivo')}</strong><p class="mb0 small">${settings.bleTag.address}</p></div>
+            <label class="switch"><input type="checkbox" id="bletag-enabled" ${settings.bleTag.enabled ? 'checked' : ''}><span class="slider"></span></label>
+          </div>
+          <div class="field mt mb0">
+            <label>Cosa fa il pulsante</label>
+            <div class="segmented">
+              <button data-tag-action="pointA" class="${settings.bleTag.action === 'pointA' ? 'active' : ''}">Punto 1</button>
+              <button data-tag-action="pointB" class="${settings.bleTag.action === 'pointB' ? 'active' : ''}">Punto 2</button>
+              <button data-tag-action="undo" class="${settings.bleTag.action === 'undo' ? 'active' : ''}">Annulla</button>
+            </div>
+          </div>
+          <button class="btn ghost small mt" id="bletag-forget">Dimentica dispositivo</button>
+        ` : `
+          <button class="btn secondary block" id="bletag-scan" ${bleScanning ? 'disabled' : ''}>${bleScanning ? 'Ricerca in corso… (6s)' : '🔍 Cerca dispositivi'}</button>
+          <div class="mt">
+            ${bleScanResults.length ? bleScanResults.map((d) => `
+              <div class="list-item">
+                <div class="avatar">🔑</div>
+                <div class="meta"><strong>${escapeHtml(d.name)}</strong><span>${d.address}</span></div>
+                <button class="btn primary small" data-tag-connect="${d.address}" data-tag-name="${escapeHtml(d.name)}" ${bleConnecting ? 'disabled' : ''}>Connetti</button>
+              </div>
+            `).join('') : (bleScanning ? '' : '<p class="small">Nessun dispositivo ancora cercato.</p>')}
+          </div>
+        `}
+      ` : `<p class="small">Richiede l'app installata come APK Android.</p>`}
+    </div>
+
+    <div class="card">
       <h2>☁️ Cloud</h2>
       ${!firebaseAvailable() ? '<p class="small">Firebase non configurato: le impostazioni restano solo su questo telefono. Vedi README.md.</p>' : ''}
       <div class="toggle-row">
@@ -137,6 +178,50 @@ export async function renderSettings(el) {
       syncSettings();
     });
   });
+  el.querySelector('#bletag-scan')?.addEventListener('click', async () => {
+    bleScanning = true;
+    bleScanResults = [];
+    renderSettings(el);
+    bleScanResults = await scanBleTags();
+    bleScanning = false;
+    if (!bleScanResults.length) toast('Nessun dispositivo trovato. Assicurati che sia acceso e vicino.');
+    renderSettings(el);
+  });
+  el.querySelectorAll('[data-tag-connect]').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      bleConnecting = true;
+      renderSettings(el);
+      try {
+        await connectBleTag(btn.dataset.tagConnect);
+        updateSettings({ bleTag: { ...getState().settings.bleTag, address: btn.dataset.tagConnect, deviceName: btn.dataset.tagName, enabled: true } });
+        toast('Connesso! Prova a premere il pulsante sul dispositivo.');
+        syncSettings();
+      } catch (err) {
+        toast('Connessione fallita: ' + (err.message || err));
+      }
+      bleConnecting = false;
+      renderSettings(el);
+    });
+  });
+  el.querySelector('#bletag-enabled')?.addEventListener('change', async (e) => {
+    const enabled = e.target.checked;
+    updateSettings({ bleTag: { ...getState().settings.bleTag, enabled } });
+    if (!enabled) await disconnectBleTag();
+    syncSettings();
+  });
+  el.querySelectorAll('[data-tag-action]').forEach((btn) => btn.addEventListener('click', () => {
+    updateSettings({ bleTag: { ...getState().settings.bleTag, action: btn.dataset.tagAction } });
+    renderSettings(el);
+    syncSettings();
+  }));
+  el.querySelector('#bletag-forget')?.addEventListener('click', async () => {
+    await disconnectBleTag();
+    updateSettings({ bleTag: { enabled: false, address: null, deviceName: null, action: 'pointA' } });
+    bleScanResults = [];
+    renderSettings(el);
+    syncSettings();
+  });
+
   el.querySelector('#cloud-sync')?.addEventListener('change', (e) => { updateSettings({ cloudSyncEnabled: e.target.checked }); syncSettings(); });
   el.querySelector('#sync-now')?.addEventListener('click', async () => {
     await syncSettings();

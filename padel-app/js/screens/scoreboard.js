@@ -7,13 +7,17 @@ import {
 } from '../scoring.js';
 import { navigate } from '../router.js';
 import { toast } from '../app.js';
-import { enableRemote, disableRemote, listenHardwareKeys } from '../ble-remote.js';
+import {
+  enableRemote, disableRemote, listenHardwareKeys,
+  connectBleTag, disconnectBleTag, onBleTagPressed,
+} from '../ble-remote.js';
 
 let match = null;
 let history = [];
 let ttsEnabled = true;
 let setupMode = 'doubles';
 let stopHwKeys = () => {};
+let stopBleTag = () => {};
 
 export async function renderScoreboard(el) {
   const { settings } = getState();
@@ -27,6 +31,8 @@ export async function renderScoreboard(el) {
     stopSpeech();
     stopHwKeys();
     disableRemote();
+    stopBleTag();
+    disconnectBleTag();
     document.getElementById('bottom-nav').classList.remove('hidden');
   };
 }
@@ -45,6 +51,18 @@ function startLive(el) {
     });
   } else {
     disableRemote();
+  }
+
+  stopBleTag();
+  const tag = settings.bleTag;
+  if (tag.enabled && tag.address) {
+    connectBleTag(tag.address).catch(() => {});
+    stopBleTag = onBleTagPressed(() => {
+      const action = getState().settings.bleTag.action;
+      if (action === 'pointA') onPoint('A');
+      else if (action === 'pointB') onPoint('B');
+      else if (action === 'undo') onUndo();
+    });
   }
 }
 

@@ -75,3 +75,55 @@ export function captureNextKey(timeoutMs = 8000) {
     }, timeoutMs);
   });
 }
+
+// ===========================================================================
+// BLE "tag" support: generic anti-lost keyrings / iTag clones. Unlike HID
+// remotes above, these use a proprietary Bluetooth Low Energy protocol that
+// differs by chipset/brand, so instead of pairing via Android's Bluetooth
+// settings, the app itself scans for and connects to the device directly,
+// then subscribes to every notification-capable GATT characteristic it
+// exposes (see native-android/BleTagPlugin.java) - any notification is
+// treated as "button pressed", since that's the one thing all these devices
+// have in common regardless of brand.
+function bleTag() {
+  return window.Capacitor?.Plugins?.BleTag || null;
+}
+
+export function bleTagSupported() {
+  return !!bleTag();
+}
+
+export async function scanBleTags() {
+  const plugin = bleTag();
+  if (!plugin) return [];
+  try {
+    const res = await plugin.scan();
+    return res.devices || [];
+  } catch {
+    return [];
+  }
+}
+
+export async function connectBleTag(address) {
+  const plugin = bleTag();
+  if (!plugin) throw new Error('Tag BLE non disponibile su questo dispositivo');
+  await plugin.connect({ address });
+}
+
+export async function disconnectBleTag() {
+  try { await bleTag()?.disconnect(); } catch {}
+}
+
+export function onBleTagPressed(cb) {
+  const plugin = bleTag();
+  if (!plugin) return () => {};
+  const handle = plugin.addListener('tagPressed', () => cb());
+  return () => handle.remove();
+}
+
+export function onBleTagConnected(cb) {
+  const plugin = bleTag();
+  if (!plugin) return () => {};
+  const handle = plugin.addListener('connected', (data) => cb(data));
+  return () => handle.remove();
+}

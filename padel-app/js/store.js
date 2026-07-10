@@ -12,6 +12,7 @@ const DEFAULT_STATE = {
     cloudSyncEnabled: true,
     bleRemoteEnabled: false,
     bleKeyMap: { pointA: null, pointB: null, undo: null },
+    bleTag: { enabled: false, address: null, deviceName: null, action: 'pointA' },
   },
   profile: {
     uid: null,

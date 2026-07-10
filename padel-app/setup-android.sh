@@ -36,10 +36,16 @@ allprojects {
 EOF
 fi
 
-echo "▶ Installo/aggiorno il plugin nativo del telecomando Bluetooth (tasti hardware)"
+echo "▶ Installo/aggiorno il plugin nativo del telecomando Bluetooth (tasti hardware + tag BLE)"
 JAVA_PKG_DIR="android/app/src/main/java/com/padelapp/app"
 mkdir -p "$JAVA_PKG_DIR"
 cp native-android/com/padelapp/app/*.java "$JAVA_PKG_DIR/"
+
+MANIFEST="android/app/src/main/AndroidManifest.xml"
+if ! grep -q "BLUETOOTH_SCAN" "$MANIFEST" 2>/dev/null; then
+  echo "▶ Aggiungo i permessi Bluetooth per la scansione dei portachiavi BLE"
+  sed -i 's#</manifest>#    <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />\n    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" android:maxSdkVersion="30" />\n    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" android:maxSdkVersion="30" />\n    <uses-permission android:name="android.permission.BLUETOOTH_SCAN" android:usesPermissionFlags="neverForLocation" />\n    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />\n</manifest>#' "$MANIFEST"
+fi
 
 echo "▶ Genero icona e splash dal logo (icon.svg)"
 mkdir -p assets

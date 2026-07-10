@@ -20,6 +20,7 @@ public class MainActivity extends BridgeActivity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         registerPlugin(RemoteControlPlugin.class);
+        registerPlugin(BleTagPlugin.class);
         super.onCreate(savedInstanceState);
     }
 

@@ -219,8 +219,27 @@ liberamente tre azioni: Punto squadra/giocatore 1, Punto squadra/giocatore
 3. Il telecomando resta attivo solo mentre sei nella schermata Segnapunti
    (altrove i tasti volume/media funzionano normalmente).
 
-I portachiavi Bluetooth "trova oggetto" generici (tipo antifurto chiavi) di
-solito **non** si accoppiano come tastiera ma usano un protocollo
-proprietario diverso per ogni produttore: potrebbero non funzionare. Se hai
-un dispositivo che non viene rilevato, fammi sapere modello/marca così
-posso valutare un supporto dedicato.
+## Portachiavi / tag Bluetooth (sperimentale)
+
+I portachiavi "trova oggetto" generici (antifurto chiavi, tipo iTag) di
+solito **non** si accoppiano come tastiera: usano il Bluetooth Low Energy
+con un servizio proprietario diverso per produttore, quindi non compaiono
+nel telecomando standard sopra. Impostazioni → "🔑 Portachiavi / tag
+Bluetooth" offre un percorso alternativo pensato per questi dispositivi:
+
+1. Tocca **"Cerca dispositivi"** (richiede il permesso Bluetooth/posizione
+   la prima volta) — se il dispositivo ha già un'app dedicata, aprila prima
+   e lasciala connettere una volta, poi chiudila (questi dispositivi
+   accettano una sola connessione alla volta).
+2. Tocca **"Connetti"** sul dispositivo trovato.
+3. Scegli quale azione deve fare il pulsante (Punto 1 / Punto 2 / Annulla)
+   — questi dispositivi hanno un solo tasto, quindi una sola azione
+   assegnabile.
+
+Tecnicamente: invece di puntare a un protocollo specifico (che varia da
+marca a marca), l'app si collega al dispositivo e si iscrive a **tutte** le
+notifiche GATT che espone, trattando qualunque notifica come "pulsante
+premuto" — copre la maggior parte dei cloni economici indipendentemente
+dal produttore, ma **non è garantito** per tutti i modelli: è stato
+verificato solo teoricamente (nessun dispositivo BLE disponibile in fase di
+sviluppo), va testato sul dispositivo reale.

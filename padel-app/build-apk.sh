@@ -68,10 +68,14 @@ allprojects {
 }
 EOF
 
-echo "▶ Installo il plugin nativo del telecomando Bluetooth (tasti hardware)"
+echo "▶ Installo il plugin nativo del telecomando Bluetooth (tasti hardware + tag BLE)"
 JAVA_PKG_DIR="android/app/src/main/java/com/padelapp/app"
 mkdir -p "$JAVA_PKG_DIR"
 cp "$HERE"/native-android/com/padelapp/app/*.java "$JAVA_PKG_DIR/"
+
+echo "▶ Aggiungo i permessi Bluetooth per la scansione dei portachiavi BLE"
+MANIFEST="android/app/src/main/AndroidManifest.xml"
+sed -i 's#</manifest>#    <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />\n    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" android:maxSdkVersion="30" />\n    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" android:maxSdkVersion="30" />\n    <uses-permission android:name="android.permission.BLUETOOTH_SCAN" android:usesPermissionFlags="neverForLocation" />\n    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />\n</manifest>#' "$MANIFEST"
 
 echo "▶ Compilo l'APK di debug (gradlew assembleDebug)"
 cd android

@@ -1,0 +1,52 @@
+name: Build Padel App APK (debug, per test)
+
+# Compila un APK di TEST (non firmato per il Play Store) di Padel App,
+# scaricabile come artifact del workflow. Nessun requisito locale: basta
+# lanciare questo workflow da GitHub (tab "Actions" → questo workflow →
+# "Run workflow") e scaricare l'APK dal telefono o dal PC al termine.
+on:
+  workflow_dispatch: {}
+  push:
+    branches:
+      - 'claude/padel-app-development-**'
+    paths:
+      - 'padel-app/**'
+      - '.github/workflows/build-padel-apk.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Imposta JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Imposta Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Installa e configura l'Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Installa i pacchetti Android SDK richiesti
+        run: sdkmanager --install "platform-tools" "platforms;android-34" "build-tools;34.0.0"
+
+      - name: Compilo l'APK di debug
+        working-directory: padel-app
+        run: bash build-apk.sh
+
+      - name: Carica l'APK come artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: padel-app-debug-apk
+          path: padel-app/.capacitor-build/android/app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 30

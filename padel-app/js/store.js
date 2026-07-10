@@ -1,0 +1,115 @@
+const KEY = 'padel-app-state-v1';
+
+const DEFAULT_STATE = {
+  settings: {
+    theme: 'dark',
+    fontFamily: "'Segoe UI', Roboto, system-ui, -apple-system, sans-serif",
+    fontScale: 1,
+    ttsEnabled: true,
+    ttsVoiceLang: 'it-IT',
+    goldenPoint: true,
+    superTiebreak3rdSet: true,
+    cloudSyncEnabled: true,
+  },
+  profile: {
+    uid: null,
+    phone: null,
+    name: 'Giocatore',
+    avatarEmoji: '🎾',
+    avatarUrl: null,
+    equippedFrame: 'none',
+    xp: 0,
+    level: 1,
+    unlockedAvatars: ['🎾', '🙂', '😎', '🔥'],
+    unlockedFrames: ['none'],
+  },
+  friends: [],       // {id, name, phone}
+  circles: [],        // {id, name, memberIds, memberNames}
+  events: [],          // {id, title, dateTime, location, circleId, hostId, hostName, participants, maxPlayers}
+  matches: [],          // {id, date, teamAName, teamBName, sets, winner, golden, superTiebreak}
+};
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(KEY);
+    if (!raw) return structuredClone(DEFAULT_STATE);
+    const parsed = JSON.parse(raw);
+    return deepMerge(structuredClone(DEFAULT_STATE), parsed);
+  } catch {
+    return structuredClone(DEFAULT_STATE);
+  }
+}
+
+function deepMerge(base, patch) {
+  if (!patch || typeof patch !== 'object') return base;
+  for (const k of Object.keys(patch)) {
+    if (Array.isArray(patch[k])) base[k] = patch[k];
+    else if (patch[k] && typeof patch[k] === 'object') base[k] = deepMerge(base[k] || {}, patch[k]);
+    else base[k] = patch[k];
+  }
+  return base;
+}
+
+let state = loadState();
+const listeners = new Set();
+
+function persist() {
+  localStorage.setItem(KEY, JSON.stringify(state));
+}
+
+function notify() {
+  listeners.forEach((fn) => fn(state));
+}
+
+export function getState() {
+  return state;
+}
+
+export function subscribe(fn) {
+  listeners.add(fn);
+  return () => listeners.delete(fn);
+}
+
+export function setState(patch, { silent = false } = {}) {
+  state = deepMerge(structuredClone(state), patch);
+  persist();
+  if (!silent) notify();
+  return state;
+}
+
+export function updateSettings(patch) {
+  return setState({ settings: patch });
+}
+
+export function updateProfile(patch) {
+  return setState({ profile: patch });
+}
+
+export function addMatch(match) {
+  const matches = [{ ...match, id: match.id || crypto.randomUUID() }, ...state.matches];
+  return setState({ matches });
+}
+
+export function addXp(amount) {
+  const xp = Math.max(0, (state.profile.xp || 0) + amount);
+  const level = 1 + Math.floor(xp / 500);
+  return setState({ profile: { xp, level } });
+}
+
+export function unlockCosmetic(type, id) {
+  const key = type === 'avatar' ? 'unlockedAvatars' : 'unlockedFrames';
+  const current = state.profile[key] || [];
+  if (current.includes(id)) return state;
+  return setState({ profile: { [key]: [...current, id] } });
+}
+
+export function replaceCollection(name, items) {
+  return setState({ [name]: items });
+}
+
+export function upsertInCollection(name, item) {
+  const list = state[name] || [];
+  const idx = list.findIndex((x) => x.id === item.id);
+  const next = idx >= 0 ? [...list.slice(0, idx), item, ...list.slice(idx + 1)] : [item, ...list];
+  return setState({ [name]: next });
+}

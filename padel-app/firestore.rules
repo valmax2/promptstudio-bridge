@@ -1,0 +1,50 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() { return request.auth != null; }
+    function isMe(uid) { return isSignedIn() && request.auth.uid == uid; }
+
+    // Ogni utente gestisce il proprio profilo; è leggibile da tutti gli
+    // utenti autenticati per poter cercare amici per numero di telefono.
+    match /users/{uid} {
+      allow read: if isSignedIn();
+      allow write: if isMe(uid);
+
+      match /friends/{friendUid} {
+        allow read: if isMe(uid);
+        allow write: if isMe(uid) || isMe(friendUid);
+      }
+    }
+
+    // Le cerchie sono visibili solo ai membri; chiunque sia autenticato può
+    // unirsi conoscendo il codice (id del documento), ma non può rimuovere
+    // altri membri né cambiare il proprietario.
+    match /circles/{circleId} {
+      allow read: if isSignedIn() && request.auth.uid in resource.data.memberIds;
+      allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
+      allow update: if isSignedIn()
+        && request.auth.uid in request.resource.data.memberIds
+        && request.resource.data.ownerId == resource.data.ownerId;
+    }
+
+    // Gli eventi sono leggibili/scrivibili dai membri della cerchia
+    // associata; le risposte RSVP possono modificare solo la propria voce
+    // nella mappa "participants".
+    match /events/{eventId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && request.resource.data.hostId == request.auth.uid;
+      allow update: if isSignedIn() && (
+        resource.data.hostId == request.auth.uid ||
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['participants'])
+      );
+    }
+
+    // Le partite sono private a chi le ha registrate.
+    match /matches/{matchId} {
+      allow read: if isSignedIn() && resource.data.createdBy == request.auth.uid;
+      allow create: if isSignedIn() && request.resource.data.createdBy == request.auth.uid;
+      allow update, delete: if isSignedIn() && resource.data.createdBy == request.auth.uid;
+    }
+  }
+}

@@ -17,8 +17,7 @@ export const firebaseConfig = {
 
 // Chiave pubblica VAPID per le notifiche push web (Firebase Console →
 // Project Settings → Cloud Messaging → Web Push certificates).
-// TODO: da impostare al passo "notifiche push" della guida.
-export const vapidKey = "YOUR_VAPID_KEY";
+export const vapidKey = "BNzbof342O7fTVmaBI19Mx90BoAay-c1mEVuWZScwYeszU38hfMFI5Yc-QO2AFXJ9iWLpui7oHEg1Y14I7dcOEI";
 
 export const isFirebaseConfigured =
   firebaseConfig.apiKey && !firebaseConfig.apiKey.startsWith("YOUR_");

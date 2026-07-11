@@ -70,6 +70,22 @@ button { font-family: inherit; }
 .topbar h1 { font-size: calc(1.5em * var(--font-scale)); }
 .topbar .subtitle { font-size: 0.85em; color: var(--text-dim); margin-top: -6px; }
 
+/* Round icon button (back arrows, gear/settings shortcut, ...): a plain
+   emoji/glyph on its own is easy to miss, so give it a filled, high-contrast
+   hit target that reads clearly as a tappable button in both themes. */
+.icon-btn {
+  flex: 0 0 auto;
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 44px; height: 44px;
+  border-radius: 50%;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-size: 1.3em; line-height: 1;
+  padding: 0;
+}
+.icon-btn:active { transform: scale(0.92); background: var(--border); }
+
 .card {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -191,7 +207,9 @@ label { font-size: 0.85em; color: var(--text-dim); display: block; margin-bottom
 .sb-root {
   position: fixed;
   inset: 0;
-  z-index: 10;
+  /* Above .banner (z-index: 100): the scoreboard is a full-screen takeover
+     and its back button must never end up covered by the status banner. */
+  z-index: 200;
   display: flex;
   flex-direction: column;
   background: #000;
@@ -212,6 +230,19 @@ label { font-size: 0.85em; color: var(--text-dim); display: block; margin-bottom
   padding: 8px 10px; border-radius: 10px; line-height: 1;
 }
 .sb-topbar button:active { background: rgba(255,255,255,0.15); }
+/* The back arrow is the one topbar button that must never be missed (it's
+   the only way out of a live match), so give it a filled, high-contrast
+   circle instead of relying on the thin "←" glyph alone against black. */
+.sb-topbar #sb-back {
+  width: 46px; height: 46px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.6em; font-weight: 700;
+  background: rgba(255,255,255,0.16);
+  border: 1px solid rgba(255,255,255,0.3);
+  border-radius: 50%;
+  padding: 0;
+}
+.sb-topbar #sb-back:active { background: rgba(255,255,255,0.3); }
 .sb-mode { font-size: 0.85em; letter-spacing: 0.03em; opacity: 0.85; text-transform: uppercase; }
 
 .sb-halves {

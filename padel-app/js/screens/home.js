@@ -19,7 +19,10 @@ export async function renderHome(el) {
         <h1>Ciao, ${escapeHtml(profile.name)} 👋</h1>
         <div class="subtitle">${authed ? 'Sincronizzato con il cloud' : firebaseAvailable() ? 'Non hai ancora effettuato l\'accesso' : 'Modalità locale'}</div>
       </div>
-      <div class="avatar">${avatarContent(profile)}</div>
+      <div class="row" style="gap:10px;">
+        <button class="icon-btn" id="go-settings" aria-label="Impostazioni" title="Impostazioni">⚙️</button>
+        <div class="avatar">${avatarContent(profile)}</div>
+      </div>
     </div>
 
     ${!authed ? `
@@ -69,6 +72,7 @@ export async function renderHome(el) {
   `;
 
   el.querySelector('#go-login')?.addEventListener('click', () => navigate('login'));
+  el.querySelector('#go-settings').addEventListener('click', () => navigate('settings'));
   el.querySelector('#go-scoreboard').addEventListener('click', () => navigate('scoreboard'));
   el.querySelector('#go-americano').addEventListener('click', () => navigate('americano'));
   el.querySelector('#go-killer').addEventListener('click', () => navigate('killer'));

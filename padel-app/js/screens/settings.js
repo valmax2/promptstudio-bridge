@@ -1,4 +1,5 @@
 import { getState, updateSettings } from '../store.js';
+import { navigate } from '../router.js';
 import { pushProfile } from '../cloud.js';
 import { isCloudReady } from '../cloud.js';
 import { firebaseAvailable, currentUser, registerPushToken } from '../firebase.js';
@@ -31,7 +32,7 @@ export async function renderSettings(el) {
   const { settings } = getState();
 
   el.innerHTML = `
-    <div class="topbar"><h1>Impostazioni</h1></div>
+    <div class="topbar"><div class="row"><button class="icon-btn" id="settings-back" aria-label="Torna alla home">←</button><h1>Impostazioni</h1></div></div>
 
     <div class="card">
       <h2>Aspetto</h2>
@@ -134,6 +135,8 @@ export async function renderSettings(el) {
     renderSettings(el);
     syncSettings();
   }));
+
+  el.querySelector('#settings-back').addEventListener('click', () => navigate('home'));
 
   el.querySelector('#font-family').addEventListener('change', (e) => {
     updateSettings({ fontFamily: e.target.value });

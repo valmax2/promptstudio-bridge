@@ -24,8 +24,19 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout main
         uses: actions/checkout@v4
+        with:
+          path: main-src
+
+      # sudoku/ vive solo su questo branch (non è mai stato unito a main),
+      # quindi lo prendiamo con un secondo checkout separato, senza toccare
+      # nient'altro su main.
+      - name: Checkout branch sudoku
+        uses: actions/checkout@v4
+        with:
+          ref: claude/sudoku-android-app-33i8qh
+          path: sudoku-src
 
       - name: Configura Pages (abilita automaticamente)
         uses: actions/configure-pages@v5
@@ -37,9 +48,9 @@ jobs:
       - name: Preparo la cartella combinata
         run: |
           mkdir -p pages-build
-          cp -r 3d-reducer/. pages-build/
+          cp -r main-src/3d-reducer/. pages-build/
           mkdir -p pages-build/sudoku
-          cp -r sudoku/. pages-build/sudoku/
+          cp -r sudoku-src/sudoku/. pages-build/sudoku/
 
       - name: Carica il sito (3D reducer + sudoku)
         uses: actions/upload-pages-artifact@v3

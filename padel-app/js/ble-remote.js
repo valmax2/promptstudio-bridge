@@ -21,6 +21,7 @@ export const KEY_LABELS = {
   22: 'Freccia destra',
   23: 'Centro / OK',
   66: 'Invio',
+  9001: 'Pulsante tag',
 };
 
 export const ACTION_LABELS = {
@@ -181,6 +182,28 @@ export async function connectBleTag(address) {
 export async function disconnectBleTag(address) {
   try { await bleTag()?.disconnect(address ? { address } : undefined); } catch {}
 }
+
+// A physical tag only has one button, so unlike HID remotes there's no
+// keyCode to distinguish - this fixed placeholder plays that role, with the
+// tag's MAC address (as deviceDescriptor) telling multiple tags apart.
+export const BLE_TAG_KEYCODE = 9001;
+
+// Bridges every tag press into the same "padel-hw-key" event HID remotes
+// use, tagged with the pressing tag's address - so a connected tag can be
+// bound via the exact same wizard and gets the same single/double/slow-
+// double pattern support (e.g. "1 click = punto, 2 click = annulla") as a
+// physical remote, with zero separate UI. Set up once at module load
+// rather than gated by any enable/disable toggle, since a tag is only ever
+// receiving events once the user has explicitly scanned and connected it.
+(function bridgeBleTagPresses() {
+  const plugin = bleTag();
+  if (!plugin) return;
+  plugin.addListener('tagPressed', ({ address }) => {
+    window.dispatchEvent(new CustomEvent('padel-hw-key', {
+      detail: { keyCode: BLE_TAG_KEYCODE, deviceDescriptor: address, deviceName: 'Tag Bluetooth' },
+    }));
+  });
+})();
 
 // cb receives { address, uuid } so the caller can tell which physical tag
 // was pressed when more than one is connected.

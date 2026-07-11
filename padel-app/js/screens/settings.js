@@ -222,7 +222,6 @@ export async function renderSettings(el) {
           address: btn.dataset.tagConnect,
           deviceName: btn.dataset.tagName,
           enabled: true,
-          action: 'pointA',
         };
         updateSettings({ bleTags: [...getState().settings.bleTags, tag] });
         toast('Connesso! Prova a premere il pulsante sul dispositivo.');
@@ -242,11 +241,6 @@ export async function renderSettings(el) {
     updateSettings({ bleTags: tags.map((t) => (t.id === id ? { ...t, enabled } : t)) });
     if (!enabled && tag) await disconnectBleTag(tag.address);
     else if (enabled && tag) await connectBleTag(tag.address).catch(() => {});
-    syncSettings();
-  }));
-  el.querySelectorAll('[data-tag-action]').forEach((select) => select.addEventListener('change', () => {
-    const id = select.dataset.tagAction;
-    updateSettings({ bleTags: getState().settings.bleTags.map((t) => (t.id === id ? { ...t, action: select.value } : t)) });
     syncSettings();
   }));
   el.querySelectorAll('[data-tag-forget]').forEach((btn) => btn.addEventListener('click', async () => {
@@ -321,12 +315,7 @@ function tagRow(t) {
       <div><strong>${escapeHtml(t.deviceName || 'Dispositivo')}</strong><p class="mb0 small">${t.address}</p></div>
       <label class="switch"><input type="checkbox" data-tag-enabled="${t.id}" ${t.enabled ? 'checked' : ''}><span class="slider"></span></label>
     </div>
-    <div class="field mt mb0">
-      <label>Cosa fa il pulsante</label>
-      <select data-tag-action="${t.id}">
-        ${Object.entries(ACTION_LABELS).map(([key, label]) => `<option value="${key}" ${t.action === key ? 'selected' : ''}>${label}</option>`).join('')}
-      </select>
-    </div>
+    <p class="small mb0">Per assegnare cosa fa il pulsante (anche click singolo/doppio separati), vai qui sopra in "📡 Telecomando remoto" → Aggiungi associazione, e premi il pulsante di questo tag quando richiesto.</p>
     <button class="btn ghost small mt" data-tag-forget="${t.id}">Dimentica dispositivo</button>
   </div>`;
 }

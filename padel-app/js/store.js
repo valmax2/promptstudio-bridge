@@ -15,9 +15,12 @@ const DEFAULT_STATE = {
     // Replaces the old fixed 3-slot map: any number of remotes/keys/patterns
     // can each be bound to a different action.
     remoteBindings: [],
-    // Array of { id, address, deviceName, enabled, action }. More than one
-    // tag can be connected at once (e.g. one per team), each with its own
-    // action - replaces the old single-tag object.
+    // Array of { id, address, deviceName, enabled } - just the connection
+    // list. More than one tag can be connected at once (e.g. one per team);
+    // once connected, a tag's button press is bridged into the same
+    // padel-hw-key event HID remotes use (keyed by its address), so its
+    // actions - including per single/double-click pattern - live in
+    // remoteBindings above like any other device, not here.
     bleTags: [],
   },
   profile: {

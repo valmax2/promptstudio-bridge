@@ -9,7 +9,7 @@ import { navigate } from '../router.js';
 import { toast } from '../app.js';
 import {
   enableRemote, disableRemote, listenBindings,
-  connectBleTag, disconnectBleTag, onBleTagPressed,
+  connectBleTag, disconnectBleTag,
 } from '../ble-remote.js';
 
 let match = null;
@@ -17,7 +17,6 @@ let history = [];
 let ttsEnabled = true;
 let setupMode = 'doubles';
 let stopHwKeys = () => {};
-let stopBleTag = () => {};
 
 export async function renderScoreboard(el) {
   const { settings } = getState();
@@ -31,7 +30,6 @@ export async function renderScoreboard(el) {
     stopSpeech();
     stopHwKeys();
     disableRemote();
-    stopBleTag();
     disconnectBleTag();
     document.getElementById('bottom-nav').classList.remove('hidden');
   };
@@ -39,6 +37,9 @@ export async function renderScoreboard(el) {
 
 // Active in both the setup and live screens, so a remote key can e.g. start
 // the match while still on the setup form, not just score points once live.
+// Connected BLE tags' presses are bridged into the same padel-hw-key event
+// HID remotes use (see ble-remote.js), so listenBindings below handles both
+// uniformly - including per-pattern actions (1 click / 2 clicks) on a tag.
 function setupRemoteListening(el) {
   const { settings } = getState();
   stopHwKeys();
@@ -49,17 +50,10 @@ function setupRemoteListening(el) {
     disableRemote();
   }
 
-  stopBleTag();
-  // Multiple tags can be connected at once (e.g. one per team) - each keeps
-  // its own action, looked up by the address the native side reports.
-  const tags = settings.bleTags.filter((t) => t.enabled);
-  if (tags.length) {
-    tags.forEach((t) => connectBleTag(t.address).catch(() => {}));
-    stopBleTag = onBleTagPressed(({ address }) => {
-      const tag = getState().settings.bleTags.find((t) => t.address === address);
-      if (tag) handleRemoteAction(tag.action, el);
-    });
-  }
+  // Physical connections are independent of the bindings toggle above - a
+  // tag stays connected whenever enabled, regardless of whether an action
+  // has been bound to it yet.
+  settings.bleTags.filter((t) => t.enabled).forEach((t) => connectBleTag(t.address).catch(() => {}));
 }
 
 function handleRemoteAction(action, el) {

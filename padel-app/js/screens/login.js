@@ -27,7 +27,7 @@ export async function renderLogin(el) {
         <input id="phone" type="tel" placeholder="+39 333 1234567" autocomplete="tel">
       </div>
       <button class="btn primary block" id="send-otp">Invia codice</button>
-      <div id="recaptcha-container"></div>
+      <div id="recaptcha-container-0"></div>
     </div>
     <div class="card hidden" id="otp-card">
       <div class="field">
@@ -40,19 +40,25 @@ export async function renderLogin(el) {
 
   let confirmationResult = null;
   let recaptchaVerifier = null;
+  let recaptchaSeq = 0;
 
-  // Reused across retries instead of created fresh on every click: the
-  // widget renders into #recaptcha-container, and Google's reCAPTCHA
-  // throws "has already been rendered in this element" if you try to
-  // render a second one into the same DOM node without clearing the
-  // first - which is exactly what happened on a second "Invia codice"
-  // tap (e.g. after mistyping the number or a slow/failed first attempt).
+  // Google's reCAPTCHA throws "has already been rendered in this element"
+  // on a retry - calling .clear() on the previous RecaptchaVerifier isn't
+  // always enough to reset it in an embedded WebView, so each attempt gets
+  // a brand new container element (fresh id, swapped into the DOM) rather
+  // than reusing the same node: that's the only way to guarantee grecaptcha
+  // has no leftover state to trip over.
   async function getRecaptchaVerifier() {
     if (recaptchaVerifier) {
       try { recaptchaVerifier.clear(); } catch {}
       recaptchaVerifier = null;
     }
-    recaptchaVerifier = await setupRecaptcha('recaptcha-container');
+    const old = el.querySelector(`#recaptcha-container-${recaptchaSeq}`);
+    recaptchaSeq += 1;
+    const fresh = document.createElement('div');
+    fresh.id = `recaptcha-container-${recaptchaSeq}`;
+    old.replaceWith(fresh);
+    recaptchaVerifier = await setupRecaptcha(fresh.id);
     return recaptchaVerifier;
   }
 

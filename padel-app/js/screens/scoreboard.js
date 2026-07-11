@@ -3,12 +3,12 @@ import { pushMatch } from '../cloud.js';
 import { say, stopSpeech } from '../speech.js';
 import { escapeHtml } from '../utils.js';
 import {
-  createMatch, addPoint, matchPointDisplay, teamName, isGamePoint,
+  createMatch, addPoint, matchPointDisplay, teamName, isGamePoint, resetCurrentGame,
 } from '../scoring.js';
 import { navigate } from '../router.js';
 import { toast } from '../app.js';
 import {
-  enableRemote, disableRemote, listenHardwareKeys,
+  enableRemote, disableRemote, listenBindings,
   connectBleTag, disconnectBleTag, onBleTagPressed,
 } from '../ble-remote.js';
 
@@ -37,18 +37,14 @@ export async function renderScoreboard(el) {
   };
 }
 
-function startLive(el) {
-  paint(el);
+// Active in both the setup and live screens, so a remote key can e.g. start
+// the match while still on the setup form, not just score points once live.
+function setupRemoteListening(el) {
   const { settings } = getState();
   stopHwKeys();
-  if (settings.bleRemoteEnabled) {
+  if (settings.bleRemoteEnabled && settings.remoteBindings.length) {
     enableRemote();
-    stopHwKeys = listenHardwareKeys((keyCode) => {
-      const map = getState().settings.bleKeyMap;
-      if (keyCode === map.pointA) onPoint('A');
-      else if (keyCode === map.pointB) onPoint('B');
-      else if (keyCode === map.undo) onUndo();
-    });
+    stopHwKeys = listenBindings(settings.remoteBindings, (action) => handleRemoteAction(action, el));
   } else {
     disableRemote();
   }
@@ -57,13 +53,35 @@ function startLive(el) {
   const tag = settings.bleTag;
   if (tag.enabled && tag.address) {
     connectBleTag(tag.address).catch(() => {});
-    stopBleTag = onBleTagPressed(() => {
-      const action = getState().settings.bleTag.action;
-      if (action === 'pointA') onPoint('A');
-      else if (action === 'pointB') onPoint('B');
-      else if (action === 'undo') onUndo();
-    });
+    stopBleTag = onBleTagPressed(() => handleRemoteAction(getState().settings.bleTag.action, el));
   }
+}
+
+function handleRemoteAction(action, el) {
+  if (action === 'pointA') { if (match) onPoint('A'); return; }
+  if (action === 'pointB') { if (match) onPoint('B'); return; }
+  if (action === 'undo') { onUndo(); return; }
+  if (action === 'resetGame') {
+    if (match && !match.matchOver) {
+      match = resetCurrentGame(match);
+      stopSpeech();
+      paint(el);
+    }
+    return;
+  }
+  if (action === 'startMatch') {
+    if (!match) el.querySelector('#start-match')?.click();
+    return;
+  }
+  if (action === 'resetMatch') {
+    if (match) onReset();
+    return;
+  }
+}
+
+function startLive(el) {
+  paint(el);
+  setupRemoteListening(el);
 }
 
 // ===== New match setup =====
@@ -118,6 +136,8 @@ function paintSetup(el) {
     history = [];
     startLive(el);
   });
+
+  setupRemoteListening(el);
 }
 
 // ===== Live scoreboard =====

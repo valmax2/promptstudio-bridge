@@ -4,22 +4,11 @@
 // keycodes (volume, camera, media, headset, dpad). Once the device is paired
 // from Android's own Bluetooth settings (exactly like pairing a keyboard),
 // this module lets the app listen for those keycodes and map them to
-// scoreboard actions. See native-android/ for the native side that forwards
-// key events into the WebView as a "padel-hw-key" custom event.
-export const KEY_CODES = {
-  VOLUME_UP: 24,
-  VOLUME_DOWN: 25,
-  CAMERA: 27,
-  HEADSETHOOK: 79,
-  MEDIA_PLAY_PAUSE: 85,
-  MEDIA_NEXT: 87,
-  MEDIA_PREVIOUS: 88,
-  DPAD_LEFT: 21,
-  DPAD_RIGHT: 22,
-  DPAD_CENTER: 23,
-  ENTER: 66,
-};
-
+// scoreboard actions - including telling two different paired remotes apart,
+// and distinguishing single/double/slow-double presses of the same key. See
+// native-android/MainActivity.java for the native side that forwards key
+// events into the WebView as a "padel-hw-key" custom event, tagged with the
+// source device's stable descriptor.
 export const KEY_LABELS = {
   24: 'Volume +',
   25: 'Volume -',
@@ -32,6 +21,21 @@ export const KEY_LABELS = {
   22: 'Freccia destra',
   23: 'Centro / OK',
   66: 'Invio',
+};
+
+export const ACTION_LABELS = {
+  pointA: 'Punto Squadra / Giocatore 1',
+  pointB: 'Punto Squadra / Giocatore 2',
+  undo: 'Annulla ultimo punto',
+  resetGame: 'Azzera punteggio del game',
+  startMatch: 'Inizia partita',
+  resetMatch: 'Resetta partita',
+};
+
+export const PATTERN_LABELS = {
+  single: 'Click singolo',
+  double: 'Doppio click veloce',
+  doubleSlow: 'Doppio click lento',
 };
 
 function remoteControl() {
@@ -50,22 +54,23 @@ export async function disableRemote() {
   try { await remoteControl()?.disable(); } catch {}
 }
 
-export function listenHardwareKeys(cb) {
-  const handler = (e) => cb(e.detail.keyCode);
+function listenRawPresses(cb) {
+  const handler = (e) => cb(e.detail);
   window.addEventListener('padel-hw-key', handler);
   return () => window.removeEventListener('padel-hw-key', handler);
 }
 
-// Resolves with the next keycode pressed (used by the "press a button to
-// assign" flow in Settings), or null if nothing was pressed within timeoutMs.
-export function captureNextKey(timeoutMs = 8000) {
+// Resolves with the next { keyCode, deviceDescriptor, deviceName } pressed
+// (used by the "press a button to add" flow in Settings), or null if
+// nothing was pressed within timeoutMs.
+export function captureNextPress(timeoutMs = 8000) {
   return new Promise((resolve) => {
     let done = false;
-    const stop = listenHardwareKeys((keyCode) => {
+    const stop = listenRawPresses((detail) => {
       if (done) return;
       done = true;
       stop();
-      resolve(keyCode);
+      resolve(detail);
     });
     setTimeout(() => {
       if (done) return;
@@ -74,6 +79,66 @@ export function captureNextKey(timeoutMs = 8000) {
       resolve(null);
     }, timeoutMs);
   });
+}
+
+const DOUBLE_FAST_MS = 350; // max gap between presses to count as a fast double-click
+const DOUBLE_SLOW_MS = 900; // max gap between presses to count as a slow double-click
+
+// Listens for hardware key presses and calls onAction(action) whenever a
+// press pattern (single / double / doubleSlow) matches one of `bindings`
+// (each { deviceDescriptor, keyCode, pattern, action }). Keys with only a
+// 'single' binding fire immediately (no wait); keys that also have a
+// double/doubleSlow binding wait up to DOUBLE_SLOW_MS to disambiguate.
+export function listenBindings(bindings, onAction) {
+  const pending = new Map(); // "descriptor::keyCode" -> { timer, firstPressAt }
+
+  const comboKey = (deviceDescriptor, keyCode) => `${deviceDescriptor}::${keyCode}`;
+  const bindingsFor = (deviceDescriptor, keyCode) =>
+    bindings.filter((b) => b.deviceDescriptor === deviceDescriptor && b.keyCode === keyCode);
+  const fire = (deviceDescriptor, keyCode, pattern) => {
+    const match = bindingsFor(deviceDescriptor, keyCode).find((b) => b.pattern === pattern);
+    if (match) onAction(match.action);
+  };
+  const startWaiting = (deviceDescriptor, keyCode, firstPressAt) => {
+    const key = comboKey(deviceDescriptor, keyCode);
+    const timer = setTimeout(() => {
+      pending.delete(key);
+      fire(deviceDescriptor, keyCode, 'single');
+    }, DOUBLE_SLOW_MS);
+    pending.set(key, { timer, firstPressAt });
+  };
+
+  const stop = listenRawPresses(({ keyCode, deviceDescriptor }) => {
+    const matches = bindingsFor(deviceDescriptor, keyCode);
+    if (!matches.length) return;
+    const hasDouble = matches.some((b) => b.pattern === 'double' || b.pattern === 'doubleSlow');
+
+    if (!hasDouble) {
+      fire(deviceDescriptor, keyCode, 'single');
+      return;
+    }
+
+    const key = comboKey(deviceDescriptor, keyCode);
+    const state = pending.get(key);
+    const now = Date.now();
+
+    if (state) {
+      clearTimeout(state.timer);
+      pending.delete(key);
+      const delta = now - state.firstPressAt;
+      if (delta <= DOUBLE_FAST_MS) fire(deviceDescriptor, keyCode, 'double');
+      else if (delta <= DOUBLE_SLOW_MS) fire(deviceDescriptor, keyCode, 'doubleSlow');
+      else startWaiting(deviceDescriptor, keyCode, now);
+    } else {
+      startWaiting(deviceDescriptor, keyCode, now);
+    }
+  });
+
+  return () => {
+    stop();
+    pending.forEach((s) => clearTimeout(s.timer));
+    pending.clear();
+  };
 }
 
 // ===========================================================================

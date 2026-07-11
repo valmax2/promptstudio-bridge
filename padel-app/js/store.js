@@ -11,7 +11,10 @@ const DEFAULT_STATE = {
     superTiebreak3rdSet: true,
     cloudSyncEnabled: true,
     bleRemoteEnabled: false,
-    bleKeyMap: { pointA: null, pointB: null, undo: null },
+    // Array of { id, deviceDescriptor, deviceName, keyCode, keyLabel, pattern, action }.
+    // Replaces the old fixed 3-slot map: any number of remotes/keys/patterns
+    // can each be bound to a different action.
+    remoteBindings: [],
     bleTag: { enabled: false, address: null, deviceName: null, action: 'pointA' },
   },
   profile: {

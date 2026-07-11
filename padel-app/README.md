@@ -19,7 +19,7 @@ statistiche, gamification e sincronizzazione cloud.
 | Gamification (XP, avatar e cornici sbloccabili) | ✅ Funzionante, offline |
 | Sincronizzazione cloud di impostazioni/avatar/statistiche | ✅ Funzionante *(richiede Firebase)* |
 | Audio su cassa Bluetooth | ✅ L'annuncio vocale usa il motore di sintesi vocale **nativo** di Android (plugin Capacitor, non il Web Speech API del browser — che nella WebView di Android spesso non produce alcun suono). L'audio esce dall'uscita attiva del telefono, quindi anche da una cassa Bluetooth già collegata — nessuna configurazione nell'app |
-| Telecomando Bluetooth / tasti fotocamera smartwatch | ✅ Funzionante per dispositivi che si accoppiano come tastiera Bluetooth (la maggior parte dei telecomandi economici e degli smartwatch in modalità scatto foto): accoppia il dispositivo dalle Impostazioni Bluetooth di Android, poi assegna i tasti dalle Impostazioni dell'app. I portachiavi "trova oggetto" generici usano spesso un protocollo proprietario e potrebbero non essere supportati |
+| Telecomando Bluetooth / tasti fotocamera smartwatch | ✅ Funzionante per dispositivi che si accoppiano come tastiera Bluetooth (la maggior parte dei telecomandi economici e degli smartwatch in modalità scatto foto). Supporta **due o più telecomandi accoppiati contemporaneamente**, e per ogni tasto **click singolo / doppio / doppio lento** assegnabili ad azioni diverse (punto, annulla, azzera game, inizia partita, resetta partita). I portachiavi "trova oggetto" generici usano spesso un protocollo proprietario e potrebbero non essere supportati |
 | Modalità Americano (rotazione compagni, classifica individuale) | ✅ Funzionante, offline |
 | Modalità Killer / Eliminazione (a vite, in coda, "re del campo") | ✅ Funzionante, offline |
 
@@ -206,17 +206,40 @@ degli smartwatch in modalità scatto foto si accoppiano con Android come una
 normale **tastiera Bluetooth**, inviando un tasto standard (volume su/giù,
 fotocamera, play/pausa, tasti multimediali...). L'app intercetta questi
 tasti tramite un piccolo plugin Android nativo (`native-android/`) e li
-espone a schermo in Impostazioni → Telecomando remoto, dove puoi assegnare
-liberamente tre azioni: Punto squadra/giocatore 1, Punto squadra/giocatore
-2, Annulla ultimo punto.
+espone a schermo in Impostazioni → Telecomando remoto come un elenco di
+**associazioni** libere, invece di tre slot fissi.
+
+Ogni associazione lega **un tasto di un dispositivo specifico** + **un tipo
+di pressione** a **un'azione**:
+
+- **Puoi accoppiare più di un telecomando contemporaneamente** — l'app
+  distingue i dispositivi tramite un identificativo stabile fornito da
+  Android, quindi lo stesso tasto (es. Volume +) può fare cose diverse su
+  due telecomandi diversi.
+- **Ogni tasto supporta tre tipi di pressione**, assegnabili
+  indipendentemente sullo stesso tasto: click singolo, doppio click veloce
+  e doppio click lento (~0.9s tra le due pressioni). Se su un tasto è
+  assegnato solo il click singolo, l'azione scatta immediatamente senza
+  attese; se sono assegnati anche doppio/doppio lento, l'app attende
+  brevemente per distinguere i pattern.
+- **Azioni disponibili:** Punto squadra/giocatore 1, Punto
+  squadra/giocatore 2, Annulla ultimo punto, Azzera punteggio del game
+  (in corso, senza toccare game/set già vinti), Inizia partita (utile per
+  avviare la partita da bordo campo senza toccare lo schermo), Resetta
+  partita (torna alla schermata di impostazione nuova partita).
 
 **Uso:**
 1. Accoppia il telecomando/smartwatch dalle Impostazioni Bluetooth di
-   Android (come faresti con una tastiera).
+   Android (come faresti con una tastiera). Ripeti per un secondo
+   telecomando, se vuoi usarne due.
 2. In Padel App, vai in Impostazioni → Telecomando remoto → attiva il
-   toggle → per ciascuna delle tre azioni tocca "Assegna" e premi il tasto
-   corrispondente sul telecomando entro 8 secondi.
-3. Il telecomando resta attivo solo mentre sei nella schermata Segnapunti
+   toggle → "+ Aggiungi associazione" → premi il tasto sul telecomando
+   entro 8 secondi → scegli il tipo di pressione → scegli l'azione.
+3. Ripeti per tutte le associazioni che vuoi creare (anche più di una sullo
+   stesso tasto, con pattern diversi). Ogni associazione è rimovibile
+   singolarmente con ✕.
+4. Il telecomando resta attivo sia nella schermata di impostazione nuova
+   partita (per l'azione "Inizia partita") sia durante il Segnapunti
    (altrove i tasti volume/media funzionano normalmente).
 
 ## Portachiavi / tag Bluetooth (sperimentale)

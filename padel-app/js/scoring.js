@@ -37,6 +37,15 @@ export function teamName(match, t) {
   return t === 'A' ? match.teamAName : match.teamBName;
 }
 
+// Zeroes out the score of the game (or tiebreak) currently being played,
+// without touching games/sets already won - useful to fix a mis-scored
+// game via remote control without restarting the whole match.
+export function resetCurrentGame(matchIn) {
+  const match = structuredClone(matchIn);
+  match.currentGame = { a: 0, b: 0, advantage: null };
+  return match;
+}
+
 export function describeSets(match) {
   return match.sets.map((s) => `${s.a}-${s.b}`).join(', ');
 }

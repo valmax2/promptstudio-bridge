@@ -5,14 +5,20 @@ import { firebaseAvailable, currentUser, registerPushToken } from '../firebase.j
 import { say, speechSupported } from '../speech.js';
 import { toast } from '../app.js';
 import {
-  KEY_LABELS, remoteSupported, captureNextKey,
+  KEY_LABELS, ACTION_LABELS, PATTERN_LABELS, remoteSupported, captureNextPress,
   bleTagSupported, scanBleTags, connectBleTag, disconnectBleTag,
 } from '../ble-remote.js';
-import { escapeHtml } from '../utils.js';
+import { escapeHtml, uid as genId } from '../utils.js';
 
 let bleScanResults = [];
 let bleScanning = false;
 let bleConnecting = false;
+
+// "Add binding" wizard state: null -> 'waiting' (press a key) -> 'pattern'
+// (choose single/double/doubleSlow) -> 'action' (choose what it does) -> saved.
+let addBindingStep = null;
+let addBindingCapture = null;
+let addBindingPattern = null;
 
 const FONTS = [
   { id: "'Segoe UI', Roboto, system-ui, -apple-system, sans-serif", label: 'Predefinito' },
@@ -68,18 +74,13 @@ export async function renderSettings(el) {
     <div class="card">
       <h2>📡 Telecomando remoto</h2>
       ${remoteSupported() ? `
-        <p class="small">Funziona con telecomandi Bluetooth economici ("selfie remote"), smartwatch in modalità scatto foto, e la maggior parte dei tasti fisici che si accoppiano come tastiera Bluetooth. <strong>Prima accoppia il dispositivo dalle Impostazioni Bluetooth di Android</strong> (come una tastiera), poi torna qui e assegna i tasti.</p>
-        <p class="small">I portachiavi "trova oggetto" generici spesso usano un protocollo proprietario e potrebbero non funzionare.</p>
+        <p class="small">Funziona con telecomandi Bluetooth economici ("selfie remote"), smartwatch in modalità scatto foto, e la maggior parte dei tasti fisici che si accoppiano come tastiera Bluetooth. <strong>Prima accoppia il dispositivo dalle Impostazioni Bluetooth di Android</strong> (come una tastiera), poi torna qui. Puoi accoppiare <strong>più di un telecomando</strong> e usare click singolo/doppio/doppio lento sullo stesso tasto per azioni diverse.</p>
+        <p class="small">I portachiavi "trova oggetto" generici spesso usano un protocollo proprietario e non funzionano qui — vedi la sezione dedicata più sotto.</p>
         <div class="toggle-row">
           <div><strong>Abilita telecomando</strong><p class="mb0 small">Attivo solo nella schermata Segnapunti</p></div>
           <label class="switch"><input type="checkbox" id="ble-enabled" ${settings.bleRemoteEnabled ? 'checked' : ''}><span class="slider"></span></label>
         </div>
-        ${settings.bleRemoteEnabled ? `
-        <div class="mt">
-          ${keyAssignRow('pointA', 'Punto Squadra / Giocatore 1', settings.bleKeyMap.pointA)}
-          ${keyAssignRow('pointB', 'Punto Squadra / Giocatore 2', settings.bleKeyMap.pointB)}
-          ${keyAssignRow('undo', 'Annulla ultimo punto', settings.bleKeyMap.undo)}
-        </div>` : ''}
+        ${settings.bleRemoteEnabled ? renderBindingsUI(settings.remoteBindings) : ''}
       ` : `<p class="small">Il telecomando Bluetooth richiede l'app installata come APK Android (non funziona nell'anteprima da browser).</p>`}
     </div>
 
@@ -155,29 +156,53 @@ export async function renderSettings(el) {
     renderSettings(el);
     syncSettings();
   });
-  el.querySelectorAll('[data-assign-key]').forEach((btn) => {
-    btn.addEventListener('click', async () => {
-      const slot = btn.dataset.assignKey;
-      btn.disabled = true;
-      btn.textContent = 'Premi un tasto sul telecomando…';
-      const keyCode = await captureNextKey(8000);
-      if (keyCode == null) {
-        toast('Nessun tasto rilevato, riprova');
-      } else {
-        updateSettings({ bleKeyMap: { ...getState().settings.bleKeyMap, [slot]: keyCode } });
-        toast(`Assegnato: ${KEY_LABELS[keyCode] || keyCode}`);
-        syncSettings();
-      }
-      renderSettings(el);
-    });
+  el.querySelector('#add-binding')?.addEventListener('click', async () => {
+    addBindingStep = 'waiting';
+    renderSettings(el);
+    const capture = await captureNextPress(8000);
+    if (!capture) {
+      toast('Nessun tasto rilevato, riprova');
+      addBindingStep = null;
+    } else {
+      addBindingCapture = capture;
+      addBindingStep = 'pattern';
+    }
+    renderSettings(el);
   });
-  el.querySelectorAll('[data-clear-key]').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      updateSettings({ bleKeyMap: { ...getState().settings.bleKeyMap, [btn.dataset.clearKey]: null } });
-      renderSettings(el);
-      syncSettings();
-    });
+  el.querySelectorAll('[data-pick-pattern]').forEach((btn) => btn.addEventListener('click', () => {
+    addBindingPattern = btn.dataset.pickPattern;
+    addBindingStep = 'action';
+    renderSettings(el);
+  }));
+  el.querySelectorAll('[data-pick-action]').forEach((btn) => btn.addEventListener('click', () => {
+    const binding = {
+      id: genId(),
+      deviceDescriptor: addBindingCapture.deviceDescriptor,
+      deviceName: addBindingCapture.deviceName || 'Telecomando',
+      keyCode: addBindingCapture.keyCode,
+      keyLabel: KEY_LABELS[addBindingCapture.keyCode] || String(addBindingCapture.keyCode),
+      pattern: addBindingPattern,
+      action: btn.dataset.pickAction,
+    };
+    updateSettings({ remoteBindings: [...getState().settings.remoteBindings, binding] });
+    addBindingStep = null;
+    addBindingCapture = null;
+    addBindingPattern = null;
+    toast('Associazione aggiunta!');
+    renderSettings(el);
+    syncSettings();
+  }));
+  el.querySelector('#cancel-binding')?.addEventListener('click', () => {
+    addBindingStep = null;
+    addBindingCapture = null;
+    addBindingPattern = null;
+    renderSettings(el);
   });
+  el.querySelectorAll('[data-remove-binding]').forEach((btn) => btn.addEventListener('click', () => {
+    updateSettings({ remoteBindings: getState().settings.remoteBindings.filter((b) => b.id !== btn.dataset.removeBinding) });
+    renderSettings(el);
+    syncSettings();
+  }));
   el.querySelector('#bletag-scan')?.addEventListener('click', async () => {
     bleScanning = true;
     bleScanResults = [];
@@ -240,17 +265,45 @@ export async function renderSettings(el) {
   });
 }
 
-function keyAssignRow(slot, label, keyCode) {
-  const assigned = keyCode != null;
+function renderBindingsUI(bindings) {
+  if (addBindingStep === 'waiting') {
+    return `<div class="card" style="background:var(--surface-2);margin-top:10px;">
+      <p class="mb0">📡 Premi un tasto sul telecomando entro 8 secondi…</p>
+    </div>`;
+  }
+  if (addBindingStep === 'pattern') {
+    return `<div class="card" style="background:var(--surface-2);margin-top:10px;">
+      <p class="small">${escapeHtml(addBindingCapture.deviceName)} · ${KEY_LABELS[addBindingCapture.keyCode] || addBindingCapture.keyCode}</p>
+      <label>Che tipo di pressione?</label>
+      ${Object.entries(PATTERN_LABELS).map(([key, label]) => `<button class="btn secondary block mt" data-pick-pattern="${key}">${label}</button>`).join('')}
+      <button class="btn ghost small mt" id="cancel-binding">Annulla</button>
+    </div>`;
+  }
+  if (addBindingStep === 'action') {
+    return `<div class="card" style="background:var(--surface-2);margin-top:10px;">
+      <p class="small">${escapeHtml(addBindingCapture.deviceName)} · ${KEY_LABELS[addBindingCapture.keyCode] || addBindingCapture.keyCode} · ${PATTERN_LABELS[addBindingPattern]}</p>
+      <label>Cosa deve fare?</label>
+      ${Object.entries(ACTION_LABELS).map(([key, label]) => `<button class="btn secondary block mt" data-pick-action="${key}">${label}</button>`).join('')}
+      <button class="btn ghost small mt" id="cancel-binding">Annulla</button>
+    </div>`;
+  }
   return `
-    <div class="toggle-row">
-      <div><strong>${label}</strong><p class="mb0 small">${assigned ? `Tasto: ${KEY_LABELS[keyCode] || keyCode}` : 'Non assegnato'}</p></div>
-      <div class="row" style="gap:6px;">
-        ${assigned ? `<button class="btn ghost small" data-clear-key="${slot}">✕</button>` : ''}
-        <button class="btn secondary small" data-assign-key="${slot}">${assigned ? 'Riassegna' : 'Assegna'}</button>
-      </div>
+    <div class="mt">
+      ${bindings.length ? bindings.map(bindingRow).join('') : '<p class="small">Nessuna associazione ancora configurata.</p>'}
+      <button class="btn secondary small mt" id="add-binding">+ Aggiungi associazione</button>
     </div>
   `;
+}
+
+function bindingRow(b) {
+  return `<div class="list-item">
+    <div class="avatar">🎮</div>
+    <div class="meta">
+      <strong>${ACTION_LABELS[b.action] || b.action}</strong>
+      <span>${escapeHtml(b.deviceName)} · ${b.keyLabel} · ${PATTERN_LABELS[b.pattern]}</span>
+    </div>
+    <button class="btn ghost small" data-remove-binding="${b.id}">✕</button>
+  </div>`;
 }
 
 async function syncSettings() {

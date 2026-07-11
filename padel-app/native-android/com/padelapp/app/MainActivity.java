@@ -1,8 +1,10 @@
 package com.padelapp.app;
 
 import android.os.Bundle;
+import android.view.InputDevice;
 import android.view.KeyEvent;
 import com.getcapacitor.BridgeActivity;
+import org.json.JSONObject;
 
 // Custom MainActivity: forwards a fixed set of hardware keycodes (volume,
 // camera, media, headset, dpad) to the web layer as a "padel-hw-key" custom
@@ -11,6 +13,11 @@ import com.getcapacitor.BridgeActivity;
 // smartwatch camera-shutter modes are made usable as a padel scoreboard
 // remote: they pair as a standard Bluetooth HID keyboard and simply send one
 // of these keycodes, no custom BLE protocol involved.
+//
+// Each event also carries the source InputDevice's descriptor - a stable
+// identifier tied to the physical device (unlike getDeviceId(), which is a
+// session-scoped int that can change across reconnects) - so the web layer
+// can tell two different paired remotes apart and bind each one separately.
 //
 // Interception only happens while RemoteControlPlugin.remoteEnabled is true
 // (toggled from JS), so normal volume/media control still works everywhere
@@ -48,9 +55,19 @@ public class MainActivity extends BridgeActivity {
         if (RemoteControlPlugin.remoteEnabled && isRemoteKey(event.getKeyCode())) {
             if (event.getAction() == KeyEvent.ACTION_DOWN && event.getRepeatCount() == 0) {
                 final int keyCode = event.getKeyCode();
+                final int deviceId = event.getDeviceId();
+                InputDevice device = event.getDevice();
+                final String descriptor = device != null ? device.getDescriptor() : ("id-" + deviceId);
+                final String name = device != null ? device.getName() : "Telecomando";
                 runOnUiThread(() -> {
                     if (getBridge() != null && getBridge().getWebView() != null) {
-                        String js = "window.dispatchEvent(new CustomEvent('padel-hw-key', { detail: { keyCode: " + keyCode + " } }));";
+                        JSONObject detail = new JSONObject();
+                        try {
+                            detail.put("keyCode", keyCode);
+                            detail.put("deviceDescriptor", descriptor);
+                            detail.put("deviceName", name);
+                        } catch (Exception ignored) {}
+                        String js = "window.dispatchEvent(new CustomEvent('padel-hw-key', { detail: " + detail.toString() + " }));";
                         getBridge().getWebView().evaluateJavascript(js, null);
                     }
                 });

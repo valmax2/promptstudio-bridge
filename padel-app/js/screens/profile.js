@@ -4,6 +4,7 @@ import { firebaseAvailable, signOutUser, currentUser } from '../firebase.js';
 import { navigate } from '../router.js';
 import { escapeHtml } from '../utils.js';
 import { toast } from '../app.js';
+import { avatarSvg } from '../avatars.js';
 
 export async function renderProfile(el) {
   const { profile } = getState();
@@ -17,7 +18,7 @@ export async function renderProfile(el) {
       <input type="file" accept="image/*" id="avatar-file" class="hidden" style="display:none">
       <button class="btn secondary small" id="change-avatar">Cambia foto</button>
       <div class="row" style="justify-content:center;flex-wrap:wrap;gap:8px;margin-top:12px;">
-        ${profile.unlockedAvatars.map((a) => `<button class="btn ghost small emoji-pick" data-emoji="${a}">${a}</button>`).join('')}
+        ${profile.unlockedAvatars.map((id) => `<button class="avatar-pick ${id === profile.avatarEmoji && !profile.avatarUrl ? 'selected' : ''}" data-emoji="${id}">${avatarSvg(id)}</button>`).join('')}
       </div>
     </div>
 
@@ -43,7 +44,7 @@ export async function renderProfile(el) {
     </div>
   `;
 
-  el.querySelectorAll('.emoji-pick').forEach((btn) => {
+  el.querySelectorAll('.avatar-pick').forEach((btn) => {
     btn.addEventListener('click', async () => {
       const emoji = btn.dataset.emoji;
       updateProfile({ avatarEmoji: emoji, avatarUrl: null });
@@ -92,7 +93,7 @@ async function syncProfile() {
 
 function avatarContent(profile) {
   if (profile.avatarUrl) return `<img src="${profile.avatarUrl}" alt="avatar">`;
-  return profile.avatarEmoji || '🎾';
+  return avatarSvg(profile.avatarEmoji);
 }
 
 function frameColor(frame) {

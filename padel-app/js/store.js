@@ -21,12 +21,15 @@ const DEFAULT_STATE = {
     uid: null,
     phone: null,
     name: 'Giocatore',
-    avatarEmoji: '🎾',
+    // Despite the name (kept for compatibility with existing synced
+    // profiles), this holds an illustrated-avatar id, not an emoji - see
+    // js/avatars.js.
+    avatarEmoji: 'f-ponytail',
     avatarUrl: null,
     equippedFrame: 'none',
     xp: 0,
     level: 1,
-    unlockedAvatars: ['🎾', '🙂', '😎', '🔥'],
+    unlockedAvatars: ['f-ponytail', 'm-shortbrown', 'f-curly', 'm-afro'],
     unlockedFrames: ['none'],
   },
   friends: [],       // {id, name, phone}

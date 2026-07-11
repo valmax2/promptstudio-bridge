@@ -2,6 +2,7 @@ import { getState } from '../store.js';
 import { navigate } from '../router.js';
 import { firebaseAvailable } from '../firebase.js';
 import { escapeHtml } from '../utils.js';
+import { avatarSvg } from '../avatars.js';
 
 export async function renderHome(el) {
   const { profile, matches, events } = getState();
@@ -83,7 +84,7 @@ export async function renderHome(el) {
 
 function avatarContent(profile) {
   if (profile.avatarUrl) return `<img src="${profile.avatarUrl}" alt="avatar">`;
-  return profile.avatarEmoji || '🎾';
+  return avatarSvg(profile.avatarEmoji);
 }
 
 function eventRow(e) {

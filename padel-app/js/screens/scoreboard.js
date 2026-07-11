@@ -1,7 +1,7 @@
 import { getState, addMatch, addXp } from '../store.js';
 import { pushMatch } from '../cloud.js';
 import { say, stopSpeech } from '../speech.js';
-import { escapeHtml } from '../utils.js';
+import { escapeHtml, BACK_ICON } from '../utils.js';
 import {
   createMatch, addPoint, matchPointDisplay, teamName, isGamePoint, resetCurrentGame,
 } from '../scoring.js';
@@ -91,7 +91,7 @@ function paintSetup(el) {
   el.innerHTML = `
     <div class="sb-root">
       <div class="sb-topbar">
-        <button id="sb-back">←</button>
+        <button id="sb-back" class="icon-btn" aria-label="Torna alla home">${BACK_ICON}</button>
         <div class="sb-mode">Nuova partita</div>
         <span></span>
       </div>
@@ -149,7 +149,7 @@ function paint(el) {
   el.innerHTML = `
     <div class="sb-root">
       <div class="sb-topbar">
-        <button id="sb-back">←</button>
+        <button id="sb-back" class="icon-btn" aria-label="Torna alla home">${BACK_ICON}</button>
         <div class="sb-mode">${modeLabel} · ${modeBadge}</div>
         <button id="sb-mute">${ttsEnabled ? '🔊' : '🔇'}</button>
       </div>

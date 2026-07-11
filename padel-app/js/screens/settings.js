@@ -7,9 +7,10 @@ import { say, speechSupported } from '../speech.js';
 import { toast } from '../app.js';
 import {
   KEY_LABELS, ACTION_LABELS, PATTERN_LABELS, remoteSupported, captureNextPress,
+  enableRemote, disableRemote,
   bleTagSupported, scanBleTags, connectBleTag, disconnectBleTag,
 } from '../ble-remote.js';
-import { escapeHtml, uid as genId } from '../utils.js';
+import { escapeHtml, uid as genId, BACK_ICON } from '../utils.js';
 
 let bleScanResults = [];
 let bleScanning = false;
@@ -32,7 +33,7 @@ export async function renderSettings(el) {
   const { settings } = getState();
 
   el.innerHTML = `
-    <div class="topbar"><div class="row"><button class="icon-btn" id="settings-back" aria-label="Torna alla home">←</button><h1>Impostazioni</h1></div></div>
+    <div class="topbar"><div class="row"><button class="icon-btn" id="settings-back" aria-label="Torna alla home">${BACK_ICON}</button><h1>Impostazioni</h1></div></div>
 
     <div class="card">
       <h2>Aspetto</h2>
@@ -162,7 +163,13 @@ export async function renderSettings(el) {
   el.querySelector('#add-binding')?.addEventListener('click', async () => {
     addBindingStep = 'waiting';
     renderSettings(el);
+    // The native side only forwards key events while the RemoteControl
+    // plugin is enabled - outside of an active match (i.e. right here,
+    // capturing a new binding) it's off by default, so without this the
+    // "press a button" step would never see anything.
+    await enableRemote();
     const capture = await captureNextPress(8000);
+    await disableRemote();
     if (!capture) {
       toast('Nessun tasto rilevato, riprova');
       addBindingStep = null;

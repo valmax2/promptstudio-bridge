@@ -1,12 +1,7 @@
 import { getState, updateProfile, unlockCosmetic } from '../store.js';
 import { pushProfile } from '../cloud.js';
 import { toast } from '../app.js';
-
-const AVATARS = [
-  { id: '🎾', level: 1 }, { id: '🙂', level: 1 }, { id: '😎', level: 2 }, { id: '🔥', level: 3 },
-  { id: '🏆', level: 5 }, { id: '🥇', level: 7 }, { id: '🐐', level: 9 }, { id: '🦁', level: 12 },
-  { id: '👑', level: 15 }, { id: '💪', level: 18 },
-];
+import { AVATARS } from '../avatars.js';
 const FRAMES = [
   { id: 'none', label: 'Nessuna', level: 1, color: 'var(--accent)' },
   { id: 'bronze', label: 'Bronzo', level: 2, color: '#CD7F32' },
@@ -67,7 +62,7 @@ function autoUnlock() {
   for (const a of AVATARS) {
     if (profile.level >= a.level && !profile.unlockedAvatars.includes(a.id)) {
       unlockCosmetic('avatar', a.id);
-      toast(`Nuovo avatar sbloccato: ${a.id}`);
+      toast('Nuovo avatar sbloccato!');
     }
   }
   for (const f of FRAMES) {
@@ -82,7 +77,7 @@ function avatarTile(a, profile) {
   const unlocked = profile.unlockedAvatars.includes(a.id);
   const selected = profile.avatarEmoji === a.id && !profile.avatarUrl;
   return `<button class="pick-item ${unlocked ? '' : 'locked'} ${selected ? 'selected' : ''}" data-avatar="${a.id}" data-level="${a.level}">
-    ${unlocked ? a.id : '🔒'}
+    ${unlocked ? a.svg : '🔒'}
   </button>`;
 }
 

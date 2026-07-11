@@ -70,21 +70,21 @@ button { font-family: inherit; }
 .topbar h1 { font-size: calc(1.5em * var(--font-scale)); }
 .topbar .subtitle { font-size: 0.85em; color: var(--text-dim); margin-top: -6px; }
 
-/* Round icon button (back arrows, gear/settings shortcut, ...): a plain
-   emoji/glyph on its own is easy to miss, so give it a filled, high-contrast
-   hit target that reads clearly as a tappable button in both themes. */
+/* Icon button (back arrows, gear/settings shortcut, ...): no filled pill,
+   just a bigger glyph in the interface's own foreground color, with a
+   generous tap target via padding. */
 .icon-btn {
   flex: 0 0 auto;
   display: inline-flex; align-items: center; justify-content: center;
-  width: 44px; height: 44px;
-  border-radius: 50%;
-  background: var(--surface-2);
-  border: 1px solid var(--border);
+  background: none;
+  border: none;
   color: var(--text);
-  font-size: 1.3em; line-height: 1;
-  padding: 0;
+  font-size: 1.5em; line-height: 1;
+  padding: 8px;
+  margin: -8px;
 }
-.icon-btn:active { transform: scale(0.92); background: var(--border); }
+.icon-btn:active { opacity: 0.55; }
+.icon-btn svg { width: 30px; height: 30px; }
 
 .card {
   background: var(--surface);
@@ -147,8 +147,16 @@ label { font-size: 0.85em; color: var(--text-dim); display: block; margin-bottom
   border: 2px solid var(--accent);
   overflow: hidden; flex-shrink: 0;
 }
-.avatar img { width: 100%; height: 100%; object-fit: cover; }
+.avatar img, .avatar svg { width: 100%; height: 100%; object-fit: cover; display: block; }
 .avatar.xl { width: 92px; height: 92px; font-size: 2.4em; }
+
+.avatar-pick {
+  width: 46px; height: 46px; border-radius: 50%; padding: 0;
+  border: 2px solid transparent; background: var(--surface-2); overflow: hidden;
+  flex-shrink: 0;
+}
+.avatar-pick svg { width: 100%; height: 100%; display: block; }
+.avatar-pick.selected { border-color: var(--accent); }
 
 .list-item {
   display: flex; align-items: center; gap: 12px;
@@ -231,18 +239,15 @@ label { font-size: 0.85em; color: var(--text-dim); display: block; margin-bottom
 }
 .sb-topbar button:active { background: rgba(255,255,255,0.15); }
 /* The back arrow is the one topbar button that must never be missed (it's
-   the only way out of a live match), so give it a filled, high-contrast
-   circle instead of relying on the thin "←" glyph alone against black. */
+   the only way out of a live match), so it's a large plain white icon
+   instead of relying on the thin "←" text glyph alone against black. */
 .sb-topbar #sb-back {
-  width: 46px; height: 46px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 1.6em; font-weight: 700;
-  background: rgba(255,255,255,0.16);
-  border: 1px solid rgba(255,255,255,0.3);
-  border-radius: 50%;
-  padding: 0;
+  color: #fff;
+  padding: 10px 12px;
+  margin: -10px -12px;
 }
-.sb-topbar #sb-back:active { background: rgba(255,255,255,0.3); }
+.sb-topbar #sb-back svg { width: 32px; height: 32px; }
+.sb-topbar #sb-back:active { opacity: 0.55; }
 .sb-mode { font-size: 0.85em; letter-spacing: 0.03em; opacity: 0.85; text-transform: uppercase; }
 
 .sb-halves {
@@ -376,8 +381,9 @@ label { font-size: 0.85em; color: var(--text-dim); display: block; margin-bottom
 
 .locked { opacity: 0.4; filter: grayscale(1); }
 .picker-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
-.picker-grid .pick-item { aspect-ratio: 1; border-radius: 14px; display:flex;align-items:center;justify-content:center; font-size:1.6em; background: var(--surface-2); border: 2px solid transparent; }
+.picker-grid .pick-item { aspect-ratio: 1; border-radius: 14px; display:flex;align-items:center;justify-content:center; font-size:1.6em; background: var(--surface-2); border: 2px solid transparent; overflow: hidden; }
 .picker-grid .pick-item.selected { border-color: var(--accent); }
+.picker-grid .pick-item svg { width: 68%; height: 68%; }
 
 a { color: var(--accent-2); }
 .center { text-align: center; }

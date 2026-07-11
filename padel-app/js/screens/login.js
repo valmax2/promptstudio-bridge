@@ -39,6 +39,22 @@ export async function renderLogin(el) {
   `;
 
   let confirmationResult = null;
+  let recaptchaVerifier = null;
+
+  // Reused across retries instead of created fresh on every click: the
+  // widget renders into #recaptcha-container, and Google's reCAPTCHA
+  // throws "has already been rendered in this element" if you try to
+  // render a second one into the same DOM node without clearing the
+  // first - which is exactly what happened on a second "Invia codice"
+  // tap (e.g. after mistyping the number or a slow/failed first attempt).
+  async function getRecaptchaVerifier() {
+    if (recaptchaVerifier) {
+      try { recaptchaVerifier.clear(); } catch {}
+      recaptchaVerifier = null;
+    }
+    recaptchaVerifier = await setupRecaptcha('recaptcha-container');
+    return recaptchaVerifier;
+  }
 
   el.querySelector('#send-otp').addEventListener('click', async () => {
     const phoneInput = el.querySelector('#phone');
@@ -48,7 +64,7 @@ export async function renderLogin(el) {
       return;
     }
     try {
-      const verifier = await setupRecaptcha('recaptcha-container');
+      const verifier = await getRecaptchaVerifier();
       confirmationResult = await sendOtp(phone, verifier);
       el.querySelector('#otp-card').classList.remove('hidden');
       toast('Codice inviato via SMS');

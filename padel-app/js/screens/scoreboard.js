@@ -50,10 +50,15 @@ function setupRemoteListening(el) {
   }
 
   stopBleTag();
-  const tag = settings.bleTag;
-  if (tag.enabled && tag.address) {
-    connectBleTag(tag.address).catch(() => {});
-    stopBleTag = onBleTagPressed(() => handleRemoteAction(getState().settings.bleTag.action, el));
+  // Multiple tags can be connected at once (e.g. one per team) - each keeps
+  // its own action, looked up by the address the native side reports.
+  const tags = settings.bleTags.filter((t) => t.enabled);
+  if (tags.length) {
+    tags.forEach((t) => connectBleTag(t.address).catch(() => {}));
+    stopBleTag = onBleTagPressed(({ address }) => {
+      const tag = getState().settings.bleTags.find((t) => t.address === address);
+      if (tag) handleRemoteAction(tag.action, el);
+    });
   }
 }
 

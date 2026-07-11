@@ -14,10 +14,15 @@ import { renderSettings } from './screens/settings.js';
 import { renderProfile } from './screens/profile.js';
 import { renderAmericano } from './screens/americano.js';
 import { renderKiller } from './screens/killer.js';
+import { NAV_ICONS } from './nav-icons.js';
 
 const appEl = document.getElementById('app');
 const navEl = document.getElementById('bottom-nav');
 const bannerEl = document.getElementById('offline-banner');
+
+navEl.querySelectorAll('[data-icon]').forEach((el) => {
+  el.innerHTML = NAV_ICONS[el.dataset.icon] || '';
+});
 
 function applyTheme() {
   const { settings } = getState();

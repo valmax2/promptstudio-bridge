@@ -169,20 +169,25 @@ export async function scanBleTags() {
   }
 }
 
+// Multiple tags can be connected at once (e.g. one per team) - each
+// connection is independent on the native side, keyed by MAC address.
 export async function connectBleTag(address) {
   const plugin = bleTag();
   if (!plugin) throw new Error('Tag BLE non disponibile su questo dispositivo');
   await plugin.connect({ address });
 }
 
-export async function disconnectBleTag() {
-  try { await bleTag()?.disconnect(); } catch {}
+// Pass an address to disconnect just that tag, or omit to disconnect all.
+export async function disconnectBleTag(address) {
+  try { await bleTag()?.disconnect(address ? { address } : undefined); } catch {}
 }
 
+// cb receives { address, uuid } so the caller can tell which physical tag
+// was pressed when more than one is connected.
 export function onBleTagPressed(cb) {
   const plugin = bleTag();
   if (!plugin) return () => {};
-  const handle = plugin.addListener('tagPressed', () => cb());
+  const handle = plugin.addListener('tagPressed', (data) => cb(data));
   return () => handle.remove();
 }
 
@@ -190,5 +195,12 @@ export function onBleTagConnected(cb) {
   const plugin = bleTag();
   if (!plugin) return () => {};
   const handle = plugin.addListener('connected', (data) => cb(data));
+  return () => handle.remove();
+}
+
+export function onBleTagDisconnected(cb) {
+  const plugin = bleTag();
+  if (!plugin) return () => {};
+  const handle = plugin.addListener('disconnected', (data) => cb(data));
   return () => handle.remove();
 }

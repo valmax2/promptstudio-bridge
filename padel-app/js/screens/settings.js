@@ -89,33 +89,18 @@ export async function renderSettings(el) {
     <div class="card">
       <h2>🔑 Portachiavi / tag Bluetooth (sperimentale)</h2>
       ${bleTagSupported() ? `
-        <p class="small">Per portachiavi "trova oggetto" e dispositivi simili che non si accoppiano come tastiera. La app si collega direttamente e prova ad ascoltare il pulsante — funziona con molti modelli economici, ma non è garantito su tutti.</p>
-        ${settings.bleTag.address ? `
-          <div class="toggle-row">
-            <div><strong>${escapeHtml(settings.bleTag.deviceName || 'Dispositivo')}</strong><p class="mb0 small">${settings.bleTag.address}</p></div>
-            <label class="switch"><input type="checkbox" id="bletag-enabled" ${settings.bleTag.enabled ? 'checked' : ''}><span class="slider"></span></label>
-          </div>
-          <div class="field mt mb0">
-            <label>Cosa fa il pulsante</label>
-            <div class="segmented">
-              <button data-tag-action="pointA" class="${settings.bleTag.action === 'pointA' ? 'active' : ''}">Punto 1</button>
-              <button data-tag-action="pointB" class="${settings.bleTag.action === 'pointB' ? 'active' : ''}">Punto 2</button>
-              <button data-tag-action="undo" class="${settings.bleTag.action === 'undo' ? 'active' : ''}">Annulla</button>
+        <p class="small">Per portachiavi "trova oggetto" e dispositivi simili che non si accoppiano come tastiera. Puoi collegare <strong>più di un tag insieme</strong> (es. uno per squadra) — la app si collega direttamente a ciascuno e prova ad ascoltare il pulsante: funziona con molti modelli economici, ma non è garantito su tutti.</p>
+        ${settings.bleTags.map(tagRow).join('')}
+        <button class="btn secondary block mt" id="bletag-scan" ${bleScanning ? 'disabled' : ''}>${bleScanning ? 'Ricerca in corso… (6s)' : (settings.bleTags.length ? '🔍 Cerca un altro tag' : '🔍 Cerca dispositivi')}</button>
+        <div class="mt">
+          ${bleScanResults.filter((d) => !settings.bleTags.some((t) => t.address === d.address)).map((d) => `
+            <div class="list-item">
+              <div class="avatar">🔑</div>
+              <div class="meta"><strong>${escapeHtml(d.name)}</strong><span>${d.address}</span></div>
+              <button class="btn primary small" data-tag-connect="${d.address}" data-tag-name="${escapeHtml(d.name)}" ${bleConnecting ? 'disabled' : ''}>Connetti</button>
             </div>
-          </div>
-          <button class="btn ghost small mt" id="bletag-forget">Dimentica dispositivo</button>
-        ` : `
-          <button class="btn secondary block" id="bletag-scan" ${bleScanning ? 'disabled' : ''}>${bleScanning ? 'Ricerca in corso… (6s)' : '🔍 Cerca dispositivi'}</button>
-          <div class="mt">
-            ${bleScanResults.length ? bleScanResults.map((d) => `
-              <div class="list-item">
-                <div class="avatar">🔑</div>
-                <div class="meta"><strong>${escapeHtml(d.name)}</strong><span>${d.address}</span></div>
-                <button class="btn primary small" data-tag-connect="${d.address}" data-tag-name="${escapeHtml(d.name)}" ${bleConnecting ? 'disabled' : ''}>Connetti</button>
-              </div>
-            `).join('') : (bleScanning ? '' : '<p class="small">Nessun dispositivo ancora cercato.</p>')}
-          </div>
-        `}
+          `).join('') || (bleScanning || settings.bleTags.length ? '' : '<p class="small">Nessun dispositivo ancora cercato.</p>')}
+        </div>
       ` : `<p class="small">Richiede l'app installata come APK Android.</p>`}
     </div>
 
@@ -221,7 +206,9 @@ export async function renderSettings(el) {
     bleScanResults = devices;
     bleScanning = false;
     if (error) toast('Errore: ' + error);
-    else if (!bleScanResults.length) toast('Nessun dispositivo trovato. Assicurati che sia acceso e vicino, e che la Localizzazione del telefono sia attiva.');
+    else if (!bleScanResults.filter((d) => !getState().settings.bleTags.some((t) => t.address === d.address)).length) {
+      toast('Nessun dispositivo trovato. Assicurati che sia acceso e vicino, e che la Localizzazione del telefono sia attiva.');
+    }
     renderSettings(el);
   });
   el.querySelectorAll('[data-tag-connect]').forEach((btn) => {
@@ -230,7 +217,14 @@ export async function renderSettings(el) {
       renderSettings(el);
       try {
         await connectBleTag(btn.dataset.tagConnect);
-        updateSettings({ bleTag: { ...getState().settings.bleTag, address: btn.dataset.tagConnect, deviceName: btn.dataset.tagName, enabled: true } });
+        const tag = {
+          id: genId(),
+          address: btn.dataset.tagConnect,
+          deviceName: btn.dataset.tagName,
+          enabled: true,
+          action: 'pointA',
+        };
+        updateSettings({ bleTags: [...getState().settings.bleTags, tag] });
         toast('Connesso! Prova a premere il pulsante sul dispositivo.');
         syncSettings();
       } catch (err) {
@@ -240,24 +234,29 @@ export async function renderSettings(el) {
       renderSettings(el);
     });
   });
-  el.querySelector('#bletag-enabled')?.addEventListener('change', async (e) => {
+  el.querySelectorAll('[data-tag-enabled]').forEach((input) => input.addEventListener('change', async (e) => {
+    const id = input.dataset.tagEnabled;
     const enabled = e.target.checked;
-    updateSettings({ bleTag: { ...getState().settings.bleTag, enabled } });
-    if (!enabled) await disconnectBleTag();
+    const tags = getState().settings.bleTags;
+    const tag = tags.find((t) => t.id === id);
+    updateSettings({ bleTags: tags.map((t) => (t.id === id ? { ...t, enabled } : t)) });
+    if (!enabled && tag) await disconnectBleTag(tag.address);
+    else if (enabled && tag) await connectBleTag(tag.address).catch(() => {});
     syncSettings();
-  });
-  el.querySelectorAll('[data-tag-action]').forEach((btn) => btn.addEventListener('click', () => {
-    updateSettings({ bleTag: { ...getState().settings.bleTag, action: btn.dataset.tagAction } });
+  }));
+  el.querySelectorAll('[data-tag-action]').forEach((select) => select.addEventListener('change', () => {
+    const id = select.dataset.tagAction;
+    updateSettings({ bleTags: getState().settings.bleTags.map((t) => (t.id === id ? { ...t, action: select.value } : t)) });
+    syncSettings();
+  }));
+  el.querySelectorAll('[data-tag-forget]').forEach((btn) => btn.addEventListener('click', async () => {
+    const id = btn.dataset.tagForget;
+    const tag = getState().settings.bleTags.find((t) => t.id === id);
+    if (tag) await disconnectBleTag(tag.address);
+    updateSettings({ bleTags: getState().settings.bleTags.filter((t) => t.id !== id) });
     renderSettings(el);
     syncSettings();
   }));
-  el.querySelector('#bletag-forget')?.addEventListener('click', async () => {
-    await disconnectBleTag();
-    updateSettings({ bleTag: { enabled: false, address: null, deviceName: null, action: 'pointA' } });
-    bleScanResults = [];
-    renderSettings(el);
-    syncSettings();
-  });
 
   el.querySelector('#cloud-sync')?.addEventListener('change', (e) => { updateSettings({ cloudSyncEnabled: e.target.checked }); syncSettings(); });
   el.querySelector('#sync-now')?.addEventListener('click', async () => {
@@ -313,6 +312,22 @@ function bindingRow(b) {
       <span>${escapeHtml(b.deviceName)} · ${b.keyLabel} · ${PATTERN_LABELS[b.pattern]}</span>
     </div>
     <button class="btn ghost small" data-remove-binding="${b.id}">✕</button>
+  </div>`;
+}
+
+function tagRow(t) {
+  return `<div class="card" style="background:var(--surface-2);margin-top:10px;">
+    <div class="toggle-row">
+      <div><strong>${escapeHtml(t.deviceName || 'Dispositivo')}</strong><p class="mb0 small">${t.address}</p></div>
+      <label class="switch"><input type="checkbox" data-tag-enabled="${t.id}" ${t.enabled ? 'checked' : ''}><span class="slider"></span></label>
+    </div>
+    <div class="field mt mb0">
+      <label>Cosa fa il pulsante</label>
+      <select data-tag-action="${t.id}">
+        ${Object.entries(ACTION_LABELS).map(([key, label]) => `<option value="${key}" ${t.action === key ? 'selected' : ''}>${label}</option>`).join('')}
+      </select>
+    </div>
+    <button class="btn ghost small mt" data-tag-forget="${t.id}">Dimentica dispositivo</button>
   </div>`;
 }
 

@@ -15,7 +15,10 @@ const DEFAULT_STATE = {
     // Replaces the old fixed 3-slot map: any number of remotes/keys/patterns
     // can each be bound to a different action.
     remoteBindings: [],
-    bleTag: { enabled: false, address: null, deviceName: null, action: 'pointA' },
+    // Array of { id, address, deviceName, enabled, action }. More than one
+    // tag can be connected at once (e.g. one per team), each with its own
+    // action - replaces the old single-tag object.
+    bleTags: [],
   },
   profile: {
     uid: null,

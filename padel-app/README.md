@@ -248,16 +248,20 @@ I portachiavi "trova oggetto" generici (antifurto chiavi, tipo iTag) di
 solito **non** si accoppiano come tastiera: usano il Bluetooth Low Energy
 con un servizio proprietario diverso per produttore, quindi non compaiono
 nel telecomando standard sopra. Impostazioni → "🔑 Portachiavi / tag
-Bluetooth" offre un percorso alternativo pensato per questi dispositivi:
+Bluetooth" offre un percorso alternativo pensato per questi dispositivi, e
+**supporta più tag collegati insieme** (es. uno per squadra), ciascuno con
+la propria azione:
 
 1. Tocca **"Cerca dispositivi"** (richiede il permesso Bluetooth/posizione
    la prima volta) — se il dispositivo ha già un'app dedicata, aprila prima
    e lasciala connettere una volta, poi chiudila (questi dispositivi
-   accettano una sola connessione alla volta).
+   accettano una sola connessione alla volta da parte di un'altra app).
 2. Tocca **"Connetti"** sul dispositivo trovato.
-3. Scegli quale azione deve fare il pulsante (Punto 1 / Punto 2 / Annulla)
-   — questi dispositivi hanno un solo tasto, quindi una sola azione
-   assegnabile.
+3. Scegli quale azione deve fare il pulsante di quel tag (Punto 1, Punto 2,
+   Annulla, Azzera, Inizia partita, Resetta partita) — questi dispositivi
+   hanno un solo tasto, quindi una sola azione per tag.
+4. Ripeti da "Cerca dispositivi" per collegarne un secondo (o più):
+   restano tutti connessi insieme, ognuno con la propria azione.
 
 Tecnicamente: invece di puntare a un protocollo specifico (che varia da
 marca a marca), l'app si collega al dispositivo e si iscrive a **tutte** le

@@ -106,6 +106,78 @@ export const AVATARS = [
       <line x1="31.2" y1="35" x2="32.8" y2="35" stroke="#212121" stroke-width="2"/>
     `),
   },
+  {
+    id: 'f-side-braid', gender: 'f', level: 20,
+    svg: svg('#9575CD', `
+      <ellipse cx="32" cy="24" rx="15" ry="12" fill="#D4A24C"/>
+      <g fill="#D4A24C"><ellipse cx="44" cy="34" rx="4" ry="5"/><ellipse cx="45" cy="42" rx="3.6" ry="5"/><ellipse cx="45" cy="50" rx="3.2" ry="5"/></g>
+      ${face(SKIN[0])}
+    `),
+  },
+  {
+    id: 'm-buzzcut', gender: 'm', level: 22,
+    svg: svg('#FF8A65', `
+      <ellipse cx="32" cy="24" rx="14.5" ry="8" fill="#3E2723"/>
+      ${face(SKIN[2])}
+    `),
+  },
+  {
+    id: 'f-punk-buns', gender: 'f', level: 24,
+    svg: svg('#EC407A', `
+      <ellipse cx="32" cy="24" rx="14" ry="9" fill="#AB47BC"/>
+      <circle cx="19" cy="14" r="6" fill="#AB47BC"/><circle cx="45" cy="14" r="6" fill="#AB47BC"/>
+      ${face(SKIN[1])}
+    `),
+  },
+  {
+    id: 'm-mohawk', gender: 'm', level: 26,
+    svg: svg('#00897B', `
+      <path d="M29,5 L35,5 L34,27 Q32,25 30,27 Z" fill="#212121"/>
+      ${face(SKIN[3])}
+    `),
+  },
+  {
+    id: 'f-racket-bow', gender: 'f', level: 28,
+    svg: svg('#F8BBD0', `
+      <circle cx="32" cy="22" r="13" fill="none" stroke="#fff" stroke-width="3"/>
+      <rect x="29" y="33" width="6" height="18" rx="3" fill="#fff"/>
+      <g fill="#fff" opacity="0.9">
+        <circle cx="26" cy="18" r="1"/><circle cx="32" cy="15" r="1"/><circle cx="38" cy="18" r="1"/>
+        <circle cx="24" cy="24" r="1"/><circle cx="32" cy="22" r="1"/><circle cx="40" cy="24" r="1"/>
+        <circle cx="26" cy="29" r="1"/><circle cx="38" cy="29" r="1"/>
+      </g>
+      <path d="M26,49 Q32,44 38,49 Q32,52 26,49 Z" fill="#E91E63"/>
+      <circle cx="32" cy="49" r="2" fill="#C2185B"/>
+    `),
+  },
+  {
+    id: 'm-racket-band', gender: 'm', level: 30,
+    svg: svg('#42A5F5', `
+      <circle cx="32" cy="22" r="13" fill="none" stroke="#fff" stroke-width="3"/>
+      <rect x="29" y="33" width="6" height="18" rx="3" fill="#fff"/>
+      <g fill="#fff" opacity="0.9">
+        <circle cx="26" cy="18" r="1"/><circle cx="32" cy="15" r="1"/><circle cx="38" cy="18" r="1"/>
+        <circle cx="24" cy="24" r="1"/><circle cx="32" cy="22" r="1"/><circle cx="40" cy="24" r="1"/>
+        <circle cx="26" cy="29" r="1"/><circle cx="38" cy="29" r="1"/>
+      </g>
+      <rect x="26" y="44" width="12" height="6" rx="3" fill="#212121"/>
+    `),
+  },
+  {
+    id: 'f-heart', gender: 'f', level: 33,
+    svg: svg('#F06292', `
+      <circle cx="24" cy="24" r="10" fill="#fff"/><circle cx="40" cy="24" r="10" fill="#fff"/>
+      <rect x="19" y="24" width="26" height="26" fill="#fff" transform="rotate(45 32 34)"/>
+    `),
+  },
+  {
+    id: 'm-mustache-bowtie', gender: 'm', level: 36,
+    svg: svg('#8D6E63', `
+      <path d="M16,32 Q22,24 28,30 Q32,27 32,27 Q32,27 36,30 Q42,24 48,32 Q42,30 36,33 Q32,30 32,30 Q32,30 28,33 Q22,30 16,32 Z" fill="#fff"/>
+      <path d="M22,44 L32,40 L22,36 Z" fill="#fff"/><path d="M42,44 L32,40 L42,36 Z" fill="#fff"/>
+      <circle cx="32" cy="40" r="2.5" fill="#5D4037"/>
+    `),
+  },
 ];
 
 export function avatarById(id) {

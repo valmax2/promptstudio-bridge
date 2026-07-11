@@ -55,7 +55,9 @@ public class BleTagPlugin extends Plugin {
     private static final UUID CCCD_UUID = UUID.fromString("00002902-0000-1000-8000-00805f9b34fb");
     private static final long SCAN_DURATION_MS = 6000;
 
-    private BluetoothGatt gatt;
+    // Keyed by MAC address rather than a single field, so more than one tag
+    // (e.g. one per team) can stay connected at the same time.
+    private final Map<String, BluetoothGatt> gattByAddress = new HashMap<>();
     private final Map<String, BluetoothDevice> foundDevices = new HashMap<>();
 
     private String scanPermissionAlias() {
@@ -148,16 +150,17 @@ public class BleTagPlugin extends Plugin {
             call.reject("Bluetooth non disponibile");
             return;
         }
-        if (gatt != null) {
+        BluetoothGatt existing = gattByAddress.remove(address);
+        if (existing != null) {
             try {
-                gatt.disconnect();
-                gatt.close();
+                existing.disconnect();
+                existing.close();
             } catch (SecurityException ignored) {}
-            gatt = null;
         }
         BluetoothDevice device = adapter.getRemoteDevice(address);
         try {
-            gatt = device.connectGatt(getContext(), false, gattCallback);
+            BluetoothGatt g = device.connectGatt(getContext(), false, gattCallback);
+            gattByAddress.put(address, g);
         } catch (SecurityException e) {
             call.reject("Permesso Bluetooth mancante");
             return;
@@ -165,16 +168,38 @@ public class BleTagPlugin extends Plugin {
         call.resolve();
     }
 
+    // Pass "address" to disconnect just that tag; omit it to disconnect all
+    // (e.g. when the remote-control toggle is switched off entirely).
     @PluginMethod
     public void disconnect(PluginCall call) {
-        if (gatt != null) {
-            try {
-                gatt.disconnect();
-                gatt.close();
-            } catch (SecurityException ignored) {}
-            gatt = null;
+        String address = call.getString("address");
+        if (address != null) {
+            BluetoothGatt g = gattByAddress.remove(address);
+            if (g != null) {
+                try {
+                    g.disconnect();
+                    g.close();
+                } catch (SecurityException ignored) {}
+            }
+        } else {
+            for (BluetoothGatt g : gattByAddress.values()) {
+                try {
+                    g.disconnect();
+                    g.close();
+                } catch (SecurityException ignored) {}
+            }
+            gattByAddress.clear();
         }
         call.resolve();
+    }
+
+    private String addressOf(BluetoothGatt g) {
+        try {
+            BluetoothDevice d = g.getDevice();
+            return d != null ? d.getAddress() : null;
+        } catch (SecurityException e) {
+            return null;
+        }
     }
 
     private final BluetoothGattCallback gattCallback = new BluetoothGattCallback() {
@@ -185,7 +210,11 @@ public class BleTagPlugin extends Plugin {
                     g.discoverServices();
                 } catch (SecurityException ignored) {}
             } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
-                notifyListeners("disconnected", new JSObject());
+                String address = addressOf(g);
+                gattByAddress.remove(address);
+                JSObject data = new JSObject();
+                data.put("address", address);
+                notifyListeners("disconnected", data);
             }
         }
 
@@ -217,6 +246,7 @@ public class BleTagPlugin extends Plugin {
                 }
             }
             JSObject data = new JSObject();
+            data.put("address", addressOf(g));
             data.put("subscribed", subscribed);
             notifyListeners("connected", data);
         }
@@ -224,6 +254,7 @@ public class BleTagPlugin extends Plugin {
         @Override
         public void onCharacteristicChanged(BluetoothGatt g, BluetoothGattCharacteristic characteristic) {
             JSObject data = new JSObject();
+            data.put("address", addressOf(g));
             data.put("uuid", characteristic.getUuid().toString());
             notifyListeners("tagPressed", data);
         }

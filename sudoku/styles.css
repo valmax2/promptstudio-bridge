@@ -230,6 +230,18 @@ body {
      sovrapporsi alla tastiera numerica sottostante. */
   --cell: min(10.4vw, calc((100dvh - 424px - var(--ad-banner-height, 0px)) / 9));
   display: grid;
+}
+/* Sui tablet la larghezza abbonda: alziamo il tetto in vw così a decidere è
+   l'altezza disponibile e la griglia diventa più grande possibile senza mai
+   scendere sotto il tastierino. */
+@media (min-width: 600px) {
+  #board {
+    /* 432px = stessa stima dei telefoni + 8px di margine: qui è l'altezza a
+       decidere la dimensione, meglio non stare al pixel su dispositivi veri. */
+    --cell: min(12vw, 96px, calc((100dvh - 432px - var(--ad-banner-height, 0px)) / 9));
+  }
+}
+#board {
   grid-template-columns: repeat(9, var(--cell));
   grid-template-rows: repeat(9, var(--cell));
   background: var(--surface);
@@ -313,7 +325,11 @@ body {
 }
 .keypad-grid {
   display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
-  max-width: 260px; width: 100%; flex-shrink: 1;
+  /* 224px: sui telefoni la larghezza vincola già il tastierino a ~222px, ma sui
+     tablet (dove c'è spazio) i tasti quadrati crescerebbero fino a ~81px l'uno,
+     alzando la colonna di ~40px oltre la stima usata per dimensionare la griglia
+     (che finiva coperta dal tastierino). Questo tetto li tiene come sui telefoni. */
+  max-width: 224px; width: 100%; flex-shrink: 1;
 }
 .key {
   aspect-ratio: 1; border-radius: 12px; font-size: 19px; font-weight: 700; position: relative;

@@ -19,5 +19,13 @@ export const firebaseConfig = {
 // Project Settings → Cloud Messaging → Web Push certificates).
 export const vapidKey = "BNzbof342O7fTVmaBI19Mx90BoAay-c1mEVuWZScwYeszU38hfMFI5Yc-QO2AFXJ9iWLpui7oHEg1Y14I7dcOEI";
 
+// Web client ID per l'accesso con Google (Firebase Console → Authentication →
+// Sign-in method → Google → sezione "Web SDK configuration" → "Web client
+// ID"). Serve anche per l'app Android: vedi README.md § Accesso con Google.
+export const googleWebClientId = "YOUR_GOOGLE_WEB_CLIENT_ID.apps.googleusercontent.com";
+
+export const isGoogleAuthConfigured =
+  googleWebClientId && !googleWebClientId.startsWith("YOUR_");
+
 export const isFirebaseConfigured =
   firebaseConfig.apiKey && !firebaseConfig.apiKey.startsWith("YOUR_");

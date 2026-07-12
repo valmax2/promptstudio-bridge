@@ -26,6 +26,9 @@ const DEFAULT_STATE = {
   profile: {
     uid: null,
     phone: null,
+    // Short shareable code (e.g. "7K4RTQ") used to add friends without
+    // exchanging phone numbers - assigned on first Google sign-in.
+    friendCode: null,
     name: 'Giocatore',
     // Despite the name (kept for compatibility with existing synced
     // profiles), this holds an illustrated-avatar id, not an emoji - see

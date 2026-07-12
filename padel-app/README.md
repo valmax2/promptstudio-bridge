@@ -12,8 +12,8 @@ statistiche, gamification e sincronizzazione cloud.
 | Modalità Doppio / Singolo, con schermata di impostazione nuova partita | ✅ Funzionante, offline |
 | Schermata segnapunti a schermo intero, cifre enormi, ottimizzata per tablet | ✅ Funzionante, offline — tocca l'intera metà colorata della squadra per assegnare il punto |
 | Tema scuro/chiaro, font e dimensione testo | ✅ Funzionante, offline |
-| Login con numero di telefono | ✅ Funzionante *(richiede Firebase configurato)* |
-| Community: amici e cerchie chiuse | ✅ Funzionante *(richiede Firebase; modalità locale limitata senza login)* |
+| Login con account Google | ✅ Funzionante *(richiede Firebase + Google Sign-In configurati, vedi § 3.7)* |
+| Community: amici (tramite codice personale da condividere) e cerchie chiuse | ✅ Funzionante *(richiede Firebase; modalità locale limitata senza login)* |
 | Eventi con notifica push e conferma/rifiuto | ✅ Funzionante *(richiede Firebase + Cloud Functions deployate)* |
 | Statistiche partite e trend | ✅ Funzionante, offline |
 | Gamification (XP, avatar e cornici sbloccabili) | ✅ Funzionante, offline |
@@ -76,7 +76,7 @@ l'app resta comunque utilizzabile in modalità locale.
 
 Nel menu laterale della console Firebase:
 
-- **Authentication** → Sign-in method → attiva **Telefono**.
+- **Authentication** → Sign-in method → attiva **Google**.
 - **Firestore Database** → Crea database (modalità produzione).
 - **Storage** → Crea bucket (per gli avatar).
 - **Cloud Messaging** → non serve un'azione esplicita, ma prendi nota della
@@ -113,7 +113,8 @@ export const vapidKey = "...";
 ```
 
 Ricompila/ricarica l'app (rilancia il workflow o `build-apk.sh`): il banner
-"modalità locale" sparirà e potrai accedere con il numero di telefono.
+"modalità locale" sparirà. Per attivare anche il pulsante di accesso,
+completa il punto 3.7 qui sotto (accesso con Google).
 
 ### 3.6 Pubblica regole di sicurezza e Cloud Functions
 
@@ -135,15 +136,42 @@ sicurezza di default di Firestore potrebbero bloccare le letture/scritture:
 assicurati di completare questo passaggio prima di usare Community/Eventi
 con altre persone.
 
-### Nota sul login via SMS in un APK Capacitor
+### 3.7 Configura l'accesso con Google
 
-Il login usa l'autenticazione telefonica web di Firebase (reCAPTCHA
-invisibile + SMS). Funziona nella WebView Android, ma in alcuni telefoni /
-versioni di Android System WebView il reCAPTCHA può richiedere una verifica
-visibile la prima volta. Se riscontri problemi persistenti, la soluzione
-più robusta è integrare il plugin nativo `@capacitor-firebase/authentication`
-in una versione successiva: la struttura del codice (`js/firebase.js`,
-`js/screens/login.js`) è già isolata per rendere questo passaggio semplice.
+Il login usa l'accesso nativo con Google (un tap sull'account già presente
+sul telefono) invece del numero di telefono via SMS: niente reCAPTCHA,
+niente costi, niente quote da sbloccare — ma serve un piccolo setup una
+tantum su Firebase Console.
+
+1. **Registra un'app Android nel progetto** (oltre a quella Web del punto
+   3.3): Project Settings (icona ingranaggio) → scorri fino a "Le tue app"
+   → **Aggiungi app** → Android.
+   - Nome pacchetto Android: **`com.padelapp.app`** (esattamente così).
+   - Nickname libero, es. "Padel App Android".
+   - Alla richiesta del file `google-services.json`, puoi scaricarlo o
+     saltare — non è necessario per questo progetto.
+2. **Aggiungi l'impronta SHA-1**: nella stessa scheda dell'app appena
+   creata, clicca **"Aggiungi impronta digitale"** e incolla:
+   ```
+   0E:5F:D3:A3:5C:A8:9F:AE:AD:5D:45:ED:BE:28:8A:23:4E:3E:A6:51
+   ```
+   (è l'impronta di una keystore di debug fissa inclusa nel repository, così
+   resta identica a ogni build automatica — senza questo passaggio l'accesso
+   con Google fallisce sempre).
+3. **Recupera il "Web client ID"**: Authentication → Sign-in method →
+   **Google** → espandi la riga → sezione "SDK web configuration" →
+   copia il valore di **"ID client web"** (finisce con
+   `.apps.googleusercontent.com`).
+4. **Incolla il valore** in `padel-app/firebase-config.js`:
+   ```js
+   export const googleWebClientId = "...apps.googleusercontent.com";
+   ```
+5. Ricompila (rilancia il workflow o `build-apk.sh`): il pulsante "Accedi
+   con Google" nella schermata di accesso diventerà attivo.
+
+Se in futuro cambi la keystore di firma (es. per pubblicare su Google Play
+con una chiave di release), dovrai aggiungere anche **quella** impronta SHA-1
+al punto 2, oltre a quella di debug.
 
 ## Struttura del progetto
 

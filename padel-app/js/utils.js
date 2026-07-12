@@ -15,6 +15,17 @@ export function uid() {
   return crypto.randomUUID();
 }
 
+// Short, easy-to-read/share code (no ambiguous 0/O/1/I) for adding friends
+// without exchanging phone numbers - e.g. "7K4RTQ".
+const FRIEND_CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+export function genFriendCode() {
+  let code = '';
+  for (let i = 0; i < 6; i++) {
+    code += FRIEND_CODE_ALPHABET[Math.floor(Math.random() * FRIEND_CODE_ALPHABET.length)];
+  }
+  return code;
+}
+
 export function debounce(fn, ms = 500) {
   let t;
   return (...args) => {

@@ -36,9 +36,9 @@ export async function uploadAvatarBlob(blob) {
 }
 
 // ---- Friends ----
-export async function findUserByPhone(phone) {
+export async function findUserByFriendCode(code) {
   if (!firebaseAvailable()) return null;
-  const results = await fsQueryWhere('users', 'phone', '==', phone);
+  const results = await fsQueryWhere('users', 'friendCode', '==', code.trim().toUpperCase());
   return results[0] || null;
 }
 

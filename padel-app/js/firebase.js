@@ -64,19 +64,12 @@ export function storage() { return _storage; }
 export function messaging() { return _messaging; }
 export { vapidKey };
 
-// ---- Auth: phone number sign-in ----
-export async function setupRecaptcha(containerId) {
+// ---- Auth: Google sign-in (native idToken exchanged for a Firebase
+// credential - see js/google-auth.js for the native side) ----
+export async function signInWithGoogleIdToken(idToken) {
   const { auth } = _mods;
-  return new (auth.RecaptchaVerifier)(_auth, containerId, { size: 'invisible' });
-}
-
-export async function sendOtp(phoneNumber, recaptchaVerifier) {
-  const { auth } = _mods;
-  return auth.signInWithPhoneNumber(_auth, phoneNumber, recaptchaVerifier);
-}
-
-export async function confirmOtp(confirmationResult, code) {
-  return confirmationResult.confirm(code);
+  const credential = auth.GoogleAuthProvider.credential(idToken);
+  return auth.signInWithCredential(_auth, credential);
 }
 
 export function onAuthChanged(cb) {

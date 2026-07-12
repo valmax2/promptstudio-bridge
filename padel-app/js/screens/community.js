@@ -1,7 +1,7 @@
 import { getState, setState } from '../store.js';
 import { firebaseAvailable } from '../firebase.js';
 import {
-  isCloudReady, findUserByPhone, addFriend, listenFriends,
+  isCloudReady, findUserByFriendCode, addFriend, listenFriends,
   createCircle, joinCircle, listenMyCircles,
 } from '../cloud.js';
 import { escapeHtml, uid as genId } from '../utils.js';
@@ -19,6 +19,7 @@ export async function renderCommunity(el) {
     const state = getState();
     const friends = friendsOverride || state.friends;
     const circles = circlesOverride || state.circles;
+    const myCode = state.profile.friendCode;
 
     el.innerHTML = `
       <div class="topbar"><h1>Community</h1><div class="subtitle">${cloud ? 'Sincronizzata' : 'Modalità locale'}</div></div>
@@ -28,11 +29,16 @@ export async function renderCommunity(el) {
         ${firebaseAvailable() ? '<button class="btn primary block" id="go-login">Accedi</button>' : ''}
       </div>` : ''}
 
+      ${cloud && myCode ? `<div class="card row between">
+        <div><strong>Il tuo codice amico</strong><p class="mb0 small">Condividilo per farti aggiungere</p></div>
+        <button class="btn secondary" id="copy-code">${escapeHtml(myCode)} 📋</button>
+      </div>` : ''}
+
       <div class="card">
         <h2>👥 Amici</h2>
         ${cloud ? `
         <div class="row">
-          <input id="friend-phone" placeholder="Numero di telefono amico" style="flex:1">
+          <input id="friend-code" placeholder="Codice amico (es. 7K4RTQ)" style="flex:1" maxlength="6">
           <button class="btn primary" id="add-friend">Aggiungi</button>
         </div>` : `
         <div class="row">
@@ -60,6 +66,10 @@ export async function renderCommunity(el) {
 
     el.querySelector('#go-login')?.addEventListener('click', () => navigate('login'));
 
+    el.querySelector('#copy-code')?.addEventListener('click', async () => {
+      try { await navigator.clipboard.writeText(myCode); toast('Codice copiato!'); } catch { toast(`Il tuo codice: ${myCode}`); }
+    });
+
     el.querySelector('#add-friend-local')?.addEventListener('click', () => {
       const name = el.querySelector('#friend-name').value.trim();
       if (!name) return;
@@ -70,12 +80,13 @@ export async function renderCommunity(el) {
     });
 
     el.querySelector('#add-friend')?.addEventListener('click', async () => {
-      const phone = el.querySelector('#friend-phone').value.trim();
-      if (!phone) return;
+      const code = el.querySelector('#friend-code').value.trim();
+      if (!code) return;
       try {
-        const user = await findUserByPhone(phone);
-        if (!user) { toast('Nessun utente trovato con questo numero'); return; }
-        await addFriend(user.uid, { name: user.name, phone: user.phone });
+        const user = await findUserByFriendCode(code);
+        if (!user) { toast('Nessun utente trovato con questo codice'); return; }
+        if (user.uid === getState().profile.uid) { toast('Questo è il tuo codice!'); return; }
+        await addFriend(user.uid, { name: user.name, friendCode: user.friendCode });
         toast('Amico aggiunto!');
       } catch (err) {
         toast('Errore: ' + err.message);
@@ -116,7 +127,7 @@ export async function renderCommunity(el) {
 function friendRow(f) {
   return `<div class="list-item">
     <div class="avatar">🙂</div>
-    <div class="meta"><strong>${escapeHtml(f.name || f.phone || 'Amico')}</strong>${f.local ? '<span>Solo locale</span>' : ''}</div>
+    <div class="meta"><strong>${escapeHtml(f.name || f.friendCode || 'Amico')}</strong>${f.local ? '<span>Solo locale</span>' : ''}</div>
   </div>`;
 }
 

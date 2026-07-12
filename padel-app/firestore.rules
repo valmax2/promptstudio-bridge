@@ -6,7 +6,7 @@ service cloud.firestore {
     function isMe(uid) { return isSignedIn() && request.auth.uid == uid; }
 
     // Ogni utente gestisce il proprio profilo; è leggibile da tutti gli
-    // utenti autenticati per poter cercare amici per numero di telefono.
+    // utenti autenticati per poter cercare amici per codice personale.
     match /users/{uid} {
       allow read: if isSignedIn();
       allow write: if isMe(uid);

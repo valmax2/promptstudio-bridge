@@ -29,6 +29,11 @@ APP_NAME="Padel App"
 HERE="$(cd "$(dirname "$0")" && pwd)"
 BUILD="$HERE/.capacitor-build"
 
+echo "▶ Uso una keystore di debug fissa (per SHA-1 stabile: serve all'accesso"
+echo "  con Google, che altrimenti smetterebbe di funzionare a ogni build)"
+mkdir -p "$HOME/.android"
+cp "$HERE/native-android/keystore/debug.keystore" "$HOME/.android/debug.keystore"
+
 echo "▶ Preparo l'ambiente Capacitor in $BUILD"
 rm -rf "$BUILD"
 mkdir -p "$BUILD/www"
@@ -46,10 +51,24 @@ echo "▶ Inizializzo il progetto npm e installo Capacitor"
 cat > package.json <<'EOF'
 { "name": "padel-app-capacitor-build", "version": "1.0.0", "private": true }
 EOF
-npm install @capacitor/core @capacitor/cli @capacitor/android @capacitor-community/text-to-speech >/dev/null
+npm install @capacitor/core @capacitor/cli @capacitor/android @capacitor-community/text-to-speech @codetrix-studio/capacitor-google-auth >/dev/null
 
 echo "▶ Inizializzo Capacitor ($APP_ID)"
 npx cap init "$APP_NAME" "$APP_ID" --web-dir=www
+
+echo "▶ Configuro l'accesso con Google (client ID da firebase-config.js)"
+GOOGLE_WEB_CLIENT_ID=$(sed -n 's/.*googleWebClientId = "\(.*\)".*/\1/p' "$HERE/firebase-config.js")
+node -e "
+const fs = require('fs');
+const cfg = JSON.parse(fs.readFileSync('capacitor.config.json', 'utf8'));
+cfg.plugins = cfg.plugins || {};
+cfg.plugins.GoogleAuth = {
+  scopes: ['profile', 'email'],
+  androidClientId: '$GOOGLE_WEB_CLIENT_ID',
+  forceCodeForRefreshToken: false,
+};
+fs.writeFileSync('capacitor.config.json', JSON.stringify(cfg, null, 2));
+"
 
 echo "▶ Aggiungo la piattaforma Android"
 npx cap add android

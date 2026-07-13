@@ -3,7 +3,6 @@ package com.padelapp.app;
 import android.os.Bundle;
 import android.view.InputDevice;
 import android.view.KeyEvent;
-import com.codetrixstudio.capacitor.GoogleAuth.GoogleAuth;
 import com.getcapacitor.BridgeActivity;
 import org.json.JSONObject;
 
@@ -29,7 +28,6 @@ public class MainActivity extends BridgeActivity {
     public void onCreate(Bundle savedInstanceState) {
         registerPlugin(RemoteControlPlugin.class);
         registerPlugin(BleTagPlugin.class);
-        registerPlugin(GoogleAuth.class);
         super.onCreate(savedInstanceState);
     }
 

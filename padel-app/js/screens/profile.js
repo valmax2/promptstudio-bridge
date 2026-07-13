@@ -1,7 +1,6 @@
 import { getState, updateProfile } from '../store.js';
 import { pushProfile, uploadAvatarBlob } from '../cloud.js';
 import { firebaseAvailable, signOutUser, currentUser } from '../firebase.js';
-import { signOutGoogle } from '../google-auth.js';
 import { navigate } from '../router.js';
 import { escapeHtml } from '../utils.js';
 import { toast } from '../app.js';
@@ -41,7 +40,7 @@ export async function renderProfile(el) {
       <button class="btn ghost block" id="go-settings">⚙️ Impostazioni</button>
       ${authed
         ? `<button class="btn danger block mt" id="logout">Esci</button>`
-        : firebaseAvailable() ? `<button class="btn primary block mt" id="login">Accedi con Google</button>` : ''}
+        : firebaseAvailable() ? `<button class="btn primary block mt" id="login">Accedi</button>` : ''}
     </div>
   `;
 
@@ -81,7 +80,6 @@ export async function renderProfile(el) {
   el.querySelector('#go-settings').addEventListener('click', () => navigate('settings'));
   el.querySelector('#logout')?.addEventListener('click', async () => {
     await signOutUser();
-    await signOutGoogle();
     updateProfile({ uid: null, phone: null });
     toast('Disconnesso');
     navigate('home');

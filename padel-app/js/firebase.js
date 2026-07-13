@@ -64,12 +64,21 @@ export function storage() { return _storage; }
 export function messaging() { return _messaging; }
 export { vapidKey };
 
-// ---- Auth: Google sign-in (native idToken exchanged for a Firebase
-// credential - see js/google-auth.js for the native side) ----
-export async function signInWithGoogleIdToken(idToken) {
+// ---- Auth: email + password (works identically on any device - phone,
+// tablet, no SIM/Google account required, no native plugin) ----
+export async function registerWithEmail(email, password) {
   const { auth } = _mods;
-  const credential = auth.GoogleAuthProvider.credential(idToken);
-  return auth.signInWithCredential(_auth, credential);
+  return auth.createUserWithEmailAndPassword(_auth, email, password);
+}
+
+export async function signInWithEmail(email, password) {
+  const { auth } = _mods;
+  return auth.signInWithEmailAndPassword(_auth, email, password);
+}
+
+export async function resetPasswordEmail(email) {
+  const { auth } = _mods;
+  return auth.sendPasswordResetEmail(_auth, email);
 }
 
 export function onAuthChanged(cb) {

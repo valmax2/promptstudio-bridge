@@ -10,29 +10,15 @@ set -euo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
 cd "$HERE"
 
-echo "▶ Uso una keystore di debug fissa (per SHA-1 stabile: serve all'accesso"
-echo "  con Google, che altrimenti smetterebbe di funzionare a ogni build)"
+echo "▶ Uso una keystore di debug fissa (stessa firma a ogni build, così puoi"
+echo "  installare l'APK aggiornato sopra quello vecchio senza disinstallare)"
 mkdir -p "$HOME/.android"
 cp "$HERE/native-android/keystore/debug.keystore" "$HOME/.android/debug.keystore"
 
 echo "▶ Installo Capacitor + strumenti"
 [ -f package.json ] || npm init -y >/dev/null
-npm install @capacitor/core @capacitor/cli @capacitor/android @capacitor-community/text-to-speech @codetrix-studio/capacitor-google-auth
+npm install @capacitor/core @capacitor/cli @capacitor/android @capacitor-community/text-to-speech
 npm install --save-dev @capacitor/assets
-
-echo "▶ Configuro l'accesso con Google (client ID da firebase-config.js)"
-GOOGLE_WEB_CLIENT_ID=$(sed -n 's/.*googleWebClientId = "\(.*\)".*/\1/p' "$HERE/firebase-config.js")
-node -e "
-const fs = require('fs');
-const cfg = JSON.parse(fs.readFileSync('capacitor.config.json', 'utf8'));
-cfg.plugins = cfg.plugins || {};
-cfg.plugins.GoogleAuth = {
-  scopes: ['profile', 'email'],
-  androidClientId: '$GOOGLE_WEB_CLIENT_ID',
-  forceCodeForRefreshToken: false,
-};
-fs.writeFileSync('capacitor.config.json', JSON.stringify(cfg, null, 2));
-"
 
 echo "▶ Copio i file web in www/"
 rm -rf www && mkdir -p www

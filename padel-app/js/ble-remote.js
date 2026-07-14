@@ -55,7 +55,7 @@ export async function disableRemote() {
   try { await remoteControl()?.disable(); } catch {}
 }
 
-function listenRawPresses(cb) {
+export function listenRawPresses(cb) {
   const handler = (e) => cb(e.detail);
   window.addEventListener('padel-hw-key', handler);
   return () => window.removeEventListener('padel-hw-key', handler);

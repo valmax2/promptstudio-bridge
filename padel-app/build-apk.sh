@@ -76,6 +76,15 @@ echo "▶ Imposto un versionCode univoco (timestamp) ad ogni build"
 VERSION_CODE=$(date +%s)
 sed -i "s/versionCode 1\$/versionCode $VERSION_CODE/" android/app/build.gradle
 sed -i "s/versionName \"1.0\"/versionName \"1.0.$VERSION_CODE\"/" android/app/build.gradle
+# sed non fallisce se il pattern non trova corrispondenze: verifichiamo qui
+# esplicitamente che la sostituzione sia avvenuta, altrimenti l'APK finirebbe
+# silenziosamente con lo stesso versionCode di sempre (da cui il sintomo
+# "devo sempre disinstallare per vedere gli aggiornamenti").
+if ! grep -q "versionCode $VERSION_CODE" android/app/build.gradle; then
+  echo "❌ Impossibile impostare il versionCode univoco: il pattern atteso non è stato trovato in android/app/build.gradle" >&2
+  exit 1
+fi
+echo "  → versionCode impostato a $VERSION_CODE"
 
 echo "▶ Genero l'icona nativa dell'app Android da icon.svg"
 # Senza questo passaggio l'APK usa l'icona segnaposto generica di Capacitor

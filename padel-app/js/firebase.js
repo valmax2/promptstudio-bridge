@@ -149,3 +149,11 @@ export async function uploadAvatar(uid, blob) {
   return storageMod.getDownloadURL(ref);
 }
 
+// ---- Storage: admin-uploaded avatar/frame catalog images ----
+export async function uploadCatalogImage(path, blob) {
+  const { storage: storageMod } = _mods;
+  const ref = storageMod.ref(_storage, path);
+  await storageMod.uploadBytes(ref, blob, { contentType: blob.type || 'image/png' });
+  return storageMod.getDownloadURL(ref);
+}
+

@@ -1,3 +1,5 @@
+import { getState } from './store.js';
+
 // Profile avatar frames, unlocked by leveling up (see gamification.js). Each
 // one pairs a border color/glow with a small corner badge so equipping one
 // actually reads as "themed decoration" rather than just a plain colored ring.
@@ -14,11 +16,24 @@ export const FRAMES = [
   { id: 'neon', label: 'Neon', level: 16, color: '#B388FF', glow: 'rgba(179,136,255,0.7)', badge: '⚡' },
 ];
 
+// Custom frames caricate dall'admin (vedi js/admin.js) sono immagini intere
+// sovrapposte all'avatar, non un colore di bordo - identificate da un id
+// "custom:<docId>" in profile.equippedFrame invece di uno dei FRAMES statici.
+export function isCustomFrameId(id) {
+  return typeof id === 'string' && id.startsWith('custom:');
+}
+
+function customFrameById(id) {
+  const itemId = id.slice('custom:'.length);
+  return (getState().customFrames || []).find((f) => f.id === itemId) || null;
+}
+
 export function frameById(id) {
   return FRAMES.find((f) => f.id === id) || FRAMES[0];
 }
 
 export function frameStyle(id) {
+  if (isCustomFrameId(id)) return 'border-width:0;box-shadow:none;';
   const f = frameById(id);
   const width = f.id === 'none' ? 3 : 5;
   const shadow = f.id === 'none' ? 'none' : `0 0 14px 2px ${f.glow}`;
@@ -26,7 +41,14 @@ export function frameStyle(id) {
 }
 
 export function frameBadgeHtml(id) {
+  if (isCustomFrameId(id)) return '';
   const f = frameById(id);
   if (!f.badge) return '';
   return `<span class="avatar-frame-badge">${f.badge}</span>`;
+}
+
+export function frameOverlayHtml(id) {
+  if (!isCustomFrameId(id)) return '';
+  const f = customFrameById(id);
+  return f ? `<img class="avatar-frame-overlay" src="${f.imageUrl}" alt="">` : '';
 }

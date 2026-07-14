@@ -4,6 +4,10 @@ service cloud.firestore {
 
     function isSignedIn() { return request.auth != null; }
     function isMe(uid) { return isSignedIn() && request.auth.uid == uid; }
+    // Solo questo account può gestire il catalogo condiviso di avatar/
+    // cornici custom (vedi js/admin.js) - tutti gli altri possono solo
+    // leggerlo, per mostrarlo come opzione nella schermata Premi.
+    function isAdmin() { return isSignedIn() && request.auth.uid == 'CAvv7ICUfYYpqcCRjA7s3ZhsoGo2'; }
 
     // Ogni utente gestisce il proprio profilo; è leggibile da tutti gli
     // utenti autenticati per poter cercare amici per codice personale.
@@ -61,6 +65,18 @@ service cloud.firestore {
         (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['participants', 'invitedIds']) && leavingSelf())
       );
       allow delete: if isSignedIn() && resource.data.hostId == request.auth.uid;
+    }
+
+    // Catalogo condiviso di avatar/cornici custom caricati dall'admin -
+    // leggibile da chiunque sia autenticato (per mostrarli in "Premi"),
+    // scrivibile solo dall'admin.
+    match /customAvatars/{itemId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+    match /customFrames/{itemId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
     }
 
     // Le partite sono private a chi le ha registrate.

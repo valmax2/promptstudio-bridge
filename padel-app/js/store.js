@@ -72,6 +72,10 @@ const DEFAULT_STATE = {
   circles: [],        // {id, name, memberIds, memberNames}
   events: [],          // {id, title, dateTime, location, circleId, hostId, hostName, participants, maxPlayers}
   matches: [],          // {id, date, teamAName, teamBName, sets, winner, golden, superTiebreak}
+  // Catalogo condiviso di avatar/cornici custom caricati dall'admin (vedi
+  // js/admin.js): {id, label, imageUrl, createdAt}.
+  customAvatars: [],
+  customFrames: [],
 };
 
 function loadState() {

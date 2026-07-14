@@ -4,8 +4,9 @@
 // device is offline, so screens can call these unconditionally.
 import {
   firebaseAvailable, db, mods, currentUser,
-  fsGet, fsSet, fsAdd, fsQueryWhere, fsListenCollection, uploadAvatar,
+  fsGet, fsSet, fsAdd, fsQueryWhere, fsListenCollection, uploadAvatar, uploadCatalogImage,
 } from './firebase.js';
+import { uid as genId } from './utils.js';
 
 function uid() {
   const u = currentUser();
@@ -243,4 +244,30 @@ export function listenMyMatches(cb) {
   const id = uid();
   if (!isCloudReady() || !id) return () => {};
   return fsListenCollection('matches', cb, [['createdBy', '==', id]]);
+}
+
+// ---- Admin catalog (custom avatars/frames, see js/admin.js) ----
+export async function uploadCustomCatalogItem(kind, label, blob) {
+  if (!isCloudReady()) return;
+  const itemId = genId();
+  const collection = kind === 'avatar' ? 'customAvatars' : 'customFrames';
+  const imageUrl = await uploadCatalogImage(`admin-${collection}/${itemId}`, blob);
+  await fsSet(`${collection}/${itemId}`, { label, imageUrl, createdAt: Date.now() });
+}
+
+export function listenCustomAvatars(cb) {
+  if (!firebaseAvailable()) return () => {};
+  return fsListenCollection('customAvatars', cb);
+}
+
+export function listenCustomFrames(cb) {
+  if (!firebaseAvailable()) return () => {};
+  return fsListenCollection('customFrames', cb);
+}
+
+export async function deleteCustomCatalogItem(kind, itemId) {
+  if (!isCloudReady()) return;
+  const { fs } = mods();
+  const collection = kind === 'avatar' ? 'customAvatars' : 'customFrames';
+  await fs.deleteDoc(fs.doc(db(), `${collection}/${itemId}`));
 }

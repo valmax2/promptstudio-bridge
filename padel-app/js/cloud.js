@@ -90,7 +90,13 @@ export function listenMyChats(cb) {
   return fsListenCollection('chats', cb, [['participants', 'array-contains', id]]);
 }
 
-// ---- Circles (closed groups) ----
+export async function deleteChat(chatId) {
+  if (!isCloudReady()) return;
+  const { fs } = mods();
+  await fs.deleteDoc(fs.doc(db(), `chats/${chatId}`));
+}
+
+// ---- Circles (closed groups, shown to users as "Gruppi") ----
 export async function createCircle(name) {
   const id = uid();
   if (!isCloudReady() || !id) return null;
@@ -103,10 +109,39 @@ export async function joinCircle(circleId) {
   const { fs } = mods();
   const ref = fs.doc(db(), `circles/${circleId}`);
   const snap = await fs.getDoc(ref);
-  if (!snap.exists()) throw new Error('Cerchia non trovata');
+  if (!snap.exists()) throw new Error('Gruppo non trovato');
   const data = snap.data();
   const memberIds = Array.from(new Set([...(data.memberIds || []), id]));
   await fs.setDoc(ref, { memberIds }, { merge: true });
+}
+
+// Adds a friend directly by uid (the "+ Aggiungi" flow), as an alternative
+// to sharing a join code.
+export async function addMemberToCircle(circleId, friendUid) {
+  if (!isCloudReady()) return;
+  const { fs } = mods();
+  const ref = fs.doc(db(), `circles/${circleId}`);
+  const snap = await fs.getDoc(ref);
+  if (!snap.exists()) throw new Error('Gruppo non trovato');
+  const memberIds = Array.from(new Set([...(snap.data().memberIds || []), friendUid]));
+  await fs.setDoc(ref, { memberIds }, { merge: true });
+}
+
+export async function leaveCircle(circleId) {
+  const id = uid();
+  if (!isCloudReady() || !id) return;
+  const { fs } = mods();
+  const ref = fs.doc(db(), `circles/${circleId}`);
+  const snap = await fs.getDoc(ref);
+  if (!snap.exists()) return;
+  const memberIds = (snap.data().memberIds || []).filter((m) => m !== id);
+  await fs.setDoc(ref, { memberIds }, { merge: true });
+}
+
+export async function deleteCircle(circleId) {
+  if (!isCloudReady()) return;
+  const { fs } = mods();
+  await fs.deleteDoc(fs.doc(db(), `circles/${circleId}`));
 }
 
 export function listenMyCircles(cb) {
@@ -146,6 +181,12 @@ export function listenMyEvents(cb) {
   const id = uid();
   if (!isCloudReady() || !id) return () => {};
   return fsListenCollection('events', cb, [['invitedIds', 'array-contains', id]]);
+}
+
+export async function deleteEvent(eventId) {
+  if (!isCloudReady()) return;
+  const { fs } = mods();
+  await fs.deleteDoc(fs.doc(db(), `events/${eventId}`));
 }
 
 // ---- Matches ----

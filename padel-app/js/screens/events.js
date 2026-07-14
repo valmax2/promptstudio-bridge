@@ -1,5 +1,5 @@
 import { getState, setState } from '../store.js';
-import { isCloudReady, createEvent, respondToEvent, listenMyEvents, listenFriends } from '../cloud.js';
+import { isCloudReady, createEvent, deleteEvent, respondToEvent, listenMyEvents, listenFriends } from '../cloud.js';
 import { escapeHtml, formatDateTime, uid as genId } from '../utils.js';
 import { currentUser, firebaseAvailable } from '../firebase.js';
 import { navigate } from '../router.js';
@@ -35,7 +35,7 @@ export async function renderEvents(el) {
       ${formOpen ? newEventForm(cloud, friends.filter((f) => !f.local)) : ''}
 
       <div class="card">
-        ${sorted.length ? sorted.map((e) => eventCard(e, me)).join('') : `<div class="empty-state"><span class="icon">📅</span>Nessun evento in programma</div>`}
+        ${sorted.length ? sorted.map((e) => eventCard(e, me, cloud)).join('') : `<div class="empty-state"><span class="icon">📅</span>Nessun evento in programma</div>`}
       </div>
     `;
 
@@ -67,6 +67,21 @@ export async function renderEvents(el) {
         }
       });
     });
+
+    el.querySelectorAll('[data-delete-event]').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        if (!confirm('Eliminare questo evento per tutti gli invitati?')) return;
+        const id = btn.dataset.deleteEvent;
+        if (cloud) {
+          try { await deleteEvent(id); toast('Evento eliminato'); }
+          catch (err) { toast('Errore: ' + err.message); }
+        } else {
+          setState({ events: getState().events.filter((e) => e.id !== id) });
+          toast('Evento eliminato');
+          paint();
+        }
+      });
+    });
   }
 
   function onCreateEvent(el) {
@@ -82,7 +97,8 @@ export async function renderEvents(el) {
     const dateTime = dt.toISOString();
 
     if (cloud) {
-      createEvent({ title, dateTime, location, maxPlayers }, invitedIds)
+      const hostName = getState().profile.name;
+      createEvent({ title, dateTime, location, maxPlayers, hostName }, invitedIds)
         .then(() => { toast('Evento creato! Gli amici invitati riceveranno una notifica.'); formOpen = false; paint(); })
         .catch((err) => toast('Errore: ' + err.message));
     } else {
@@ -147,17 +163,19 @@ function newEventForm(cloud, friends) {
   `;
 }
 
-function eventCard(e, me) {
+function eventCard(e, me, cloud) {
   const participants = e.participants || {};
   const yes = Object.values(participants).filter((v) => v === 'yes').length;
   const myStatus = me ? participants[me] : participants.me;
   const full = yes >= (e.maxPlayers || 4);
+  const isHost = cloud ? e.hostId === me : true;
   return `
     <div class="list-item" style="align-items:flex-start;">
       <div class="avatar">📅</div>
       <div class="meta">
         <strong>${escapeHtml(e.title)}</strong>
         <span>${formatDateTime(e.dateTime)}${e.location ? ' · ' + escapeHtml(e.location) : ''}</span>
+        ${e.hostName ? `<span class="small">Organizzato da ${escapeHtml(e.hostName)}</span>` : ''}
         <div class="row mt" style="gap:6px;">
           <span class="badge ${full ? 'accent' : 'warn'}">${yes}/${e.maxPlayers || 4} giocatori</span>
           ${myStatus ? `<span class="badge">${myStatus === 'yes' ? '✅ Confermato' : myStatus === 'no' ? '❌ Rifiutato' : '⏳ In attesa'}</span>` : ''}
@@ -165,6 +183,7 @@ function eventCard(e, me) {
         <div class="row mt" style="gap:8px;">
           <button class="btn primary small" data-rsvp="yes" data-id="${e.id}">Partecipo</button>
           <button class="btn secondary small" data-rsvp="no" data-id="${e.id}">Non posso</button>
+          ${isHost ? `<button class="btn ghost small" data-delete-event="${e.id}">🗑️</button>` : ''}
         </div>
       </div>
     </div>`;

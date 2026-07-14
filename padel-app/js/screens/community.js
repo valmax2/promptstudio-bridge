@@ -1,19 +1,22 @@
 import { getState, setState } from '../store.js';
-import { firebaseAvailable } from '../firebase.js';
+import { firebaseAvailable, currentUser } from '../firebase.js';
 import {
   isCloudReady, findUserByFriendCode, addFriend, listenFriends,
-  createCircle, joinCircle, listenMyCircles,
+  createCircle, joinCircle, listenMyCircles, addMemberToCircle, leaveCircle, deleteCircle,
 } from '../cloud.js';
 import { escapeHtml, uid as genId } from '../utils.js';
 import { navigate } from '../router.js';
 import { toast } from '../app.js';
 import { setNavBadge } from '../notifications.js';
 
+let addMemberOpenFor = null;
+
 export async function renderCommunity(el) {
   setNavBadge('community', false);
   const cloud = isCloudReady();
   let unsubFriends = null;
   let unsubCircles = null;
+  addMemberOpenFor = null;
 
   paint();
 
@@ -22,12 +25,13 @@ export async function renderCommunity(el) {
     const friends = friendsOverride || state.friends;
     const circles = circlesOverride || state.circles;
     const myCode = state.profile.friendCode;
+    const me = currentUser()?.uid;
 
     el.innerHTML = `
       <div class="topbar"><h1>Community</h1><div class="subtitle">${cloud ? 'Sincronizzata' : 'Modalità locale'}</div></div>
 
       ${!cloud ? `<div class="card">
-        <p>${firebaseAvailable() ? 'Accedi per aggiungere amici reali e creare cerchie condivise.' : 'Configura Firebase per la community online.'}</p>
+        <p>${firebaseAvailable() ? 'Accedi per aggiungere amici reali e creare gruppi condivisi.' : 'Configura Firebase per la community online.'}</p>
         ${firebaseAvailable() ? '<button class="btn primary block" id="go-login">Accedi</button>' : ''}
       </div>` : ''}
 
@@ -53,16 +57,16 @@ export async function renderCommunity(el) {
       </div>
 
       <div class="card">
-        <div class="row between"><h2>🔒 Cerchie</h2>${cloud ? '<button class="btn ghost small" id="new-circle">+ Nuova</button>' : ''}</div>
-        ${!cloud ? '<p class="small">Le cerchie richiedono l\'accesso per essere condivise con gli amici.</p>' : ''}
-        ${cloud ? `
-        <div class="row">
-          <input id="circle-code" placeholder="Codice cerchia da unire" style="flex:1">
-          <button class="btn secondary" id="join-circle">Unisciti</button>
-        </div>` : ''}
+        <div class="row between"><h2>👥 Gruppi</h2>${cloud ? '<button class="btn ghost small" id="new-circle">+ Nuovo</button>' : ''}</div>
+        ${!cloud ? '<p class="small">I gruppi richiedono l\'accesso per essere condivisi con gli amici.</p>' : ''}
         <div class="mt">
-          ${circles.length ? circles.map(circleRow).join('') : `<div class="empty-state"><span class="icon">🔒</span>Nessuna cerchia</div>`}
+          ${circles.length ? circles.map((c) => circleRow(c, me, friends)).join('') : `<div class="empty-state"><span class="icon">👥</span>Nessun gruppo</div>`}
         </div>
+        ${cloud ? `
+        <div class="row mt">
+          <input id="circle-code" placeholder="Oppure unisciti con un codice" style="flex:1">
+          <button class="btn ghost" id="join-circle">Unisciti</button>
+        </div>` : ''}
       </div>
     `;
 
@@ -100,11 +104,11 @@ export async function renderCommunity(el) {
     });
 
     el.querySelector('#new-circle')?.addEventListener('click', async () => {
-      const name = prompt('Nome della cerchia');
+      const name = prompt('Nome del gruppo');
       if (!name) return;
       try {
-        const id = await createCircle(name.trim());
-        toast(`Cerchia creata! Codice da condividere: ${id}`);
+        await createCircle(name.trim());
+        toast('Gruppo creato! Usa "+ Aggiungi" per invitare i tuoi amici.');
       } catch (err) {
         toast('Errore: ' + err.message);
       }
@@ -115,11 +119,35 @@ export async function renderCommunity(el) {
       if (!code) return;
       try {
         await joinCircle(code);
-        toast('Ti sei unito alla cerchia!');
+        toast('Ti sei unito al gruppo!');
       } catch (err) {
         toast('Errore: ' + err.message);
       }
     });
+
+    el.querySelectorAll('[data-toggle-add-member]').forEach((btn) => btn.addEventListener('click', () => {
+      const id = btn.dataset.toggleAddMember;
+      addMemberOpenFor = addMemberOpenFor === id ? null : id;
+      paint();
+    }));
+    el.querySelectorAll('[data-add-member]').forEach((btn) => btn.addEventListener('click', async () => {
+      try {
+        await addMemberToCircle(btn.dataset.addMember, btn.dataset.friendUid);
+        toast('Amico aggiunto al gruppo!');
+      } catch (err) {
+        toast('Errore: ' + err.message);
+      }
+    }));
+    el.querySelectorAll('[data-leave-circle]').forEach((btn) => btn.addEventListener('click', async () => {
+      if (!confirm('Uscire da questo gruppo?')) return;
+      try { await leaveCircle(btn.dataset.leaveCircle); toast('Hai lasciato il gruppo'); }
+      catch (err) { toast('Errore: ' + err.message); }
+    }));
+    el.querySelectorAll('[data-delete-circle]').forEach((btn) => btn.addEventListener('click', async () => {
+      if (!confirm('Eliminare questo gruppo per tutti i membri?')) return;
+      try { await deleteCircle(btn.dataset.deleteCircle); toast('Gruppo eliminato'); }
+      catch (err) { toast('Errore: ' + err.message); }
+    }));
 
     el.querySelectorAll('[data-chat]').forEach((btn) => btn.addEventListener('click', () => {
       // replace:true avoids setting location.hash directly, which would
@@ -146,9 +174,31 @@ function friendRow(f) {
   </div>`;
 }
 
-function circleRow(c) {
-  return `<div class="list-item">
-    <div class="avatar">🔒</div>
-    <div class="meta"><strong>${escapeHtml(c.name)}</strong><span>${(c.memberIds || []).length} membri · codice: ${c.id}</span></div>
+function circleRow(c, me, friends) {
+  const isOwner = c.ownerId === me;
+  const memberIds = c.memberIds || [];
+  const invitable = friends.filter((f) => !f.local && !memberIds.includes(f.id));
+  const pickerOpen = addMemberOpenFor === c.id;
+  return `<div class="card" style="background:var(--surface-2);margin-top:10px;">
+    <div class="row between">
+      <div><strong>${escapeHtml(c.name)}</strong><p class="mb0 small">${memberIds.length} membri · codice: ${c.id}</p></div>
+      <div class="row" style="gap:6px;">
+        <button class="btn ghost small" data-toggle-add-member="${c.id}">+ Aggiungi</button>
+        ${isOwner
+          ? `<button class="btn ghost small" data-delete-circle="${c.id}">🗑️</button>`
+          : `<button class="btn ghost small" data-leave-circle="${c.id}">🚪</button>`}
+      </div>
+    </div>
+    ${pickerOpen ? `
+      <div class="mt">
+        ${invitable.length ? invitable.map((f) => `
+          <div class="list-item">
+            <div class="avatar">🙂</div>
+            <div class="meta"><strong>${escapeHtml(f.name || f.friendCode || 'Amico')}</strong></div>
+            <button class="btn primary small" data-add-member="${c.id}" data-friend-uid="${f.id}">Aggiungi</button>
+          </div>
+        `).join('') : '<p class="small">Tutti i tuoi amici sono già in questo gruppo (o non ne hai ancora).</p>'}
+      </div>
+    ` : ''}
   </div>`;
 }

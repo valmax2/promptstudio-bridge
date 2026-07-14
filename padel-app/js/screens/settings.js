@@ -23,6 +23,17 @@ let addBindingStep = null;
 let addBindingCapture = null;
 let addBindingPattern = null;
 
+let activeCategory = 'aspetto';
+
+const CATEGORIES = [
+  { id: 'aspetto', icon: '🎨', label: 'Aspetto' },
+  { id: 'audio', icon: '🔊', label: 'Audio' },
+  { id: 'partita', icon: '🎾', label: 'Partita' },
+  { id: 'colori', icon: '🖌️', label: 'Colori' },
+  { id: 'bluetooth', icon: '🔵', label: 'Bluetooth' },
+  { id: 'cloud', icon: '☁️', label: 'Cloud' },
+];
+
 const FONTS = [
   { id: "'Segoe UI', Roboto, system-ui, -apple-system, sans-serif", label: 'Predefinito' },
   { id: "Georgia, 'Times New Roman', serif", label: 'Serif' },
@@ -36,8 +47,17 @@ export async function renderSettings(el) {
   el.innerHTML = `
     <div class="topbar"><div class="row"><button class="icon-btn" id="settings-back" aria-label="Torna alla home">${BACK_ICON}</button><h1>Impostazioni</h1></div></div>
 
+    <div class="settings-categories">
+      ${CATEGORIES.map((c) => `
+        <button class="settings-cat-btn ${activeCategory === c.id ? 'active' : ''}" data-category="${c.id}">
+          <span class="settings-cat-icon">${c.icon}</span><span>${c.label}</span>
+        </button>
+      `).join('')}
+    </div>
+
+    ${activeCategory === 'aspetto' ? `
     <div class="card">
-      <h2>Aspetto</h2>
+      <h2>🎨 Aspetto</h2>
       <div class="segmented">
         <button data-theme="dark" class="${settings.theme === 'dark' ? 'active' : ''}">🌙 Scuro</button>
         <button data-theme="light" class="${settings.theme === 'light' ? 'active' : ''}">☀️ Chiaro</button>
@@ -56,9 +76,11 @@ export async function renderSettings(el) {
       </div>
       <div class="font-preview">Aa · Anteprima testo</div>
     </div>
+    ` : ''}
 
+    ${activeCategory === 'audio' ? `
     <div class="card">
-      <h2>Segnapunti</h2>
+      <h2>🔊 Audio e voce</h2>
       <div class="toggle-row">
         <div><strong>Annuncio vocale (TTS)</strong><p class="mb0 small">${speechSupported() ? 'Riproduce l\'audio su altoparlante o cassa Bluetooth' : 'Non supportato su questo dispositivo'}</p></div>
         <label class="switch"><input type="checkbox" id="tts" ${settings.ttsEnabled ? 'checked' : ''}><span class="slider"></span></label>
@@ -81,7 +103,13 @@ export async function renderSettings(el) {
       </div>
       <button class="btn secondary small mt" id="test-voice">🔊 Prova voce</button>
       ` : ''}
-      <div class="toggle-row mt">
+    </div>
+    ` : ''}
+
+    ${activeCategory === 'partita' ? `
+    <div class="card">
+      <h2>🎾 Partita</h2>
+      <div class="toggle-row">
         <div><strong>Punto d'oro</strong><p class="mb0 small">A 40 pari, il punto successivo decide il gioco</p></div>
         <label class="switch"><input type="checkbox" id="golden" ${settings.goldenPoint ? 'checked' : ''}><span class="slider"></span></label>
       </div>
@@ -91,9 +119,11 @@ export async function renderSettings(el) {
       </div>
       <button class="btn ghost small block mt" id="go-gamemodes">📖 Tutte le modalità di gioco</button>
     </div>
+    ` : ''}
 
+    ${activeCategory === 'colori' ? `
     <div class="card">
-      <h2>🎨 Colori tabellone</h2>
+      <h2>🖌️ Colori tabellone</h2>
       <p class="small">Colori standard (sRGB): restano fedeli su tutti i telefoni e tablet, senza toni sfasati dovuti a schermi "wide gamut".</p>
       <div class="row" style="flex-wrap:wrap;gap:8px;">
         ${Object.entries(COLOR_PRESETS).map(([key, p]) => `
@@ -130,9 +160,11 @@ export async function renderSettings(el) {
         <input type="range" min="0" max="6" step="1" id="border-width" value="${settings.numberBorderWidth}">
       </div>
     </div>
+    ` : ''}
 
+    ${activeCategory === 'bluetooth' ? `
     <div class="card">
-      <h2>📡 Telecomando remoto</h2>
+      <h2>🔵 Bluetooth · Telecomando remoto</h2>
       ${remoteSupported() ? `
         <p class="small">Funziona con telecomandi Bluetooth economici ("selfie remote"), smartwatch in modalità scatto foto, e la maggior parte dei tasti fisici che si accoppiano come tastiera Bluetooth. <strong>Prima accoppia il dispositivo dalle Impostazioni Bluetooth di Android</strong> (come una tastiera), poi torna qui. Puoi accoppiare <strong>più di un telecomando</strong> e usare click singolo/doppio/doppio lento sullo stesso tasto per azioni diverse.</p>
         <p class="small">I portachiavi "trova oggetto" generici spesso usano un protocollo proprietario e non funzionano qui — vedi la sezione dedicata più sotto.</p>
@@ -145,7 +177,7 @@ export async function renderSettings(el) {
     </div>
 
     <div class="card">
-      <h2>🔑 Portachiavi / tag Bluetooth (sperimentale)</h2>
+      <h2>🔵 Bluetooth · Portachiavi / tag (sperimentale)</h2>
       ${bleTagSupported() ? `
         <p class="small">Per portachiavi "trova oggetto" e dispositivi simili che non si accoppiano come tastiera. Puoi collegare <strong>più di un tag insieme</strong> (es. uno per squadra) — la app si collega direttamente a ciascuno e prova ad ascoltare il pulsante: funziona con molti modelli economici, ma non è garantito su tutti.</p>
         ${settings.bleTags.map(tagRow).join('')}
@@ -163,6 +195,13 @@ export async function renderSettings(el) {
     </div>
 
     <div class="card">
+      <h2>🔵 Bluetooth · Uscita audio</h2>
+      <p class="small">L'annuncio vocale segue automaticamente l'uscita audio attiva del telefono: se una cassa o cuffia Bluetooth è già collegata (dalle Impostazioni Bluetooth di Android), l'audio esce da lì senza bisogno di scegliere nulla qui. Per cambiare dispositivo audio attivo mentre più di uno è connesso, usa il pannello Bluetooth di sistema di Android (non è possibile selezionarlo dall'interno dell'app).</p>
+    </div>
+    ` : ''}
+
+    ${activeCategory === 'cloud' ? `
+    <div class="card">
       <h2>☁️ Cloud</h2>
       ${!firebaseAvailable() ? '<p class="small">Firebase non configurato: le impostazioni restano solo su questo telefono. Vedi README.md.</p>' : ''}
       <div class="toggle-row">
@@ -172,7 +211,13 @@ export async function renderSettings(el) {
       ${isCloudReady() ? '<button class="btn primary block mt" id="sync-now">Sincronizza ora</button>' : ''}
       ${isCloudReady() ? '<button class="btn secondary block mt" id="enable-push">Attiva notifiche push</button>' : ''}
     </div>
+    ` : ''}
   `;
+
+  el.querySelectorAll('[data-category]').forEach((btn) => btn.addEventListener('click', () => {
+    activeCategory = btn.dataset.category;
+    renderSettings(el);
+  }));
 
   el.querySelectorAll('[data-theme]').forEach((btn) => btn.addEventListener('click', () => {
     updateSettings({ theme: btn.dataset.theme });
@@ -182,22 +227,22 @@ export async function renderSettings(el) {
 
   el.querySelector('#settings-back').addEventListener('click', () => navigate('home'));
 
-  el.querySelector('#font-family').addEventListener('change', (e) => {
+  el.querySelector('#font-family')?.addEventListener('change', (e) => {
     updateSettings({ fontFamily: e.target.value });
     renderSettings(el);
     syncSettings();
   });
 
-  el.querySelector('#font-scale').addEventListener('input', (e) => {
+  el.querySelector('#font-scale')?.addEventListener('input', (e) => {
     updateSettings({ fontScale: parseFloat(e.target.value) });
   });
-  el.querySelector('#font-scale').addEventListener('change', syncSettings);
+  el.querySelector('#font-scale')?.addEventListener('change', syncSettings);
 
-  el.querySelector('#tts').addEventListener('change', (e) => { updateSettings({ ttsEnabled: e.target.checked }); renderSettings(el); syncSettings(); });
-  el.querySelector('#golden').addEventListener('change', (e) => { updateSettings({ goldenPoint: e.target.checked }); syncSettings(); });
-  el.querySelector('#super-tb').addEventListener('change', (e) => { updateSettings({ superTiebreak3rdSet: e.target.checked }); syncSettings(); });
+  el.querySelector('#tts')?.addEventListener('change', (e) => { updateSettings({ ttsEnabled: e.target.checked }); renderSettings(el); syncSettings(); });
+  el.querySelector('#golden')?.addEventListener('change', (e) => { updateSettings({ goldenPoint: e.target.checked }); syncSettings(); });
+  el.querySelector('#super-tb')?.addEventListener('change', (e) => { updateSettings({ superTiebreak3rdSet: e.target.checked }); syncSettings(); });
   el.querySelector('#test-voice')?.addEventListener('click', () => say('40 pari, punto d\'oro'));
-  el.querySelector('#go-gamemodes').addEventListener('click', () => navigate('gamemodes'));
+  el.querySelector('#go-gamemodes')?.addEventListener('click', () => navigate('gamemodes'));
 
   el.querySelectorAll('[data-voice-gender]').forEach((btn) => btn.addEventListener('click', () => {
     updateSettings({ ttsVoiceGender: btn.dataset.voiceGender });
@@ -221,13 +266,13 @@ export async function renderSettings(el) {
     renderSettings(el);
     syncSettings();
   }));
-  el.querySelector('#color-a').addEventListener('input', (e) => updateSettings({ teamAColor: e.target.value, colorPreset: 'custom' }));
-  el.querySelector('#color-b').addEventListener('input', (e) => updateSettings({ teamBColor: e.target.value, colorPreset: 'custom' }));
-  el.querySelector('#color-number').addEventListener('input', (e) => updateSettings({ numberColor: e.target.value, colorPreset: 'custom' }));
-  el.querySelector('#color-border').addEventListener('input', (e) => updateSettings({ numberBorderColor: e.target.value, colorPreset: 'custom' }));
-  el.querySelector('#border-width').addEventListener('input', (e) => updateSettings({ numberBorderWidth: parseInt(e.target.value, 10), colorPreset: 'custom' }));
+  el.querySelector('#color-a')?.addEventListener('input', (e) => updateSettings({ teamAColor: e.target.value, colorPreset: 'custom' }));
+  el.querySelector('#color-b')?.addEventListener('input', (e) => updateSettings({ teamBColor: e.target.value, colorPreset: 'custom' }));
+  el.querySelector('#color-number')?.addEventListener('input', (e) => updateSettings({ numberColor: e.target.value, colorPreset: 'custom' }));
+  el.querySelector('#color-border')?.addEventListener('input', (e) => updateSettings({ numberBorderColor: e.target.value, colorPreset: 'custom' }));
+  el.querySelector('#border-width')?.addEventListener('input', (e) => updateSettings({ numberBorderWidth: parseInt(e.target.value, 10), colorPreset: 'custom' }));
   ['#color-a', '#color-b', '#color-number', '#color-border', '#border-width'].forEach((sel) => {
-    el.querySelector(sel).addEventListener('change', () => { renderSettings(el); syncSettings(); });
+    el.querySelector(sel)?.addEventListener('change', () => { renderSettings(el); syncSettings(); });
   });
 
   el.querySelector('#ble-enabled')?.addEventListener('change', (e) => {
@@ -405,7 +450,7 @@ function tagRow(t) {
       <div><strong>${escapeHtml(t.deviceName || 'Dispositivo')}</strong><p class="mb0 small">${t.address}</p></div>
       <label class="switch"><input type="checkbox" data-tag-enabled="${t.id}" ${t.enabled ? 'checked' : ''}><span class="slider"></span></label>
     </div>
-    <p class="small mb0">Per assegnare cosa fa il pulsante (anche click singolo/doppio separati), vai qui sopra in "📡 Telecomando remoto" → Aggiungi associazione, e premi il pulsante di questo tag quando richiesto.</p>
+    <p class="small mb0">Per assegnare cosa fa il pulsante (anche click singolo/doppio separati), vai qui sopra in "Telecomando remoto" → Aggiungi associazione, e premi il pulsante di questo tag quando richiesto.</p>
     <button class="btn ghost small mt" data-tag-forget="${t.id}">Dimentica dispositivo</button>
   </div>`;
 }

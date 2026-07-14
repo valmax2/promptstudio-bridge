@@ -1,5 +1,5 @@
 import { currentUser } from '../firebase.js';
-import { ensureChat, sendChatMessage, listenChatMessages } from '../cloud.js';
+import { ensureChat, sendChatMessage, listenChatMessages, deleteChat, chatIdFor } from '../cloud.js';
 import { escapeHtml, BACK_ICON } from '../utils.js';
 import { navigate } from '../router.js';
 import { toast } from '../app.js';
@@ -19,7 +19,10 @@ export async function renderChat(el, params = {}) {
   let unsub = null;
 
   el.innerHTML = `
-    <div class="topbar"><div class="row"><button class="icon-btn" id="chat-back" aria-label="Indietro">${BACK_ICON}</button><h1>${escapeHtml(friendName)}</h1></div></div>
+    <div class="topbar">
+      <div class="row"><button class="icon-btn" id="chat-back" aria-label="Indietro">${BACK_ICON}</button><h1>${escapeHtml(friendName)}</h1></div>
+      <button class="icon-btn" id="chat-delete" aria-label="Elimina chat" title="Elimina chat">🗑️</button>
+    </div>
     <div class="chat-thread" id="chat-thread"></div>
     <div class="chat-input-row">
       <input id="chat-input" placeholder="Scrivi un messaggio…" maxlength="500">
@@ -27,6 +30,16 @@ export async function renderChat(el, params = {}) {
     </div>
   `;
   el.querySelector('#chat-back').addEventListener('click', () => navigate('community'));
+  el.querySelector('#chat-delete').addEventListener('click', async () => {
+    if (!confirm('Eliminare questa conversazione?')) return;
+    try {
+      await deleteChat(chatIdFor(me, friendUid));
+      toast('Chat eliminata');
+      navigate('community');
+    } catch (err) {
+      toast('Errore: ' + (err.message || err));
+    }
+  });
 
   function paintMessages() {
     const thread = el.querySelector('#chat-thread');

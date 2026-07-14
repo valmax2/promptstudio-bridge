@@ -75,7 +75,7 @@ async function resolveVoiceIndex(tts) {
 // audible difference regardless of what voices the device has installed,
 // the pitch nudge below is always applied on top of whichever voice gets
 // used, instead of only as a fallback when no named match is found.
-const GENDER_PITCH = { male: 0.7, female: 1.18 };
+const GENDER_PITCH = { male: 0.6, female: 1.2 };
 
 async function speakNative(text) {
   const tts = nativeTts();

@@ -9,6 +9,8 @@ const other = (t) => (t === 'A' ? 'B' : 'A');
 export function createMatch({
   teamAName = 'Squadra A',
   teamBName = 'Squadra B',
+  teamAPlayers = [teamAName],
+  teamBPlayers = [teamBName],
   goldenPoint = true,
   superTiebreak3rdSet = true,
   mode = 'doubles',
@@ -16,6 +18,8 @@ export function createMatch({
   return {
     teamAName,
     teamBName,
+    teamAPlayers,
+    teamBPlayers,
     goldenPoint,
     superTiebreak3rdSet,
     mode,

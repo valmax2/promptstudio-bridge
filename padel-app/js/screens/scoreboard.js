@@ -102,16 +102,37 @@ function paintSetup(el) {
             <button data-mode="singles" class="${singles ? 'active' : ''}">🙋 Singolo</button>
           </div>
         </div>
+        ${singles ? `
         <div class="card">
           <div class="field">
-            <label>${singles ? 'Giocatore 1' : 'Squadra 1'}</label>
-            <input id="name-a" value="${singles ? 'Giocatore 1' : 'Squadra A'}" maxlength="24">
+            <label>Giocatore 1</label>
+            <input id="name-a" value="Giocatore 1" maxlength="24">
           </div>
           <div class="field mb0">
-            <label>${singles ? 'Giocatore 2' : 'Squadra 2'}</label>
-            <input id="name-b" value="${singles ? 'Giocatore 2' : 'Squadra B'}" maxlength="24">
+            <label>Giocatore 2</label>
+            <input id="name-b" value="Giocatore 2" maxlength="24">
           </div>
         </div>
+        ` : `
+        <div class="card">
+          <label>Squadra A</label>
+          <div class="field">
+            <input id="name-a1" placeholder="Giocatore 1" maxlength="24">
+          </div>
+          <div class="field mb0">
+            <input id="name-a2" placeholder="Giocatore 2" maxlength="24">
+          </div>
+        </div>
+        <div class="card">
+          <label>Squadra B</label>
+          <div class="field">
+            <input id="name-b1" placeholder="Giocatore 3" maxlength="24">
+          </div>
+          <div class="field mb0">
+            <input id="name-b2" placeholder="Giocatore 4" maxlength="24">
+          </div>
+        </div>
+        `}
         <button class="btn primary block" id="start-match">Inizia partita</button>
       </div>
     </div>
@@ -124,17 +145,35 @@ function paintSetup(el) {
   }));
   el.querySelector('#start-match').addEventListener('click', () => {
     const { settings } = getState();
-    const teamAName = el.querySelector('#name-a').value.trim().slice(0, 24) || (singles ? 'Giocatore 1' : 'Squadra A');
-    const teamBName = el.querySelector('#name-b').value.trim().slice(0, 24) || (singles ? 'Giocatore 2' : 'Squadra B');
+    let teamAName, teamBName, teamAPlayers, teamBPlayers;
+    if (singles) {
+      teamAName = el.querySelector('#name-a').value.trim().slice(0, 24) || 'Giocatore 1';
+      teamBName = el.querySelector('#name-b').value.trim().slice(0, 24) || 'Giocatore 2';
+      teamAPlayers = [teamAName];
+      teamBPlayers = [teamBName];
+    } else {
+      const a1 = el.querySelector('#name-a1').value.trim().slice(0, 24) || 'Giocatore 1';
+      const a2 = el.querySelector('#name-a2').value.trim().slice(0, 24) || 'Giocatore 2';
+      const b1 = el.querySelector('#name-b1').value.trim().slice(0, 24) || 'Giocatore 3';
+      const b2 = el.querySelector('#name-b2').value.trim().slice(0, 24) || 'Giocatore 4';
+      teamAPlayers = [a1, a2];
+      teamBPlayers = [b1, b2];
+      teamAName = `${a1} / ${a2}`;
+      teamBName = `${b1} / ${b2}`;
+    }
     match = createMatch({
-      teamAName, teamBName,
+      teamAName, teamBName, teamAPlayers, teamBPlayers,
       mode: setupMode,
       goldenPoint: settings.goldenPoint,
       superTiebreak3rdSet: settings.superTiebreak3rdSet,
     });
     history = [];
     startLive(el);
-    if (settings.ttsEnabled) say(`Si comincia! Batte ${match.teamAName}, riceve ${match.teamBName}`);
+    if (settings.ttsEnabled) {
+      const servers = match.teamAPlayers.join(' e ');
+      const receivers = match.teamBPlayers.join(' e ');
+      say(`Si comincia! Batte ${servers}, riceve ${receivers}`);
+    }
   });
 
   setupRemoteListening(el);

@@ -1,7 +1,7 @@
 import { getState, setState } from '../store.js';
 import { firebaseAvailable, currentUser } from '../firebase.js';
 import {
-  isCloudReady, findUserByFriendCode, addFriend, listenFriends,
+  isCloudReady, findUserByFriendCode, addFriend, removeFriend, listenFriends,
   createCircle, joinCircle, listenMyCircles, addMemberToCircle, leaveCircle, deleteCircle,
 } from '../cloud.js';
 import { escapeHtml, uid as genId } from '../utils.js';
@@ -60,7 +60,7 @@ export async function renderCommunity(el) {
         <div class="row between"><h2>👥 Gruppi</h2>${cloud ? '<button class="btn ghost small" id="new-circle">+ Nuovo</button>' : ''}</div>
         ${!cloud ? '<p class="small">I gruppi richiedono l\'accesso per essere condivisi con gli amici.</p>' : ''}
         <div class="mt">
-          ${circles.length ? circles.map((c) => circleRow(c, me, friends)).join('') : `<div class="empty-state"><span class="icon">👥</span>Nessun gruppo</div>`}
+          ${circles.length ? circles.map((c) => circleRow(c, me)).join('') : `<div class="empty-state"><span class="icon">👥</span>Nessun gruppo</div>`}
         </div>
         ${cloud ? `
         <div class="row mt">
@@ -68,6 +68,8 @@ export async function renderCommunity(el) {
           <button class="btn ghost" id="join-circle">Unisciti</button>
         </div>` : ''}
       </div>
+
+      ${addMemberOpenFor ? friendPickerModal(circles.find((c) => c.id === addMemberOpenFor), friends) : ''}
     `;
 
     el.querySelector('#go-login')?.addEventListener('click', () => navigate('login'));
@@ -126,10 +128,16 @@ export async function renderCommunity(el) {
     });
 
     el.querySelectorAll('[data-toggle-add-member]').forEach((btn) => btn.addEventListener('click', () => {
-      const id = btn.dataset.toggleAddMember;
-      addMemberOpenFor = addMemberOpenFor === id ? null : id;
+      addMemberOpenFor = btn.dataset.toggleAddMember;
       paint();
     }));
+    el.querySelector('[data-close-modal]')?.addEventListener('click', () => {
+      addMemberOpenFor = null;
+      paint();
+    });
+    el.querySelector('.modal-backdrop')?.addEventListener('click', (e) => {
+      if (e.target === e.currentTarget) { addMemberOpenFor = null; paint(); }
+    });
     el.querySelectorAll('[data-add-member]').forEach((btn) => btn.addEventListener('click', async () => {
       try {
         await addMemberToCircle(btn.dataset.addMember, btn.dataset.friendUid);
@@ -155,6 +163,19 @@ export async function renderCommunity(el) {
       // this route via navigate(name) with no params, wiping out uid/name.
       navigate('chat', { replace: true, params: { uid: btn.dataset.chat, name: btn.dataset.chatName } });
     }));
+
+    el.querySelectorAll('[data-remove-friend]').forEach((btn) => btn.addEventListener('click', async () => {
+      if (!confirm('Rimuovere questo amico?')) return;
+      const id = btn.dataset.removeFriend;
+      if (btn.dataset.removeFriendLocal) {
+        setState({ friends: getState().friends.filter((f) => f.id !== id) });
+        toast('Amico rimosso');
+        paint();
+        return;
+      }
+      try { await removeFriend(id); toast('Amico rimosso'); }
+      catch (err) { toast('Errore: ' + err.message); }
+    }));
   }
 
   if (cloud) {
@@ -170,35 +191,43 @@ function friendRow(f) {
   return `<div class="list-item">
     <div class="avatar">🙂</div>
     <div class="meta"><strong>${escapeHtml(name)}</strong>${f.local ? '<span>Solo locale</span>' : ''}</div>
-    ${f.local ? '' : `<button class="btn ghost small" data-chat="${f.id}" data-chat-name="${escapeHtml(name)}">💬</button>`}
+    <div class="row" style="gap:4px;">
+      ${f.local ? '' : `<button class="btn ghost small" data-chat="${f.id}" data-chat-name="${escapeHtml(name)}">💬</button>`}
+      <button class="btn ghost small" data-remove-friend="${f.id}" ${f.local ? 'data-remove-friend-local' : ''}>✕</button>
+    </div>
   </div>`;
 }
 
-function circleRow(c, me, friends) {
+function circleRow(c, me) {
   const isOwner = c.ownerId === me;
   const memberIds = c.memberIds || [];
-  const invitable = friends.filter((f) => !f.local && !memberIds.includes(f.id));
-  const pickerOpen = addMemberOpenFor === c.id;
   return `<div class="card" style="background:var(--surface-2);margin-top:10px;">
-    <div class="row between">
-      <div><strong>${escapeHtml(c.name)}</strong><p class="mb0 small">${memberIds.length} membri · codice: ${c.id}</p></div>
-      <div class="row" style="gap:6px;">
-        <button class="btn ghost small" data-toggle-add-member="${c.id}">+ Aggiungi</button>
-        ${isOwner
-          ? `<button class="btn ghost small" data-delete-circle="${c.id}">🗑️</button>`
-          : `<button class="btn ghost small" data-leave-circle="${c.id}">🚪</button>`}
-      </div>
+    <div><strong>${escapeHtml(c.name)}</strong><p class="mb0 small" style="word-break:break-all;">${memberIds.length} membri · codice: ${c.id}</p></div>
+    <div class="row mt" style="gap:6px;flex-wrap:wrap;">
+      <button class="btn secondary small" data-toggle-add-member="${c.id}">+ Aggiungi amici</button>
+      ${isOwner
+        ? `<button class="btn ghost small" data-delete-circle="${c.id}">🗑️ Elimina</button>`
+        : `<button class="btn ghost small" data-leave-circle="${c.id}">🚪 Esci</button>`}
     </div>
-    ${pickerOpen ? `
-      <div class="mt">
+  </div>`;
+}
+
+function friendPickerModal(circle, friends) {
+  if (!circle) return '';
+  const memberIds = circle.memberIds || [];
+  const invitable = friends.filter((f) => !f.local && !memberIds.includes(f.id));
+  return `
+    <div class="modal-backdrop">
+      <div class="modal-card">
+        <h2><span>Aggiungi a "${escapeHtml(circle.name)}"</span><button class="icon-btn" data-close-modal aria-label="Chiudi">✕</button></h2>
         ${invitable.length ? invitable.map((f) => `
           <div class="list-item">
             <div class="avatar">🙂</div>
             <div class="meta"><strong>${escapeHtml(f.name || f.friendCode || 'Amico')}</strong></div>
-            <button class="btn primary small" data-add-member="${c.id}" data-friend-uid="${f.id}">Aggiungi</button>
+            <button class="btn primary small" data-add-member="${circle.id}" data-friend-uid="${f.id}">Aggiungi</button>
           </div>
-        `).join('') : '<p class="small">Tutti i tuoi amici sono già in questo gruppo (o non ne hai ancora).</p>'}
+        `).join('') : '<p class="small">Tutti i tuoi amici sono già in questo gruppo (o non ne hai ancora aggiunti in Community).</p>'}
       </div>
-    ` : ''}
-  </div>`;
+    </div>
+  `;
 }

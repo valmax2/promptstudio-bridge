@@ -59,6 +59,14 @@ export function listenFriends(cb) {
   return fsListenCollection(`users/${id}/friends`, cb);
 }
 
+export async function removeFriend(friendUid) {
+  const id = uid();
+  if (!isCloudReady() || !id) return;
+  const { fs } = mods();
+  await fs.deleteDoc(fs.doc(db(), `users/${id}/friends/${friendUid}`));
+  await fs.deleteDoc(fs.doc(db(), `users/${friendUid}/friends/${id}`));
+}
+
 // ---- Chat (1:1 with a friend) ----
 export function chatIdFor(a, b) {
   return [a, b].sort().join('_');

@@ -14,6 +14,11 @@ export function createMatch({
   goldenPoint = true,
   superTiebreak3rdSet = true,
   mode = 'doubles',
+  startingServer = 'A',
+  // 'classic' = normal sets/tiebreak match; 'time' = continuous play for a
+  // fixed duration, whoever has more games when time's up wins (no sets).
+  format = 'classic',
+  timeLimitMinutes = 45,
 } = {}) {
   return {
     teamAName,
@@ -23,6 +28,9 @@ export function createMatch({
     goldenPoint,
     superTiebreak3rdSet,
     mode,
+    format,
+    timeLimitMinutes,
+    matchEndsAt: format === 'time' ? Date.now() + timeLimitMinutes * 60000 : null,
     sets: [],
     setsWonA: 0,
     setsWonB: 0,
@@ -30,11 +38,22 @@ export function createMatch({
     currentGame: { a: 0, b: 0, advantage: null },
     inTiebreak: false,
     inMatchTiebreak: false,
-    server: 'A',
+    server: startingServer,
     matchOver: false,
     matchWinner: null,
     startedAt: Date.now(),
   };
+}
+
+// Called by the UI when the timer for a 'time'-format match runs out.
+// Whoever has more games total wins; an exact tie has no winner.
+export function endTimeMatch(matchIn) {
+  const match = structuredClone(matchIn);
+  if (match.matchOver) return match;
+  match.matchOver = true;
+  const { gamesA, gamesB } = match.currentSet;
+  match.matchWinner = gamesA === gamesB ? null : (gamesA > gamesB ? 'A' : 'B');
+  return match;
 }
 
 export function teamName(match, t) {
@@ -93,6 +112,12 @@ function awardGame(match, team) {
   let announcement = `Gioco ${teamName(match, team)}`;
   let setWon = false;
   let matchWon = false;
+
+  // Continuous "a tempo" matches have no sets/tiebreak - just keep tallying
+  // games until the UI ends the match when the timer runs out.
+  if (match.format === 'time') {
+    return result(match, announcement, { gameWon: true, setWon: false, matchWon: false });
+  }
 
   if (gamesA === 6 && gamesB === 6) {
     match.inTiebreak = true;

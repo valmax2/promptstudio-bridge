@@ -75,12 +75,16 @@ async function resolveVoiceIndex(tts) {
 // audible difference regardless of what voices the device has installed,
 // the pitch nudge below is always applied on top of whichever voice gets
 // used, instead of only as a fallback when no named match is found.
-const GENDER_PITCH = { male: 0.6, female: 1.2 };
+const GENDER_PITCH = { male: 0.45, female: 1.2 };
+// A deep male voice also tends to speak a touch slower/more resonant, not
+// just lower-pitched - combining both reads as noticeably more "uomo" than
+// pitch alone, which at extreme values alone can still sound androgynous.
+const GENDER_RATE = { male: 0.9, female: 1.0 };
 
 async function speakNative(text) {
   const tts = nativeTts();
   const mode = VOICE_MODES[voiceMode] || VOICE_MODES.natural;
-  const opts = { text, lang, rate: mode.rate, volume: 1.0, category: 'ambient' };
+  const opts = { text, lang, rate: mode.rate * GENDER_RATE[voiceGender], volume: 1.0, category: 'ambient' };
   if (typeof tts.getSupportedVoices === 'function') {
     const voiceIdx = await resolveVoiceIndex(tts);
     if (voiceIdx >= 0) opts.voice = voiceIdx;
@@ -95,7 +99,7 @@ function speakWeb(text) {
     const mode = VOICE_MODES[voiceMode] || VOICE_MODES.natural;
     const utter = new SpeechSynthesisUtterance(text);
     utter.lang = lang;
-    utter.rate = mode.rate;
+    utter.rate = mode.rate * GENDER_RATE[voiceGender];
     const langPrefix = lang.split('-')[0].toLowerCase();
     const hints = voiceGender === 'male' ? MALE_HINTS : FEMALE_HINTS;
     const voices = window.speechSynthesis.getVoices();

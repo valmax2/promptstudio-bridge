@@ -3,7 +3,7 @@ import { pushMatch } from '../cloud.js';
 import { say, stopSpeech } from '../speech.js';
 import { escapeHtml, BACK_ICON } from '../utils.js';
 import {
-  createMatch, addPoint, matchPointDisplay, teamName, isGamePoint, resetCurrentGame,
+  createMatch, addPoint, matchPointDisplay, teamName, isGamePoint, resetCurrentGame, endTimeMatch,
 } from '../scoring.js';
 import { navigate } from '../router.js';
 import { toast } from '../app.js';
@@ -16,6 +16,10 @@ let match = null;
 let history = [];
 let ttsEnabled = true;
 let setupMode = 'doubles';
+let setupServer = 'A';
+let setupFormat = 'classic';
+let setupTimeMinutes = 45;
+let timeInterval = null;
 let stopHwKeys = () => {};
 
 export async function renderScoreboard(el) {
@@ -31,6 +35,7 @@ export async function renderScoreboard(el) {
     stopHwKeys();
     disableRemote();
     disconnectBleTag();
+    clearInterval(timeInterval);
     document.getElementById('bottom-nav').classList.remove('hidden');
   };
 }
@@ -81,6 +86,21 @@ function handleRemoteAction(action, el) {
 function startLive(el) {
   paint(el);
   setupRemoteListening(el);
+
+  clearInterval(timeInterval);
+  if (match.format === 'time' && !match.matchOver) {
+    timeInterval = setInterval(() => {
+      if (!match || match.matchOver) { clearInterval(timeInterval); return; }
+      if (Date.now() >= match.matchEndsAt) {
+        clearInterval(timeInterval);
+        match = endTimeMatch(match);
+        const winner = match.matchWinner ? `Vince ${teamName(match, match.matchWinner)}!` : 'Pareggio!';
+        if (ttsEnabled) say(`Tempo scaduto! ${winner}`);
+        toast(winner);
+      }
+      paint(document.querySelector('.screen'));
+    }, 1000);
+  }
 }
 
 // ===== New match setup =====
@@ -133,6 +153,27 @@ function paintSetup(el) {
           </div>
         </div>
         `}
+        <div class="card">
+          <label>Chi comincia a battere</label>
+          <div class="segmented">
+            <button data-server="A" class="${setupServer === 'A' ? 'active' : ''}">${singles ? 'Giocatore 1' : 'Squadra A'}</button>
+            <button data-server="B" class="${setupServer === 'B' ? 'active' : ''}">${singles ? 'Giocatore 2' : 'Squadra B'}</button>
+          </div>
+        </div>
+        <div class="card">
+          <label>Formato partita</label>
+          <div class="segmented">
+            <button data-format="classic" class="${setupFormat === 'classic' ? 'active' : ''}">🏆 Classico (set)</button>
+            <button data-format="time" class="${setupFormat === 'time' ? 'active' : ''}">⏱️ A tempo continuo</button>
+          </div>
+          ${setupFormat === 'time' ? `
+          <div class="field mt mb0">
+            <label>Durata (minuti)</label>
+            <input type="number" id="time-minutes" min="5" max="180" step="5" value="${setupTimeMinutes}">
+          </div>
+          <p class="small mt mb0">Si gioca senza set: vince chi ha fatto più giochi allo scadere del tempo.</p>
+          ` : ''}
+        </div>
         <button class="btn primary block" id="start-match">Inizia partita</button>
       </div>
     </div>
@@ -143,6 +184,17 @@ function paintSetup(el) {
     setupMode = btn.dataset.mode;
     paintSetup(el);
   }));
+  el.querySelectorAll('[data-server]').forEach((btn) => btn.addEventListener('click', () => {
+    setupServer = btn.dataset.server;
+    paintSetup(el);
+  }));
+  el.querySelectorAll('[data-format]').forEach((btn) => btn.addEventListener('click', () => {
+    setupFormat = btn.dataset.format;
+    paintSetup(el);
+  }));
+  el.querySelector('#time-minutes')?.addEventListener('change', (e) => {
+    setupTimeMinutes = parseInt(e.target.value, 10) || 45;
+  });
   el.querySelector('#start-match').addEventListener('click', () => {
     const { settings } = getState();
     let teamAName, teamBName, teamAPlayers, teamBPlayers;
@@ -166,13 +218,16 @@ function paintSetup(el) {
       mode: setupMode,
       goldenPoint: settings.goldenPoint,
       superTiebreak3rdSet: settings.superTiebreak3rdSet,
+      startingServer: setupServer,
+      format: setupFormat,
+      timeLimitMinutes: setupTimeMinutes,
     });
     history = [];
     startLive(el);
     if (settings.ttsEnabled) {
-      const servers = match.teamAPlayers.join(' e ');
-      const receivers = match.teamBPlayers.join(' e ');
-      say(`Si comincia! Batte ${servers}, riceve ${receivers}`);
+      const servingPlayers = setupServer === 'A' ? match.teamAPlayers : match.teamBPlayers;
+      const receivingPlayers = setupServer === 'A' ? match.teamBPlayers : match.teamAPlayers;
+      say(`Si comincia! Batte ${servingPlayers.join(' e ')}, riceve ${receivingPlayers.join(' e ')}`);
     }
   });
 
@@ -182,7 +237,12 @@ function paintSetup(el) {
 // ===== Live scoreboard =====
 
 function paint(el) {
-  const modeLabel = match.matchOver ? 'Partita conclusa' : match.inMatchTiebreak ? 'Super tie-break' : match.inTiebreak ? 'Tie-break' : `Set ${match.sets.length + 1}`;
+  let modeLabel;
+  if (match.format === 'time') {
+    modeLabel = match.matchOver ? 'Partita conclusa' : `⏱️ ${formatRemaining(match.matchEndsAt)}`;
+  } else {
+    modeLabel = match.matchOver ? 'Partita conclusa' : match.inMatchTiebreak ? 'Super tie-break' : match.inTiebreak ? 'Tie-break' : `Set ${match.sets.length + 1}`;
+  }
   const modeBadge = match.mode === 'singles' ? 'Singolo' : 'Doppio';
 
   el.innerHTML = `
@@ -238,20 +298,29 @@ function teamHalf(team) {
   const setsWon = team === 'A' ? match.setsWonA : match.setsWonB;
   const serving = match.server === team && !match.inTiebreak && !match.inMatchTiebreak && !match.matchOver;
   const badge = badgeFor(team);
+  const isTimeFormat = match.format === 'time';
 
   return `
     <div class="sb-half sb-${team.toLowerCase()}" id="half-${team.toLowerCase()}">
       <div class="sb-name-row" data-edit-name="${team}">${escapeHtml(name)}${serving ? '<span class="serve-ball">🎾</span>' : ''}</div>
       <div class="sb-stack">
         <div class="sb-point">${disp}</div>
-        <div class="sb-cap">GAME</div>
-        <div class="sb-mid">${match.inMatchTiebreak ? '—' : gamesInSet}</div>
-        <div class="sb-cap">SET</div>
-        <div class="sb-mid">${setsWon}</div>
+        <div class="sb-cap">${isTimeFormat ? 'GIOCHI VINTI' : 'GAME'}</div>
+        <div class="sb-mid">${isTimeFormat ? gamesInSet : (match.inMatchTiebreak ? '—' : gamesInSet)}</div>
+        <div class="sb-cap">${isTimeFormat ? '' : 'SET'}</div>
+        <div class="sb-mid">${isTimeFormat ? '' : setsWon}</div>
       </div>
       ${badge ? `<div class="sb-badge">${badge}</div>` : ''}
     </div>
   `;
+}
+
+function formatRemaining(endsAt) {
+  const ms = Math.max(0, endsAt - Date.now());
+  const totalSeconds = Math.ceil(ms / 1000);
+  const mm = String(Math.floor(totalSeconds / 60)).padStart(2, '0');
+  const ss = String(totalSeconds % 60).padStart(2, '0');
+  return `${mm}:${ss}`;
 }
 
 function badgeFor(team) {
@@ -264,10 +333,16 @@ function badgeFor(team) {
 }
 
 function matchOverOverlay() {
+  const title = match.matchWinner
+    ? `🏆 ${escapeHtml(teamName(match, match.matchWinner))} vince!`
+    : '🤝 Pareggio!';
+  const detail = match.format === 'time'
+    ? `${match.currentSet.gamesA}-${match.currentSet.gamesB} giochi`
+    : match.sets.map((s) => `${s.a}-${s.b}`).join(' &nbsp;·&nbsp; ');
   return `
     <div class="sb-overlay">
-      <h2>🏆 ${escapeHtml(teamName(match, match.matchWinner))} vince!</h2>
-      <p>${match.sets.map((s) => `${s.a}-${s.b}`).join(' &nbsp;·&nbsp; ')}</p>
+      <h2>${title}</h2>
+      <p>${detail}</p>
       <button class="btn primary" id="save-match">Salva partita nelle statistiche</button>
     </div>
   `;

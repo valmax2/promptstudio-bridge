@@ -23,6 +23,10 @@ let addBindingStep = null;
 let addBindingCapture = null;
 let addBindingPattern = null;
 
+// "Configurazione rapida": null | 'A' | 'B' - which quick slot is currently
+// waiting for a key press.
+let quickCapturing = null;
+
 let activeCategory = 'aspetto';
 
 const CATEGORIES = [
@@ -101,6 +105,13 @@ export async function renderSettings(el) {
           <button data-voice-mode="energetic" class="${settings.ttsVoiceMode === 'energetic' ? 'active' : ''}">⚡ Energica</button>
         </div>
       </div>
+      <div class="field mt mb0">
+        <label>Lingua sintesi vocale</label>
+        <div class="segmented">
+          <button data-voice-lang="it-IT" class="${settings.ttsVoiceLang === 'it-IT' ? 'active' : ''}">🇮🇹 Italiano</button>
+          <button data-voice-lang="en-US" class="${settings.ttsVoiceLang === 'en-US' ? 'active' : ''}">🇬🇧 Inglese</button>
+        </div>
+      </div>
       <button class="btn secondary small mt" id="test-voice">🔊 Prova voce</button>
       ` : ''}
     </div>
@@ -172,6 +183,14 @@ export async function renderSettings(el) {
           <div><strong>Abilita telecomando</strong><p class="mb0 small">Attivo solo nella schermata Segnapunti</p></div>
           <label class="switch"><input type="checkbox" id="ble-enabled" ${settings.bleRemoteEnabled ? 'checked' : ''}><span class="slider"></span></label>
         </div>
+        ${settings.bleRemoteEnabled ? `
+        <div class="card" style="background:var(--surface-2);margin-top:10px;">
+          <label>Configurazione rapida (un telecomando per squadra)</label>
+          <p class="small">Associa un telecomando allo Slot 1 (Noi) e uno diverso allo Slot 2 (Avversari): un click sarà subito +1 punto per quella squadra.</p>
+          ${quickCapturing === 'A' ? '<p class="mb0">📡 Premi un tasto sul telecomando Slot 1 (Noi)…</p>' : `<button class="btn secondary block mt" id="quick-pair-a">🔵 Associa Slot 1 (Noi)</button>`}
+          ${quickCapturing === 'B' ? '<p class="mb0 mt">📡 Premi un tasto sul telecomando Slot 2 (Avversari)…</p>' : `<button class="btn secondary block mt" id="quick-pair-b">🔵 Associa Slot 2 (Avversari)</button>`}
+        </div>
+        ` : ''}
         ${settings.bleRemoteEnabled ? renderBindingsUI(settings.remoteBindings) : ''}
       ` : `<p class="small">Il telecomando Bluetooth richiede l'app installata come APK Android (non funziona nell'anteprima da browser).</p>`}
     </div>
@@ -254,6 +273,11 @@ export async function renderSettings(el) {
     renderSettings(el);
     syncSettings();
   }));
+  el.querySelectorAll('[data-voice-lang]').forEach((btn) => btn.addEventListener('click', () => {
+    updateSettings({ ttsVoiceLang: btn.dataset.voiceLang });
+    renderSettings(el);
+    syncSettings();
+  }));
 
   el.querySelectorAll('[data-preset]').forEach((btn) => btn.addEventListener('click', () => {
     const key = btn.dataset.preset;
@@ -280,6 +304,8 @@ export async function renderSettings(el) {
     renderSettings(el);
     syncSettings();
   });
+  el.querySelector('#quick-pair-a')?.addEventListener('click', () => quickPair(el, 'A', 'pointA'));
+  el.querySelector('#quick-pair-b')?.addEventListener('click', () => quickPair(el, 'B', 'pointB'));
   el.querySelector('#add-binding')?.addEventListener('click', async () => {
     addBindingStep = 'waiting';
     renderSettings(el);
@@ -401,6 +427,33 @@ export async function renderSettings(el) {
       toast('Impossibile attivare le notifiche (permesso negato?)');
     }
   });
+}
+
+async function quickPair(el, slot, action) {
+  quickCapturing = slot;
+  renderSettings(el);
+  await enableRemote();
+  const capture = await captureNextPress(8000);
+  await disableRemote();
+  quickCapturing = null;
+  if (!capture) {
+    toast('Nessun tasto rilevato, riprova');
+    renderSettings(el);
+    return;
+  }
+  const binding = {
+    id: genId(),
+    deviceDescriptor: capture.deviceDescriptor,
+    deviceName: capture.deviceName || 'Telecomando',
+    keyCode: capture.keyCode,
+    keyLabel: KEY_LABELS[capture.keyCode] || String(capture.keyCode),
+    pattern: 'single',
+    action,
+  };
+  updateSettings({ remoteBindings: [...getState().settings.remoteBindings, binding] });
+  toast(`Telecomando associato allo Slot ${slot === 'A' ? '1 (Noi)' : '2 (Avversari)'}!`);
+  renderSettings(el);
+  syncSettings();
 }
 
 function renderBindingsUI(bindings) {

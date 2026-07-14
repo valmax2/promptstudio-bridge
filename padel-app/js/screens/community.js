@@ -7,8 +7,10 @@ import {
 import { escapeHtml, uid as genId } from '../utils.js';
 import { navigate } from '../router.js';
 import { toast } from '../app.js';
+import { setNavBadge } from '../notifications.js';
 
 export async function renderCommunity(el) {
+  setNavBadge('community', false);
   const cloud = isCloudReady();
   let unsubFriends = null;
   let unsubCircles = null;

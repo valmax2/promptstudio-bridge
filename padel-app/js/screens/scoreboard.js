@@ -134,6 +134,7 @@ function paintSetup(el) {
     });
     history = [];
     startLive(el);
+    if (settings.ttsEnabled) say(`Si comincia! Batte ${match.teamAName}, riceve ${match.teamBName}`);
   });
 
   setupRemoteListening(el);

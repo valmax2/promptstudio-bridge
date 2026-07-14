@@ -5,6 +5,7 @@ import { isCloudReady } from '../cloud.js';
 import { firebaseAvailable, currentUser, registerPushToken } from '../firebase.js';
 import { say, speechSupported } from '../speech.js';
 import { toast } from '../app.js';
+import { COLOR_PRESETS } from '../color-presets.js';
 import {
   KEY_LABELS, ACTION_LABELS, PATTERN_LABELS, remoteSupported, captureNextPress,
   enableRemote, disableRemote,
@@ -62,7 +63,25 @@ export async function renderSettings(el) {
         <div><strong>Annuncio vocale (TTS)</strong><p class="mb0 small">${speechSupported() ? 'Riproduce l\'audio su altoparlante o cassa Bluetooth' : 'Non supportato su questo dispositivo'}</p></div>
         <label class="switch"><input type="checkbox" id="tts" ${settings.ttsEnabled ? 'checked' : ''}><span class="slider"></span></label>
       </div>
-      <div class="toggle-row">
+      ${settings.ttsEnabled ? `
+      <div class="field mt mb0">
+        <label>Voce</label>
+        <div class="segmented">
+          <button data-voice-gender="female" class="${settings.ttsVoiceGender === 'female' ? 'active' : ''}">👩 Femminile</button>
+          <button data-voice-gender="male" class="${settings.ttsVoiceGender === 'male' ? 'active' : ''}">👨 Maschile</button>
+        </div>
+      </div>
+      <div class="field mt">
+        <label>Modalità voce</label>
+        <div class="segmented">
+          <button data-voice-mode="calm" class="${settings.ttsVoiceMode === 'calm' ? 'active' : ''}">😌 Calma</button>
+          <button data-voice-mode="natural" class="${settings.ttsVoiceMode === 'natural' ? 'active' : ''}">🎙️ Naturale</button>
+          <button data-voice-mode="energetic" class="${settings.ttsVoiceMode === 'energetic' ? 'active' : ''}">⚡ Energica</button>
+        </div>
+      </div>
+      <button class="btn secondary small mt" id="test-voice">🔊 Prova voce</button>
+      ` : ''}
+      <div class="toggle-row mt">
         <div><strong>Punto d'oro</strong><p class="mb0 small">A 40 pari, il punto successivo decide il gioco</p></div>
         <label class="switch"><input type="checkbox" id="golden" ${settings.goldenPoint ? 'checked' : ''}><span class="slider"></span></label>
       </div>
@@ -70,7 +89,46 @@ export async function renderSettings(el) {
         <div><strong>Super tie-break al 3° set</strong><p class="mb0 small">Il set decisivo si gioca al tie-break fino a 10</p></div>
         <label class="switch"><input type="checkbox" id="super-tb" ${settings.superTiebreak3rdSet ? 'checked' : ''}><span class="slider"></span></label>
       </div>
-      ${settings.ttsEnabled ? '<button class="btn secondary small mt" id="test-voice">🔊 Prova voce</button>' : ''}
+      <button class="btn ghost small block mt" id="go-gamemodes">📖 Tutte le modalità di gioco</button>
+    </div>
+
+    <div class="card">
+      <h2>🎨 Colori tabellone</h2>
+      <p class="small">Colori standard (sRGB): restano fedeli su tutti i telefoni e tablet, senza toni sfasati dovuti a schermi "wide gamut".</p>
+      <div class="row" style="flex-wrap:wrap;gap:8px;">
+        ${Object.entries(COLOR_PRESETS).map(([key, p]) => `
+          <button class="color-preset-btn ${settings.colorPreset === key ? 'selected' : ''}" data-preset="${key}" title="${p.label}">
+            <span style="background:${p.teamAColor}"></span><span style="background:${p.teamBColor}"></span>
+          </button>
+        `).join('')}
+        <button class="color-preset-btn ${settings.colorPreset === 'custom' ? 'selected' : ''}" data-preset="custom" title="Personalizzato">🎛️</button>
+      </div>
+
+      <div class="sb-color-preview mt">
+        <div class="sb-color-preview-half sb-a"><span>40</span></div>
+        <div class="sb-color-preview-half sb-b"><span>30</span></div>
+      </div>
+
+      <div class="field mt">
+        <label>Colore Squadra A</label>
+        <input type="color" id="color-a" value="${settings.teamAColor}">
+      </div>
+      <div class="field">
+        <label>Colore Squadra B</label>
+        <input type="color" id="color-b" value="${settings.teamBColor}">
+      </div>
+      <div class="field">
+        <label>Colore numeri</label>
+        <input type="color" id="color-number" value="${settings.numberColor}">
+      </div>
+      <div class="field">
+        <label>Colore bordo numeri</label>
+        <input type="color" id="color-border" value="${normalizeHex(settings.numberBorderColor)}">
+      </div>
+      <div class="field mb0">
+        <label>Spessore bordo numeri</label>
+        <input type="range" min="0" max="6" step="1" id="border-width" value="${settings.numberBorderWidth}">
+      </div>
     </div>
 
     <div class="card">
@@ -139,6 +197,38 @@ export async function renderSettings(el) {
   el.querySelector('#golden').addEventListener('change', (e) => { updateSettings({ goldenPoint: e.target.checked }); syncSettings(); });
   el.querySelector('#super-tb').addEventListener('change', (e) => { updateSettings({ superTiebreak3rdSet: e.target.checked }); syncSettings(); });
   el.querySelector('#test-voice')?.addEventListener('click', () => say('40 pari, punto d\'oro'));
+  el.querySelector('#go-gamemodes').addEventListener('click', () => navigate('gamemodes'));
+
+  el.querySelectorAll('[data-voice-gender]').forEach((btn) => btn.addEventListener('click', () => {
+    updateSettings({ ttsVoiceGender: btn.dataset.voiceGender });
+    renderSettings(el);
+    syncSettings();
+  }));
+  el.querySelectorAll('[data-voice-mode]').forEach((btn) => btn.addEventListener('click', () => {
+    updateSettings({ ttsVoiceMode: btn.dataset.voiceMode });
+    renderSettings(el);
+    syncSettings();
+  }));
+
+  el.querySelectorAll('[data-preset]').forEach((btn) => btn.addEventListener('click', () => {
+    const key = btn.dataset.preset;
+    if (key === 'custom') {
+      updateSettings({ colorPreset: 'custom' });
+    } else {
+      const { label, ...colors } = COLOR_PRESETS[key];
+      updateSettings({ colorPreset: key, ...colors });
+    }
+    renderSettings(el);
+    syncSettings();
+  }));
+  el.querySelector('#color-a').addEventListener('input', (e) => updateSettings({ teamAColor: e.target.value, colorPreset: 'custom' }));
+  el.querySelector('#color-b').addEventListener('input', (e) => updateSettings({ teamBColor: e.target.value, colorPreset: 'custom' }));
+  el.querySelector('#color-number').addEventListener('input', (e) => updateSettings({ numberColor: e.target.value, colorPreset: 'custom' }));
+  el.querySelector('#color-border').addEventListener('input', (e) => updateSettings({ numberBorderColor: e.target.value, colorPreset: 'custom' }));
+  el.querySelector('#border-width').addEventListener('input', (e) => updateSettings({ numberBorderWidth: parseInt(e.target.value, 10), colorPreset: 'custom' }));
+  ['#color-a', '#color-b', '#color-number', '#color-border', '#border-width'].forEach((sel) => {
+    el.querySelector(sel).addEventListener('change', () => { renderSettings(el); syncSettings(); });
+  });
 
   el.querySelector('#ble-enabled')?.addEventListener('change', (e) => {
     updateSettings({ bleRemoteEnabled: e.target.checked });
@@ -318,6 +408,13 @@ function tagRow(t) {
     <p class="small mb0">Per assegnare cosa fa il pulsante (anche click singolo/doppio separati), vai qui sopra in "📡 Telecomando remoto" → Aggiungi associazione, e premi il pulsante di questo tag quando richiesto.</p>
     <button class="btn ghost small mt" data-tag-forget="${t.id}">Dimentica dispositivo</button>
   </div>`;
+}
+
+// <input type="color"> only accepts 6-digit hex, but a couple of presets
+// use an 8-digit hex (alpha) for a softer border - strip alpha for display.
+function normalizeHex(hex) {
+  const m = /^#([0-9a-f]{6})/i.exec(hex || '');
+  return m ? `#${m[1]}` : '#000000';
 }
 
 async function syncSettings() {

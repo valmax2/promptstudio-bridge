@@ -38,6 +38,7 @@ export async function renderHome(el) {
     <div class="card">
       <div class="row between">
         <h2>🎾 Nuova partita</h2>
+        <button class="btn ghost small" id="go-gamemodes">📖 Modalità</button>
       </div>
       <p>Avvia il segnapunti remoto con annuncio vocale del punteggio.</p>
       <button class="btn primary block" id="go-scoreboard">Doppio / Singolo</button>
@@ -74,6 +75,7 @@ export async function renderHome(el) {
 
   el.querySelector('#go-login')?.addEventListener('click', () => navigate('login'));
   el.querySelector('#go-settings').addEventListener('click', () => navigate('settings'));
+  el.querySelector('#go-gamemodes').addEventListener('click', () => navigate('gamemodes'));
   el.querySelector('#go-scoreboard').addEventListener('click', () => navigate('scoreboard'));
   el.querySelector('#go-americano').addEventListener('click', () => navigate('americano'));
   el.querySelector('#go-killer').addEventListener('click', () => navigate('killer'));

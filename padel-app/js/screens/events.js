@@ -4,8 +4,10 @@ import { escapeHtml, formatDateTime, uid as genId } from '../utils.js';
 import { currentUser, firebaseAvailable } from '../firebase.js';
 import { navigate } from '../router.js';
 import { toast } from '../app.js';
+import { setNavBadge } from '../notifications.js';
 
 export async function renderEvents(el) {
+  setNavBadge('events', false);
   const cloud = isCloudReady();
   let unsubCircles = null;
   let unsubEvents = null;

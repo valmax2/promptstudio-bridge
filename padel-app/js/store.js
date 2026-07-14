@@ -7,6 +7,12 @@ const DEFAULT_STATE = {
     fontScale: 1,
     ttsEnabled: true,
     ttsVoiceLang: 'it-IT',
+    // 'female' | 'male' - which installed device voice (or pitch fallback,
+    // if the device only has one named voice for the language) to use.
+    ttsVoiceGender: 'female',
+    // 'natural' | 'energetic' | 'calm' - rate/pitch preset applied on top
+    // of the chosen voice so announcements sound less robotic.
+    ttsVoiceMode: 'natural',
     goldenPoint: true,
     superTiebreak3rdSet: true,
     cloudSyncEnabled: true,
@@ -22,6 +28,16 @@ const DEFAULT_STATE = {
     // actions - including per single/double-click pattern - live in
     // remoteBindings above like any other device, not here.
     bleTags: [],
+    // Scoreboard color scheme. `preset` picks one of COLOR_PRESETS (see
+    // js/color-presets.js) or 'custom' to use the four fields below as-is;
+    // they're kept in sync with the preset so switching to "custom" starts
+    // from whatever preset was last active instead of a jarring default.
+    colorPreset: 'classic',
+    teamAColor: '#1565C0',
+    teamBColor: '#F2A900',
+    numberColor: '#FFFFFF',
+    numberBorderColor: '#000000',
+    numberBorderWidth: 0,
   },
   profile: {
     uid: null,
@@ -41,6 +57,9 @@ const DEFAULT_STATE = {
     unlockedAvatars: ['f-ponytail', 'm-shortbrown', 'f-curly', 'm-afro'],
     unlockedFrames: ['none'],
   },
+  // ids of friends/events already surfaced as a notification, so the same
+  // one doesn't toast/badge again on every app open - see js/notifications.js.
+  seenNotifIds: [],
   friends: [],       // {id, name, phone}
   circles: [],        // {id, name, memberIds, memberNames}
   events: [],          // {id, title, dateTime, location, circleId, hostId, hostName, participants, maxPlayers}

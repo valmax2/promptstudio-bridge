@@ -2,6 +2,8 @@ import { getState, subscribe } from './store.js';
 import { initRouter, registerRoute, startRouter, navigate } from './router.js';
 import { initFirebase, firebaseAvailable, onAuthChanged } from './firebase.js';
 import { configureSpeech } from './speech.js';
+import { applyColorsToDom } from './color-presets.js';
+import { initNotifications, stopNotifications } from './notifications.js';
 
 import { renderLogin } from './screens/login.js';
 import { renderHome } from './screens/home.js';
@@ -14,6 +16,7 @@ import { renderSettings } from './screens/settings.js';
 import { renderProfile } from './screens/profile.js';
 import { renderAmericano } from './screens/americano.js';
 import { renderKiller } from './screens/killer.js';
+import { renderGameModes } from './screens/gamemodes.js';
 import { NAV_ICONS } from './nav-icons.js';
 
 const appEl = document.getElementById('app');
@@ -29,7 +32,13 @@ function applyTheme() {
   document.documentElement.setAttribute('data-theme', settings.theme);
   document.documentElement.style.setProperty('--font-family', settings.fontFamily);
   document.documentElement.style.setProperty('--font-scale', settings.fontScale);
-  configureSpeech({ enabled: settings.ttsEnabled, lang: settings.ttsVoiceLang });
+  configureSpeech({
+    enabled: settings.ttsEnabled,
+    lang: settings.ttsVoiceLang,
+    voiceGender: settings.ttsVoiceGender,
+    voiceMode: settings.ttsVoiceMode,
+  });
+  applyColorsToDom(settings);
 }
 
 function updateBanner() {
@@ -64,6 +73,7 @@ registerRoute('settings', renderSettings);
 registerRoute('profile', renderProfile);
 registerRoute('americano', renderAmericano);
 registerRoute('killer', renderKiller);
+registerRoute('gamemodes', renderGameModes);
 
 navEl.addEventListener('click', (e) => {
   const btn = e.target.closest('.nav-btn');
@@ -82,6 +92,7 @@ initFirebase().then((ok) => {
   if (ok) {
     onAuthChanged((user) => {
       updateBanner();
+      if (user) initNotifications(toast); else stopNotifications();
       window.dispatchEvent(new CustomEvent('padel:auth-changed', { detail: user }));
     });
   }

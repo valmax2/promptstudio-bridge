@@ -1,4 +1,4 @@
-const CACHE = 'padel-app-v1';
+const CACHE = 'padel-app-v2';
 const CORE = [
   './',
   './index.html',
@@ -23,18 +23,20 @@ self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
   const url = new URL(event.request.url);
   if (url.origin !== self.location.origin) return; // let Firebase/network calls pass through
+  // Network-first: always try to load the latest bundled file first, and
+  // only fall back to the cache when offline. The previous cache-first
+  // strategy served stale JS/HTML from a prior app install even after
+  // updating to a newer APK, since the cached copy was returned instantly
+  // and only refreshed in the background for the *next* load.
   event.respondWith(
-    caches.match(event.request).then((cached) => {
-      const fetchPromise = fetch(event.request)
-        .then((res) => {
-          if (res && res.status === 200) {
-            const clone = res.clone();
-            caches.open(CACHE).then((c) => c.put(event.request, clone));
-          }
-          return res;
-        })
-        .catch(() => cached);
-      return cached || fetchPromise;
-    })
+    fetch(event.request)
+      .then((res) => {
+        if (res && res.status === 200) {
+          const clone = res.clone();
+          caches.open(CACHE).then((c) => c.put(event.request, clone));
+        }
+        return res;
+      })
+      .catch(() => caches.match(event.request))
   );
 });

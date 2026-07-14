@@ -36,12 +36,18 @@ export async function renderLogin(el) {
         </div>
         <div class="field mb0">
           <label>Password</label>
-          <input id="password" type="password" placeholder="Almeno 6 caratteri" autocomplete="${mode === 'register' ? 'new-password' : 'current-password'}">
+          <div class="password-field">
+            <input id="password" type="password" placeholder="Almeno 6 caratteri" autocomplete="${mode === 'register' ? 'new-password' : 'current-password'}">
+            <button type="button" class="password-toggle" data-toggle="password" aria-label="Mostra password">👁️</button>
+          </div>
         </div>
         ${mode === 'register' ? `
         <div class="field mt mb0">
           <label>Conferma password</label>
-          <input id="password2" type="password" placeholder="Ripeti la password" autocomplete="new-password">
+          <div class="password-field">
+            <input id="password2" type="password" placeholder="Ripeti la password" autocomplete="new-password">
+            <button type="button" class="password-toggle" data-toggle="password2" aria-label="Mostra password">👁️</button>
+          </div>
         </div>` : ''}
         <button class="btn primary block mt" id="submit">${mode === 'login' ? 'Accedi' : 'Crea account'}</button>
         ${mode === 'login' ? '<button class="btn ghost small block mt" id="forgot">Password dimenticata?</button>' : ''}
@@ -51,6 +57,13 @@ export async function renderLogin(el) {
     el.querySelectorAll('[data-mode]').forEach((btn) => btn.addEventListener('click', () => {
       mode = btn.dataset.mode;
       paint();
+    }));
+
+    el.querySelectorAll('[data-toggle]').forEach((btn) => btn.addEventListener('click', () => {
+      const input = el.querySelector(`#${btn.dataset.toggle}`);
+      const shown = input.type === 'text';
+      input.type = shown ? 'password' : 'text';
+      btn.textContent = shown ? '👁️' : '🙈';
     }));
 
     el.querySelector('#submit').addEventListener('click', async () => {
@@ -81,11 +94,12 @@ export async function renderLogin(el) {
     });
 
     el.querySelector('#forgot')?.addEventListener('click', async () => {
-      const email = el.querySelector('#email').value.trim();
-      if (!email) { toast('Inserisci prima la tua email'); return; }
+      const prefill = el.querySelector('#email').value.trim();
+      const email = (prompt('Inserisci la tua email per ricevere il link di reimpostazione password:', prefill) || '').trim();
+      if (!email) return;
       try {
         await resetPasswordEmail(email);
-        toast('Email per reimpostare la password inviata!');
+        toast(`Email inviata a ${email}: controlla anche nello spam`, 4000);
       } catch (err) {
         toast(describeAuthError(err));
       }

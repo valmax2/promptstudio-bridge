@@ -1,8 +1,16 @@
+import { LITE_MODE } from './lite-mode.js';
+
 const routes = new Map();
 let currentRoute = null;
 let mountEl = null;
 let navEl = null;
 let cleanupFn = null;
+
+// In the beta-test build, every route except these bounces back to the
+// scoreboard - a single choke point here means no button anywhere (even
+// ones inside a screen we didn't specifically audit) can ever leak into
+// the full app (community, events, login, settings, ...).
+const LITE_ALLOWED_ROUTES = ['scoreboard', 'bluetooth-setup'];
 
 export function registerRoute(name, renderFn) {
   routes.set(name, renderFn);
@@ -29,6 +37,7 @@ export function startRouter(defaultRoute = 'home') {
 
 export async function navigate(name, { replace = false, params = {} } = {}) {
   if (!routes.has(name)) name = 'home';
+  if (LITE_MODE && !LITE_ALLOWED_ROUTES.includes(name)) name = 'scoreboard';
   if (location.hash !== `#/${name}`) {
     if (replace) history.replaceState(null, '', `#/${name}`);
     else location.hash = `#/${name}`;

@@ -8,6 +8,7 @@ import {
 import { navigate } from '../router.js';
 import { toast } from '../app.js';
 import { nearestColorName } from '../color-presets.js';
+import { LITE_MODE } from '../lite-mode.js';
 import {
   enableRemote, disableRemote, listenBindings,
   connectBleTag, disconnectBleTag,
@@ -206,7 +207,8 @@ function paintSetup(el) {
             </div>
           </div>
         </div>
-        <button class="btn primary block" id="start-match">Inizia partita</button>
+        ${LITE_MODE ? '<button class="btn secondary block mt" id="setup-bluetooth">🔵 Configura Bluetooth</button>' : ''}
+        <button class="btn primary block mt" id="start-match">Inizia partita</button>
       </div>
     </div>
   `;
@@ -226,6 +228,7 @@ function paintSetup(el) {
     updateSettings({ announceTimeEveryMatches: parseInt(btn.dataset.setupTimeAnnounce, 10) });
     paintSetup(el);
   }));
+  el.querySelector('#setup-bluetooth')?.addEventListener('click', () => navigate('bluetooth-setup'));
   el.querySelectorAll('[data-format]').forEach((btn) => btn.addEventListener('click', () => {
     setupFormat = btn.dataset.format;
     paintSetup(el);
@@ -302,14 +305,14 @@ function paint(el) {
       </div>
       <div class="sb-controls">
         <button id="sb-undo" ${history.length ? '' : 'disabled'}>↩️ Annulla</button>
-        <button id="sb-settings">⚙️ Impostazioni</button>
+        <button id="sb-settings">${LITE_MODE ? '🔵 Bluetooth' : '⚙️ Impostazioni'}</button>
         <button id="sb-newmatch">🔄 Nuova partita</button>
       </div>
     </div>
   `;
 
   el.querySelector('#sb-back').addEventListener('click', () => navigate('home'));
-  el.querySelector('#sb-settings').addEventListener('click', () => navigate('settings'));
+  el.querySelector('#sb-settings').addEventListener('click', () => navigate(LITE_MODE ? 'bluetooth-setup' : 'settings'));
   el.querySelector('#sb-mute').addEventListener('click', () => {
     ttsEnabled = !ttsEnabled;
     if (!ttsEnabled) stopSpeech();

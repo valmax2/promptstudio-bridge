@@ -69,15 +69,17 @@ function avatarTile(a, profile) {
   const unlocked = profile.unlockedAvatars.includes(a.id);
   const selected = profile.avatarEmoji === a.id && !profile.avatarUrl;
   return `<button class="pick-item ${unlocked ? '' : 'locked'} ${selected ? 'selected' : ''}" data-avatar="${a.id}" data-level="${a.level}">
-    ${unlocked ? a.svg : '🔒'}
+    <span class="pick-item-preview">${a.svg}</span>
+    ${unlocked ? '' : '<span class="pick-item-lock">🔒</span>'}
   </button>`;
 }
 
 function frameTile(f, profile) {
   const unlocked = profile.unlockedFrames.includes(f.id);
   const selected = profile.equippedFrame === f.id;
-  const style = unlocked ? `border-width:4px;border-color:${f.color};box-shadow:${f.id === 'none' ? 'none' : `0 0 10px 1px ${f.glow}`};` : 'border-color:transparent;';
+  const style = unlocked ? `border-width:4px;border-color:${f.color};box-shadow:${f.id === 'none' ? 'none' : `0 0 10px 1px ${f.glow}`};` : `border-width:4px;border-color:${f.color};`;
   return `<button class="pick-item ${unlocked ? '' : 'locked'} ${selected ? 'selected' : ''}" data-frame="${f.id}" data-level="${f.level}" style="${style}">
-    ${unlocked ? (f.badge || '⭕') : '🔒'}
+    <span class="pick-item-preview">${f.badge || '⭕'}</span>
+    ${unlocked ? '' : '<span class="pick-item-lock">🔒</span>'}
   </button>`;
 }

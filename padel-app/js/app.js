@@ -3,6 +3,7 @@ import { initRouter, registerRoute, startRouter, navigate } from './router.js';
 import { initFirebase, firebaseAvailable, onAuthChanged } from './firebase.js';
 import { configureSpeech } from './speech.js';
 import { applyColorsToDom } from './color-presets.js';
+import { applyUiAccent } from './ui-accents.js';
 import { initNotifications, stopNotifications } from './notifications.js';
 
 import { renderLogin } from './screens/login.js';
@@ -41,6 +42,7 @@ function applyTheme() {
     voiceMode: settings.ttsVoiceMode,
   });
   applyColorsToDom(settings);
+  applyUiAccent(settings.uiAccent);
 }
 
 function updateBanner() {

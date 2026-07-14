@@ -3,6 +3,7 @@ const KEY = 'padel-app-state-v1';
 const DEFAULT_STATE = {
   settings: {
     theme: 'dark',
+    uiAccent: 'default',
     fontFamily: "'Segoe UI', Roboto, system-ui, -apple-system, sans-serif",
     fontScale: 1,
     ttsEnabled: true,
@@ -55,7 +56,7 @@ const DEFAULT_STATE = {
     xp: 0,
     level: 1,
     unlockedAvatars: ['f-ponytail', 'm-shortbrown', 'f-curly', 'm-afro'],
-    unlockedFrames: ['none'],
+    unlockedFrames: ['none', 'bronze', 'silver'],
   },
   // ids of friends/events already surfaced as a notification, so the same
   // one doesn't toast/badge again on every app open - see js/notifications.js.

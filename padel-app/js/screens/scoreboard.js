@@ -1,4 +1,4 @@
-import { getState, addMatch, addXp } from '../store.js';
+import { getState, addMatch, addXp, updateSettings } from '../store.js';
 import { pushMatch } from '../cloud.js';
 import { say, stopSpeech } from '../speech.js';
 import { escapeHtml, BACK_ICON } from '../utils.js';
@@ -7,6 +7,7 @@ import {
 } from '../scoring.js';
 import { navigate } from '../router.js';
 import { toast } from '../app.js';
+import { nearestColorName } from '../color-presets.js';
 import {
   enableRemote, disableRemote, listenBindings,
   connectBleTag, disconnectBleTag,
@@ -107,6 +108,9 @@ function startLive(el) {
 
 function paintSetup(el) {
   const singles = setupMode === 'singles';
+  const { settings } = getState();
+  const teamAColorName = nearestColorName(settings.teamAColor) || 'Squadra A';
+  const teamBColorName = nearestColorName(settings.teamBColor) || 'Squadra B';
   el.innerHTML = `
     <div class="sb-root">
       <div class="sb-topbar">
@@ -137,8 +141,8 @@ function paintSetup(el) {
         <div class="card">
           <label>Squadra A</label>
           <div class="field">
-            <label class="small">Nome squadra (facoltativo)</label>
-            <input id="team-name-a" placeholder="es. Squadra Rosa, Napoli…" maxlength="24">
+            <label class="small">Nome squadra (facoltativo, default "${teamAColorName}")</label>
+            <input id="team-name-a" placeholder="${teamAColorName}" maxlength="24">
           </div>
           <div class="field">
             <input id="name-a1" placeholder="Giocatore 1" maxlength="24">
@@ -150,8 +154,8 @@ function paintSetup(el) {
         <div class="card">
           <label>Squadra B</label>
           <div class="field">
-            <label class="small">Nome squadra (facoltativo)</label>
-            <input id="team-name-b" placeholder="es. Squadra Nera, Inter…" maxlength="24">
+            <label class="small">Nome squadra (facoltativo, default "${teamBColorName}")</label>
+            <input id="team-name-b" placeholder="${teamBColorName}" maxlength="24">
           </div>
           <div class="field">
             <input id="name-b1" placeholder="Giocatore 3" maxlength="24">
@@ -182,6 +186,23 @@ function paintSetup(el) {
           <p class="small mt mb0">Si gioca senza set: vince chi ha fatto più giochi allo scadere del tempo.</p>
           ` : ''}
         </div>
+        <div class="card">
+          <label>Opzioni partita</label>
+          <div class="toggle-row">
+            <div><strong>Punto d'oro</strong><p class="mb0 small">A 40 pari, il punto successivo decide il gioco</p></div>
+            <label class="switch"><input type="checkbox" id="setup-golden" ${settings.goldenPoint ? 'checked' : ''}><span class="slider"></span></label>
+          </div>
+          <div class="toggle-row">
+            <div><strong>Super tie-break al 3° set</strong><p class="mb0 small">Il set decisivo si gioca al tie-break fino a 10</p></div>
+            <label class="switch"><input type="checkbox" id="setup-super-tb" ${settings.superTiebreak3rdSet ? 'checked' : ''}><span class="slider"></span></label>
+          </div>
+          <div class="field mt mb0">
+            <label>🕐 Annuncia l'ora ogni tot partite</label>
+            <div class="segmented">
+              ${[0, 1, 2, 3, 5].map((n) => `<button data-setup-time-announce="${n}" class="${settings.announceTimeEveryMatches === n ? 'active' : ''}">${n === 0 ? 'Mai' : n === 1 ? 'Ogni partita' : `Ogni ${n}`}</button>`).join('')}
+            </div>
+          </div>
+        </div>
         <button class="btn primary block" id="start-match">Inizia partita</button>
       </div>
     </div>
@@ -194,6 +215,12 @@ function paintSetup(el) {
   }));
   el.querySelectorAll('[data-server]').forEach((btn) => btn.addEventListener('click', () => {
     setupServer = btn.dataset.server;
+    paintSetup(el);
+  }));
+  el.querySelector('#setup-golden')?.addEventListener('change', (e) => updateSettings({ goldenPoint: e.target.checked }));
+  el.querySelector('#setup-super-tb')?.addEventListener('change', (e) => updateSettings({ superTiebreak3rdSet: e.target.checked }));
+  el.querySelectorAll('[data-setup-time-announce]').forEach((btn) => btn.addEventListener('click', () => {
+    updateSettings({ announceTimeEveryMatches: parseInt(btn.dataset.setupTimeAnnounce, 10) });
     paintSetup(el);
   }));
   el.querySelectorAll('[data-format]').forEach((btn) => btn.addEventListener('click', () => {
@@ -220,8 +247,8 @@ function paintSetup(el) {
       const customTeamB = el.querySelector('#team-name-b').value.trim().slice(0, 24);
       teamAPlayers = [a1, a2];
       teamBPlayers = [b1, b2];
-      teamAName = customTeamA || `${a1} / ${a2}`;
-      teamBName = customTeamB || `${b1} / ${b2}`;
+      teamAName = customTeamA || nearestColorName(settings.teamAColor) || `${a1} / ${a2}`;
+      teamBName = customTeamB || nearestColorName(settings.teamBColor) || `${b1} / ${b2}`;
     }
     match = createMatch({
       teamAName, teamBName, teamAPlayers, teamBPlayers,
@@ -409,7 +436,7 @@ async function onSaveMatch(el) {
   addXp(match.matchWinner === 'A' ? 40 : 15);
   try { await pushMatch(record); } catch {}
   toast('Partita salvata! Hai guadagnato XP 🎉');
-  maybeAnnounceTime();
+  await maybeAnnounceTime(el);
   match = null;
   history = [];
   await renderScoreboard(el);
@@ -418,13 +445,22 @@ async function onSaveMatch(el) {
 // "Ogni tot partite" (Impostazioni > Partita): reads the total match count
 // after saving rather than a separate session counter, so "ogni 2" always
 // means "after the 2nd, 4th, 6th... match ever recorded" - no extra state
-// to keep in sync.
-function maybeAnnounceTime() {
+// to keep in sync. Shown as a full-screen black takeover (like the rest of
+// the scoreboard) rather than just a toast, since a toast is easy to miss
+// mid-changeover and the whole point is that everyone notices the time.
+function maybeAnnounceTime(el) {
   const { settings, matches } = getState();
   const n = settings.announceTimeEveryMatches;
-  if (!n || matches.length % n !== 0) return;
+  if (!n || matches.length % n !== 0) return Promise.resolve();
   const now = new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
-  const text = `Sono le ${now}. Avete tempo per un'altra partita?`;
-  if (settings.ttsEnabled) say(text);
-  toast(text);
+  if (settings.ttsEnabled) say(`Sono le ${now}. Avete tempo per un'altra partita?`);
+  el.innerHTML = `
+    <div class="sb-root">
+      <div class="sb-time-announce">
+        <div class="sb-time-announce-clock">${now}</div>
+        <p>Avete tempo per un'altra partita?</p>
+      </div>
+    </div>
+  `;
+  return new Promise((resolve) => setTimeout(resolve, 3500));
 }

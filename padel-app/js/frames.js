@@ -3,8 +3,11 @@
 // actually reads as "themed decoration" rather than just a plain colored ring.
 export const FRAMES = [
   { id: 'none', label: 'Nessuna', level: 1, color: 'var(--accent)', glow: 'transparent', badge: '' },
-  { id: 'bronze', label: 'Bronzo', level: 2, color: '#CD7F32', glow: 'rgba(205,127,50,0.55)', badge: '🥉' },
-  { id: 'silver', label: 'Argento', level: 4, color: '#C0C0C0', glow: 'rgba(192,192,192,0.55)', badge: '🥈' },
+  // Sbloccate fin da subito (livello 1) - semplici di proposito, per dare
+  // già una scelta a chi è appena partito; le più elaborate restano un
+  // vero traguardo da sbloccare salendo di livello.
+  { id: 'bronze', label: 'Bronzo', level: 1, color: '#CD7F32', glow: 'rgba(205,127,50,0.55)', badge: '🥉' },
+  { id: 'silver', label: 'Argento', level: 1, color: '#C0C0C0', glow: 'rgba(192,192,192,0.55)', badge: '🥈' },
   { id: 'gold', label: 'Oro', level: 6, color: '#FFD54F', glow: 'rgba(255,213,79,0.6)', badge: '🥇' },
   { id: 'fire', label: 'Fuoco', level: 9, color: '#FF6B4A', glow: 'rgba(255,107,74,0.65)', badge: '🔥' },
   { id: 'ice', label: 'Ghiaccio', level: 12, color: '#69D6FF', glow: 'rgba(105,214,255,0.65)', badge: '❄️' },

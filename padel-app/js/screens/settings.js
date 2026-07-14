@@ -6,6 +6,7 @@ import { firebaseAvailable, currentUser } from '../firebase.js';
 import { say, speechSupported } from '../speech.js';
 import { toast } from '../app.js';
 import { COLOR_PRESETS } from '../color-presets.js';
+import { UI_ACCENT_PRESETS, applyUiAccent } from '../ui-accents.js';
 import { remoteSupported, bleTagSupported } from '../ble-remote.js';
 import { BACK_ICON, BLUETOOTH_ICON } from '../utils.js';
 
@@ -47,6 +48,17 @@ export async function renderSettings(el) {
       <div class="segmented">
         <button data-theme="dark" class="${settings.theme === 'dark' ? 'active' : ''}">🌙 Scuro</button>
         <button data-theme="light" class="${settings.theme === 'light' ? 'active' : ''}">☀️ Chiaro</button>
+      </div>
+
+      <div class="field mt mb0">
+        <label>Colore interfaccia</label>
+        <div class="row" style="flex-wrap:wrap;gap:8px;">
+          ${Object.entries(UI_ACCENT_PRESETS).map(([key, p]) => `
+            <button class="color-preset-btn ${settings.uiAccent === key ? 'selected' : ''}" data-ui-accent="${key}" title="${p.label}">
+              <span style="background:${p.accent || 'var(--accent)'}"></span>
+            </button>
+          `).join('')}
+        </div>
       </div>
 
       <div class="field mt">
@@ -186,6 +198,13 @@ export async function renderSettings(el) {
 
   el.querySelectorAll('[data-theme]').forEach((btn) => btn.addEventListener('click', () => {
     updateSettings({ theme: btn.dataset.theme });
+    renderSettings(el);
+    syncSettings();
+  }));
+
+  el.querySelectorAll('[data-ui-accent]').forEach((btn) => btn.addEventListener('click', () => {
+    updateSettings({ uiAccent: btn.dataset.uiAccent });
+    applyUiAccent(btn.dataset.uiAccent);
     renderSettings(el);
     syncSettings();
   }));

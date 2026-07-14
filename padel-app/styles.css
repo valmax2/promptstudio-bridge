@@ -421,6 +421,13 @@ label { font-size: 0.85em; color: var(--text-dim); display: block; margin-bottom
 .sb-overlay h2 { font-size: clamp(1.4rem, 4vw, 2.2rem); }
 .sb-overlay .btn { font-size: 1.1em; padding: 16px 28px; }
 
+.sb-time-announce {
+  flex: 1 1 auto; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 16px; text-align: center; padding: 24px; background: #000;
+}
+.sb-time-announce-clock { font-size: clamp(3rem, 22vw, 9rem); font-weight: 800; line-height: 1; }
+.sb-time-announce p { font-size: clamp(1rem, 3vw, 1.4rem); opacity: 0.85; margin: 0; }
+
 /* Segmented control */
 .settings-categories {
   display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
@@ -483,9 +490,14 @@ label { font-size: 0.85em; color: var(--text-dim); display: block; margin-bottom
 
 .locked { opacity: 0.4; filter: grayscale(1); }
 .picker-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
-.picker-grid .pick-item { aspect-ratio: 1; border-radius: 14px; display:flex;align-items:center;justify-content:center; font-size:1.6em; background: var(--surface-2); border: 2px solid transparent; overflow: hidden; }
+.picker-grid .pick-item { position: relative; aspect-ratio: 1; border-radius: 14px; display:flex;align-items:center;justify-content:center; font-size:1.6em; background: var(--surface-2); border: 2px solid transparent; overflow: hidden; }
 .picker-grid .pick-item.selected { border-color: var(--accent); }
 .picker-grid .pick-item svg { width: 68%; height: 68%; }
+.picker-grid .pick-item.locked > *:not(.pick-item-lock) { opacity: 0.35; filter: grayscale(40%); }
+.picker-grid .pick-item-lock {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  font-size: 0.85em; background: rgba(0,0,0,0.15);
+}
 
 a { color: var(--accent-2); }
 .center { text-align: center; }

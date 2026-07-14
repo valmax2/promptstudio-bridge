@@ -56,9 +56,9 @@ export async function renderEvents(el) {
 
     el.querySelectorAll('[data-rsvp]').forEach((btn) => {
       btn.addEventListener('click', async () => {
-        const { id, resp } = btn.dataset;
+        const { id, rsvp } = btn.dataset;
         if (cloud) {
-          try { await respondToEvent(id, btn.dataset.rsvp); toast(resp === 'yes' ? 'Presenza confermata!' : 'Hai rifiutato l\'invito'); }
+          try { await respondToEvent(id, rsvp); toast(rsvp === 'yes' ? 'Presenza confermata!' : 'Hai rifiutato l\'invito'); }
           catch (err) { toast('Errore: ' + err.message); }
         } else {
           const events = getState().events.map((e) => e.id === id ? { ...e, participants: { ...e.participants, me: btn.dataset.rsvp } } : e);
@@ -168,7 +168,6 @@ function eventCard(e, me, cloud, friends, myProfile) {
   const yes = Object.values(participants).filter((v) => v === 'yes').length;
   const myStatus = me ? participants[me] : participants.me;
   const full = yes >= (e.maxPlayers || 4);
-  const isHost = cloud ? e.hostId === me : true;
   const invitedIds = e.invitedIds || Object.keys(participants);
 
   return `
@@ -188,7 +187,7 @@ function eventCard(e, me, cloud, friends, myProfile) {
         <div class="row mt" style="gap:8px;">
           <button class="btn primary small" data-rsvp="yes" data-id="${e.id}">Partecipo</button>
           <button class="btn secondary small" data-rsvp="no" data-id="${e.id}">Non posso</button>
-          ${isHost ? `<button class="btn ghost small" data-delete-event="${e.id}">🗑️</button>` : ''}
+          <button class="btn ghost small" data-delete-event="${e.id}" aria-label="Elimina evento">🗑️</button>
         </div>
       </div>
     </div>`;

@@ -60,7 +60,7 @@ export async function renderCommunity(el) {
         <div class="row between"><h2>👥 Gruppi</h2>${cloud ? '<button class="btn ghost small" id="new-circle">+ Nuovo</button>' : ''}</div>
         ${!cloud ? '<p class="small">I gruppi richiedono l\'accesso per essere condivisi con gli amici.</p>' : ''}
         <div class="mt">
-          ${circles.length ? circles.map((c) => circleRow(c, me)).join('') : `<div class="empty-state"><span class="icon">👥</span>Nessun gruppo</div>`}
+          ${circles.length ? circles.map((c) => circleRow(c, me, friends)).join('') : `<div class="empty-state"><span class="icon">👥</span>Nessun gruppo</div>`}
         </div>
         ${cloud ? `
         <div class="row mt">
@@ -198,11 +198,16 @@ function friendRow(f) {
   </div>`;
 }
 
-function circleRow(c, me) {
+function circleRow(c, me, friends) {
   const isOwner = c.ownerId === me;
   const memberIds = c.memberIds || [];
+  const memberNames = memberIds.map((uid) => {
+    if (uid === me) return 'Tu';
+    const f = friends.find((fr) => fr.id === uid);
+    return f ? (f.name || f.friendCode || 'Amico') : 'Membro';
+  });
   return `<div class="card" style="background:var(--surface-2);margin-top:10px;">
-    <div><strong>${escapeHtml(c.name)}</strong><p class="mb0 small" style="word-break:break-all;">${memberIds.length} membri · codice: ${c.id}</p></div>
+    <div><strong>${escapeHtml(c.name)}</strong><p class="mb0 small" style="word-break:break-all;">${memberIds.length} membri: ${escapeHtml(memberNames.join(', '))}</p><p class="mb0 small" style="word-break:break-all;opacity:0.7;">codice: ${c.id}</p></div>
     <div class="row mt" style="gap:6px;flex-wrap:wrap;">
       <button class="btn secondary small" data-toggle-add-member="${c.id}">+ Aggiungi amici</button>
       ${isOwner
@@ -215,7 +220,16 @@ function circleRow(c, me) {
 function friendPickerModal(circle, friends) {
   if (!circle) return '';
   const memberIds = circle.memberIds || [];
-  const invitable = friends.filter((f) => !f.local && !memberIds.includes(f.id));
+  const cloudFriends = friends.filter((f) => !f.local);
+  const invitable = cloudFriends.filter((f) => !memberIds.includes(f.id));
+  let emptyMessage;
+  if (!friends.length) {
+    emptyMessage = 'Non hai ancora nessun amico - aggiungine uno qui sopra in "Amici" prima di invitarlo in un gruppo.';
+  } else if (!cloudFriends.length) {
+    emptyMessage = 'I tuoi amici sono solo locali (non sincronizzati): solo gli amici aggiunti con il codice possono essere invitati in un gruppo.';
+  } else {
+    emptyMessage = 'Tutti i tuoi amici sono già membri di questo gruppo.';
+  }
   return `
     <div class="modal-backdrop">
       <div class="modal-card">
@@ -226,7 +240,7 @@ function friendPickerModal(circle, friends) {
             <div class="meta"><strong>${escapeHtml(f.name || f.friendCode || 'Amico')}</strong></div>
             <button class="btn primary small" data-add-member="${circle.id}" data-friend-uid="${f.id}">Aggiungi</button>
           </div>
-        `).join('') : '<p class="small">Tutti i tuoi amici sono già in questo gruppo (o non ne hai ancora aggiunti in Community).</p>'}
+        `).join('') : `<p class="small">${emptyMessage}</p>`}
       </div>
     </div>
   `;

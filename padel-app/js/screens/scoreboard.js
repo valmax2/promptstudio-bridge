@@ -137,6 +137,10 @@ function paintSetup(el) {
         <div class="card">
           <label>Squadra A</label>
           <div class="field">
+            <label class="small">Nome squadra (facoltativo)</label>
+            <input id="team-name-a" placeholder="es. Squadra Rosa, Napoli…" maxlength="24">
+          </div>
+          <div class="field">
             <input id="name-a1" placeholder="Giocatore 1" maxlength="24">
           </div>
           <div class="field mb0">
@@ -145,6 +149,10 @@ function paintSetup(el) {
         </div>
         <div class="card">
           <label>Squadra B</label>
+          <div class="field">
+            <label class="small">Nome squadra (facoltativo)</label>
+            <input id="team-name-b" placeholder="es. Squadra Nera, Inter…" maxlength="24">
+          </div>
           <div class="field">
             <input id="name-b1" placeholder="Giocatore 3" maxlength="24">
           </div>
@@ -208,10 +216,12 @@ function paintSetup(el) {
       const a2 = el.querySelector('#name-a2').value.trim().slice(0, 24) || 'Giocatore 2';
       const b1 = el.querySelector('#name-b1').value.trim().slice(0, 24) || 'Giocatore 3';
       const b2 = el.querySelector('#name-b2').value.trim().slice(0, 24) || 'Giocatore 4';
+      const customTeamA = el.querySelector('#team-name-a').value.trim().slice(0, 24);
+      const customTeamB = el.querySelector('#team-name-b').value.trim().slice(0, 24);
       teamAPlayers = [a1, a2];
       teamBPlayers = [b1, b2];
-      teamAName = `${a1} / ${a2}`;
-      teamBName = `${b1} / ${b2}`;
+      teamAName = customTeamA || `${a1} / ${a2}`;
+      teamBName = customTeamB || `${b1} / ${b2}`;
     }
     match = createMatch({
       teamAName, teamBName, teamAPlayers, teamBPlayers,

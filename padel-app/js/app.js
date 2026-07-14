@@ -36,7 +36,6 @@ function applyTheme() {
   configureSpeech({
     enabled: settings.ttsEnabled,
     lang: settings.ttsVoiceLang,
-    voiceGender: settings.ttsVoiceGender,
     voiceMode: settings.ttsVoiceMode,
   });
   applyColorsToDom(settings);

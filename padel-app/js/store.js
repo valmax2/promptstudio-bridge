@@ -7,9 +7,6 @@ const DEFAULT_STATE = {
     fontScale: 1,
     ttsEnabled: true,
     ttsVoiceLang: 'it-IT',
-    // 'female' | 'male' - which installed device voice (or pitch fallback,
-    // if the device only has one named voice for the language) to use.
-    ttsVoiceGender: 'female',
     // 'natural' | 'energetic' | 'calm' - rate/pitch preset applied on top
     // of the chosen voice so announcements sound less robotic.
     ttsVoiceMode: 'natural',

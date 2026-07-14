@@ -35,7 +35,7 @@ export async function renderEvents(el) {
       ${formOpen ? newEventForm(cloud, friends.filter((f) => !f.local)) : ''}
 
       <div class="card">
-        ${sorted.length ? sorted.map((e) => eventCard(e, me, cloud)).join('') : `<div class="empty-state"><span class="icon">📅</span>Nessun evento in programma</div>`}
+        ${sorted.length ? sorted.map((e) => eventCard(e, me, cloud, friends, getState().profile)).join('') : `<div class="empty-state"><span class="icon">📅</span>Nessun evento in programma</div>`}
       </div>
     `;
 
@@ -163,12 +163,14 @@ function newEventForm(cloud, friends) {
   `;
 }
 
-function eventCard(e, me, cloud) {
+function eventCard(e, me, cloud, friends, myProfile) {
   const participants = e.participants || {};
   const yes = Object.values(participants).filter((v) => v === 'yes').length;
   const myStatus = me ? participants[me] : participants.me;
   const full = yes >= (e.maxPlayers || 4);
   const isHost = cloud ? e.hostId === me : true;
+  const invitedIds = e.invitedIds || Object.keys(participants);
+
   return `
     <div class="list-item" style="align-items:flex-start;">
       <div class="avatar">📅</div>
@@ -178,8 +180,11 @@ function eventCard(e, me, cloud) {
         ${e.hostName ? `<span class="small">Organizzato da ${escapeHtml(e.hostName)}</span>` : ''}
         <div class="row mt" style="gap:6px;">
           <span class="badge ${full ? 'accent' : 'warn'}">${yes}/${e.maxPlayers || 4} giocatori</span>
-          ${myStatus ? `<span class="badge">${myStatus === 'yes' ? '✅ Confermato' : myStatus === 'no' ? '❌ Rifiutato' : '⏳ In attesa'}</span>` : ''}
         </div>
+        ${invitedIds.length ? `
+        <div class="mt" style="width:100%;">
+          ${invitedIds.map((uid) => participantRow(uid, e, me, participants, friends, myProfile)).join('')}
+        </div>` : ''}
         <div class="row mt" style="gap:8px;">
           <button class="btn primary small" data-rsvp="yes" data-id="${e.id}">Partecipo</button>
           <button class="btn secondary small" data-rsvp="no" data-id="${e.id}">Non posso</button>
@@ -187,6 +192,21 @@ function eventCard(e, me, cloud) {
         </div>
       </div>
     </div>`;
+}
+
+function participantRow(uid, event, me, participants, friends, myProfile) {
+  const name = participantName(uid, event, me, friends, myProfile);
+  const status = participants[uid];
+  const icon = status === 'yes' ? '✅' : status === 'no' ? '❌' : '⏳';
+  return `<div class="row between" style="padding:3px 0;"><span class="small">${escapeHtml(name)}</span><span>${icon}</span></div>`;
+}
+
+function participantName(uid, event, me, friends, myProfile) {
+  if (uid === me) return `${myProfile.name} (tu)`;
+  if (uid === event.hostId && event.hostName) return event.hostName;
+  const friend = friends.find((f) => f.id === uid);
+  if (friend) return friend.name || friend.friendCode || 'Amico';
+  return 'Giocatore';
 }
 
 function defaultDateHint() {

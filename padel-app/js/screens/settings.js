@@ -23,9 +23,11 @@ let addBindingStep = null;
 let addBindingCapture = null;
 let addBindingPattern = null;
 
-// "Configurazione rapida": null | 'A' | 'B' - which quick slot is currently
-// waiting for a key press.
+// "Configurazione rapida": null | 'A' | 'B' | 'single' - which quick slot is
+// currently waiting for a key press.
 let quickCapturing = null;
+// 'two' = un telecomando per squadra, 'one' = un solo telecomando per entrambe.
+let quickSetupMode = 'two';
 
 let activeCategory = 'aspetto';
 
@@ -91,13 +93,6 @@ export async function renderSettings(el) {
       </div>
       ${settings.ttsEnabled ? `
       <div class="field mt mb0">
-        <label>Voce</label>
-        <div class="segmented">
-          <button data-voice-gender="female" class="${settings.ttsVoiceGender === 'female' ? 'active' : ''}">👩 Femminile</button>
-          <button data-voice-gender="male" class="${settings.ttsVoiceGender === 'male' ? 'active' : ''}">👨 Maschile</button>
-        </div>
-      </div>
-      <div class="field mt">
         <label>Modalità voce</label>
         <div class="segmented">
           <button data-voice-mode="calm" class="${settings.ttsVoiceMode === 'calm' ? 'active' : ''}">😌 Calma</button>
@@ -185,10 +180,19 @@ export async function renderSettings(el) {
         </div>
         ${settings.bleRemoteEnabled ? `
         <div class="card" style="background:var(--surface-2);margin-top:10px;">
-          <label>Configurazione rapida (un telecomando per squadra)</label>
-          <p class="small">Associa un telecomando allo Slot 1 (Noi) e uno diverso allo Slot 2 (Avversari): un click sarà subito +1 punto per quella squadra.</p>
+          <label>Configurazione rapida</label>
+          <div class="segmented">
+            <button data-quick-mode="two" class="${quickSetupMode === 'two' ? 'active' : ''}">🔀 Due telecomandi</button>
+            <button data-quick-mode="one" class="${quickSetupMode === 'one' ? 'active' : ''}">🎯 Uno solo</button>
+          </div>
+          ${quickSetupMode === 'two' ? `
+          <p class="small mt">Un telecomando diverso per ogni squadra. Su ciascuno: click singolo = punto, doppio click = annulla ultimo punto.</p>
           ${quickCapturing === 'A' ? '<p class="mb0">📡 Premi un tasto sul telecomando Slot 1 (Noi)…</p>' : `<button class="btn secondary block mt" id="quick-pair-a">🔵 Associa Slot 1 (Noi)</button>`}
           ${quickCapturing === 'B' ? '<p class="mb0 mt">📡 Premi un tasto sul telecomando Slot 2 (Avversari)…</p>' : `<button class="btn secondary block mt" id="quick-pair-b">🔵 Associa Slot 2 (Avversari)</button>`}
+          ` : `
+          <p class="small mt">Un solo telecomando per entrambe le squadre: click singolo = punto Noi, doppio click = punto Avversari, doppio click lento = annulla.</p>
+          ${quickCapturing === 'single' ? '<p class="mb0">📡 Premi un tasto sul telecomando…</p>' : `<button class="btn secondary block mt" id="quick-pair-single">🔵 Associa telecomando unico</button>`}
+          `}
         </div>
         ` : ''}
         ${settings.bleRemoteEnabled ? renderBindingsUI(settings.remoteBindings) : ''}
@@ -263,11 +267,6 @@ export async function renderSettings(el) {
   el.querySelector('#test-voice')?.addEventListener('click', () => say('40 pari, punto d\'oro'));
   el.querySelector('#go-gamemodes')?.addEventListener('click', () => navigate('gamemodes'));
 
-  el.querySelectorAll('[data-voice-gender]').forEach((btn) => btn.addEventListener('click', () => {
-    updateSettings({ ttsVoiceGender: btn.dataset.voiceGender });
-    renderSettings(el);
-    syncSettings();
-  }));
   el.querySelectorAll('[data-voice-mode]').forEach((btn) => btn.addEventListener('click', () => {
     updateSettings({ ttsVoiceMode: btn.dataset.voiceMode });
     renderSettings(el);
@@ -304,8 +303,23 @@ export async function renderSettings(el) {
     renderSettings(el);
     syncSettings();
   });
-  el.querySelector('#quick-pair-a')?.addEventListener('click', () => quickPair(el, 'A', 'pointA'));
-  el.querySelector('#quick-pair-b')?.addEventListener('click', () => quickPair(el, 'B', 'pointB'));
+  el.querySelectorAll('[data-quick-mode]').forEach((btn) => btn.addEventListener('click', () => {
+    quickSetupMode = btn.dataset.quickMode;
+    renderSettings(el);
+  }));
+  el.querySelector('#quick-pair-a')?.addEventListener('click', () => quickPair(el, 'A', [
+    { pattern: 'single', action: 'pointA' },
+    { pattern: 'double', action: 'undo' },
+  ]));
+  el.querySelector('#quick-pair-b')?.addEventListener('click', () => quickPair(el, 'B', [
+    { pattern: 'single', action: 'pointB' },
+    { pattern: 'double', action: 'undo' },
+  ]));
+  el.querySelector('#quick-pair-single')?.addEventListener('click', () => quickPair(el, 'single', [
+    { pattern: 'single', action: 'pointA' },
+    { pattern: 'double', action: 'pointB' },
+    { pattern: 'doubleSlow', action: 'undo' },
+  ]));
   el.querySelector('#add-binding')?.addEventListener('click', async () => {
     addBindingStep = 'waiting';
     renderSettings(el);
@@ -429,7 +443,7 @@ export async function renderSettings(el) {
   });
 }
 
-async function quickPair(el, slot, action) {
+async function quickPair(el, slot, patternActions) {
   quickCapturing = slot;
   renderSettings(el);
   await enableRemote();
@@ -441,17 +455,18 @@ async function quickPair(el, slot, action) {
     renderSettings(el);
     return;
   }
-  const binding = {
+  const newBindings = patternActions.map(({ pattern, action }) => ({
     id: genId(),
     deviceDescriptor: capture.deviceDescriptor,
     deviceName: capture.deviceName || 'Telecomando',
     keyCode: capture.keyCode,
     keyLabel: KEY_LABELS[capture.keyCode] || String(capture.keyCode),
-    pattern: 'single',
+    pattern,
     action,
-  };
-  updateSettings({ remoteBindings: [...getState().settings.remoteBindings, binding] });
-  toast(`Telecomando associato allo Slot ${slot === 'A' ? '1 (Noi)' : '2 (Avversari)'}!`);
+  }));
+  updateSettings({ remoteBindings: [...getState().settings.remoteBindings, ...newBindings] });
+  const slotLabel = slot === 'A' ? 'Slot 1 (Noi)' : slot === 'B' ? 'Slot 2 (Avversari)' : 'telecomando unico';
+  toast(`Associato: ${slotLabel}!`);
   renderSettings(el);
   syncSettings();
 }

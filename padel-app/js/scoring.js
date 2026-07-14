@@ -15,6 +15,10 @@ export function createMatch({
   superTiebreak3rdSet = true,
   mode = 'doubles',
   startingServer = 'A',
+  // Which of the 2 players on the starting team serves first (index 0/1) -
+  // picked directly on a specific player in the setup screen instead of
+  // just a team, so the very first announcement can name them.
+  startingServerPlayerIdx = 0,
   // 'classic' = normal sets/tiebreak match; 'time' = continuous play for a
   // fixed duration, whoever has more games when time's up wins (no sets).
   format = 'classic',
@@ -41,9 +45,10 @@ export function createMatch({
     server: startingServer,
     // Which of the 2 players on each team (index 0/1) is currently serving -
     // only meaningful in doubles. Not auto-rotated by the engine (real
-    // rotation conventions vary by group), just editable during the match.
-    serverPlayerA: 0,
-    serverPlayerB: 0,
+    // rotation conventions vary by group), just editable during the match -
+    // see the "Batte: <nome> ⇄" toggle in the live scoreboard.
+    serverPlayerA: startingServer === 'A' ? startingServerPlayerIdx : 0,
+    serverPlayerB: startingServer === 'B' ? startingServerPlayerIdx : 0,
     matchOver: false,
     matchWinner: null,
     startedAt: Date.now(),
@@ -109,6 +114,19 @@ function describeGamePoint(g) {
   return `${pointLabel(hi)} a ${pointLabel(lo)}`;
 }
 
+// Names the player who serves next for whichever team match.server now
+// points to (after the flip in awardGame below) - reads the stored
+// serverPlayerA/B index rather than computing any rotation, so it reflects
+// whatever was set at match start or via the live "Batte: <nome> ⇄" toggle.
+// Empty for singles, where naming the server would just repeat the team name.
+function nextServerAnnouncement(match) {
+  const players = match.server === 'A' ? match.teamAPlayers : match.teamBPlayers;
+  if (players.length < 2) return '';
+  const idx = (match.server === 'A' ? match.serverPlayerA : match.serverPlayerB) || 0;
+  const name = players[idx];
+  return name ? `. Batte ${name}` : '';
+}
+
 function awardGame(match, team) {
   if (team === 'A') match.currentSet.gamesA++; else match.currentSet.gamesB++;
   match.currentGame = { a: 0, b: 0, advantage: null };
@@ -121,6 +139,7 @@ function awardGame(match, team) {
   // Continuous "a tempo" matches have no sets/tiebreak - just keep tallying
   // games until the UI ends the match when the timer runs out.
   if (match.format === 'time') {
+    announcement += nextServerAnnouncement(match);
     return result(match, announcement, { gameWon: true, setWon: false, matchWon: false });
   }
 
@@ -138,6 +157,8 @@ function awardGame(match, team) {
         matchWon = true;
         announcement = `Partita vinta da ${teamName(match, team)}!`;
       }
+    } else {
+      announcement += nextServerAnnouncement(match);
     }
   }
   return result(match, announcement, { gameWon: true, setWon, matchWon });

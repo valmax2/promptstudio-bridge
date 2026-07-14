@@ -533,3 +533,10 @@ a { color: var(--accent-2); }
   color: var(--accent-contrast); font-weight: 800; font-size: 1.05em; padding: 16px;
 }
 .welcome-footer { margin-top: auto; padding-top: 24px; opacity: 0.6; }
+
+.btn-server-pick {
+  flex-shrink: 0; width: 44px; height: 44px; border-radius: 50%;
+  border: 2px solid var(--border); background: var(--surface-2);
+  font-size: 1.3em; display: flex; align-items: center; justify-content: center;
+}
+.btn-server-pick.active { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 20%, transparent); }

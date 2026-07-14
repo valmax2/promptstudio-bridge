@@ -22,6 +22,10 @@ let ttsEnabled = true;
 let pointsOnlyMode = false;
 let setupMode = 'doubles';
 let setupServer = 'A';
+// Which of the 2 players on setupServer's team serves first - picked by
+// tapping the racket-and-ball button next to a specific player's name,
+// instead of only choosing a team.
+let setupServerPlayerIdx = 0;
 let setupFormat = 'classic';
 let setupTimeMinutes = 45;
 let timeInterval = null;
@@ -132,13 +136,13 @@ function paintSetup(el) {
         </div>
         ${singles ? `
         <div class="card">
-          <div class="field">
-            <label>Giocatore 1</label>
-            <input id="name-a" value="Giocatore 1" maxlength="24">
+          <div class="field row" style="align-items:center;gap:8px;">
+            <input id="name-a" value="Giocatore 1" maxlength="24" style="flex:1;">
+            <button type="button" class="btn-server-pick ${setupServer === 'A' ? 'active' : ''}" data-pick-server="A:0" aria-label="Fa servire per primo">🎾</button>
           </div>
-          <div class="field mb0">
-            <label>Giocatore 2</label>
-            <input id="name-b" value="Giocatore 2" maxlength="24">
+          <div class="field mb0 row" style="align-items:center;gap:8px;">
+            <input id="name-b" value="Giocatore 2" maxlength="24" style="flex:1;">
+            <button type="button" class="btn-server-pick ${setupServer === 'B' ? 'active' : ''}" data-pick-server="B:0" aria-label="Fa servire per primo">🎾</button>
           </div>
         </div>
         ` : `
@@ -148,11 +152,13 @@ function paintSetup(el) {
             <label class="small">Nome squadra (facoltativo, default "${teamAColorName}")</label>
             <input id="team-name-a" placeholder="${teamAColorName}" maxlength="24">
           </div>
-          <div class="field">
-            <input id="name-a1" placeholder="Giocatore 1" maxlength="24">
+          <div class="field row" style="align-items:center;gap:8px;">
+            <input id="name-a1" placeholder="Giocatore 1" maxlength="24" style="flex:1;">
+            <button type="button" class="btn-server-pick ${setupServer === 'A' && setupServerPlayerIdx === 0 ? 'active' : ''}" data-pick-server="A:0" aria-label="Fa servire per primo">🎾</button>
           </div>
-          <div class="field mb0">
-            <input id="name-a2" placeholder="Giocatore 2" maxlength="24">
+          <div class="field mb0 row" style="align-items:center;gap:8px;">
+            <input id="name-a2" placeholder="Giocatore 2" maxlength="24" style="flex:1;">
+            <button type="button" class="btn-server-pick ${setupServer === 'A' && setupServerPlayerIdx === 1 ? 'active' : ''}" data-pick-server="A:1" aria-label="Fa servire per primo">🎾</button>
           </div>
         </div>
         <div class="card">
@@ -161,21 +167,17 @@ function paintSetup(el) {
             <label class="small">Nome squadra (facoltativo, default "${teamBColorName}")</label>
             <input id="team-name-b" placeholder="${teamBColorName}" maxlength="24">
           </div>
-          <div class="field">
-            <input id="name-b1" placeholder="Giocatore 3" maxlength="24">
+          <div class="field row" style="align-items:center;gap:8px;">
+            <input id="name-b1" placeholder="Giocatore 3" maxlength="24" style="flex:1;">
+            <button type="button" class="btn-server-pick ${setupServer === 'B' && setupServerPlayerIdx === 0 ? 'active' : ''}" data-pick-server="B:0" aria-label="Fa servire per primo">🎾</button>
           </div>
-          <div class="field mb0">
-            <input id="name-b2" placeholder="Giocatore 4" maxlength="24">
+          <div class="field mb0 row" style="align-items:center;gap:8px;">
+            <input id="name-b2" placeholder="Giocatore 4" maxlength="24" style="flex:1;">
+            <button type="button" class="btn-server-pick ${setupServer === 'B' && setupServerPlayerIdx === 1 ? 'active' : ''}" data-pick-server="B:1" aria-label="Fa servire per primo">🎾</button>
           </div>
         </div>
+        <p class="small" style="text-align:center;margin:-6px 0 14px;">🎾 Tocca la racchetta per scegliere chi serve per primo/a</p>
         `}
-        <div class="card">
-          <label>Chi comincia a battere</label>
-          <div class="segmented">
-            <button data-server="A" class="${setupServer === 'A' ? 'active' : ''}">${singles ? 'Giocatore 1' : 'Squadra A'}</button>
-            <button data-server="B" class="${setupServer === 'B' ? 'active' : ''}">${singles ? 'Giocatore 2' : 'Squadra B'}</button>
-          </div>
-        </div>
         <div class="card">
           <label>Formato partita</label>
           <div class="segmented">
@@ -218,9 +220,16 @@ function paintSetup(el) {
     setupMode = btn.dataset.mode;
     paintSetup(el);
   }));
-  el.querySelectorAll('[data-server]').forEach((btn) => btn.addEventListener('click', () => {
-    setupServer = btn.dataset.server;
-    paintSetup(el);
+  el.querySelectorAll('[data-pick-server]').forEach((btn) => btn.addEventListener('click', () => {
+    const [team, idx] = btn.dataset.pickServer.split(':');
+    setupServer = team;
+    setupServerPlayerIdx = parseInt(idx, 10);
+    // Toggle the active state directly instead of calling paintSetup(el):
+    // a full re-render would wipe out player names already typed in, since
+    // these fields aren't bound to any persisted state between renders.
+    el.querySelectorAll('[data-pick-server]').forEach((b) => {
+      b.classList.toggle('active', b.dataset.pickServer === btn.dataset.pickServer);
+    });
   }));
   el.querySelector('#setup-golden')?.addEventListener('change', (e) => updateSettings({ goldenPoint: e.target.checked }));
   el.querySelector('#setup-super-tb')?.addEventListener('change', (e) => updateSettings({ superTiebreak3rdSet: e.target.checked }));
@@ -262,6 +271,7 @@ function paintSetup(el) {
       goldenPoint: settings.goldenPoint,
       superTiebreak3rdSet: settings.superTiebreak3rdSet,
       startingServer: setupServer,
+      startingServerPlayerIdx: setupServerPlayerIdx,
       format: setupFormat,
       timeLimitMinutes: setupTimeMinutes,
     });
@@ -270,7 +280,8 @@ function paintSetup(el) {
     if (settings.ttsEnabled) {
       const servingPlayers = setupServer === 'A' ? match.teamAPlayers : match.teamBPlayers;
       const receivingPlayers = setupServer === 'A' ? match.teamBPlayers : match.teamAPlayers;
-      say(`Si comincia! Batte ${servingPlayers.join(' e ')}, riceve ${receivingPlayers.join(' e ')}`);
+      const servingPlayerName = servingPlayers[setupServerPlayerIdx] || servingPlayers[0];
+      say(`Si comincia! Inizia a battere ${servingPlayerName}, riceve ${receivingPlayers.join(' e ')}`);
     }
   });
 
@@ -345,6 +356,9 @@ function paint(el) {
       const team = btn.dataset.toggleServer;
       const key = team === 'A' ? 'serverPlayerA' : 'serverPlayerB';
       match[key] = match[key] ? 0 : 1;
+      const players = team === 'A' ? match.teamAPlayers : match.teamBPlayers;
+      const name = players[match[key]];
+      if (ttsEnabled && name) say(`Ora batte ${name}`);
       paint(el);
     });
   });

@@ -55,7 +55,13 @@ npm install @capacitor/core @capacitor/cli @capacitor/android @capacitor-communi
 npm install --save-dev @capacitor/assets >/dev/null
 
 echo "▶ Inizializzo Capacitor ($APP_ID)"
-npx cap init "$APP_NAME" "$APP_ID" --web-dir=www
+# "npx cap init" genera un capacitor.config.ts, il cui caricamento
+# (require.extensions['.ts'] fatto a mano dalla CLI di Capacitor) è rotto
+# sulle versioni recenti di Node.js usate dai runner di GitHub Actions
+# ("Cannot read properties of undefined (reading 'CommonJS')"). Scriviamo
+# invece direttamente un capacitor.config.json equivalente, che Capacitor
+# legge nativamente senza bisogno di caricare/eseguire codice TypeScript.
+cp "$HERE"/capacitor.config.json .
 
 echo "▶ Aggiungo la piattaforma Android"
 npx cap add android

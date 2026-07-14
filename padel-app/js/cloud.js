@@ -42,17 +42,52 @@ export async function findUserByFriendCode(code) {
   return results[0] || null;
 }
 
-export async function addFriend(friendUid, friendData) {
+export async function addFriend(friendUid, friendData, myData = {}) {
   const id = uid();
   if (!isCloudReady() || !id) return;
   await fsSet(`users/${id}/friends/${friendUid}`, { ...friendData, addedAt: Date.now() });
-  await fsSet(`users/${friendUid}/friends/${id}`, { addedAt: Date.now(), reciprocalOf: id });
+  // Also write my own name/friendCode on the other side, not just a bare
+  // "reciprocalOf" marker - otherwise the friend sees a nameless entry in
+  // their own list, and features like chat/event invites have nothing to
+  // display for the person who did the adding.
+  await fsSet(`users/${friendUid}/friends/${id}`, { ...myData, addedAt: Date.now(), reciprocalOf: id });
 }
 
 export function listenFriends(cb) {
   const id = uid();
   if (!isCloudReady() || !id) return () => {};
   return fsListenCollection(`users/${id}/friends`, cb);
+}
+
+// ---- Chat (1:1 with a friend) ----
+export function chatIdFor(a, b) {
+  return [a, b].sort().join('_');
+}
+
+export async function ensureChat(otherUid) {
+  const id = uid();
+  if (!isCloudReady() || !id) return null;
+  const chatId = chatIdFor(id, otherUid);
+  await fsSet(`chats/${chatId}`, { participants: [id, otherUid].sort(), updatedAt: Date.now() });
+  return chatId;
+}
+
+export async function sendChatMessage(chatId, text) {
+  const id = uid();
+  if (!isCloudReady() || !id) return;
+  await fsAdd(`chats/${chatId}/messages`, { senderId: id, text, createdAt: Date.now() });
+  await fsSet(`chats/${chatId}`, { lastMessage: text, lastMessageAt: Date.now(), lastSenderId: id });
+}
+
+export function listenChatMessages(chatId, cb) {
+  if (!isCloudReady()) return () => {};
+  return fsListenCollection(`chats/${chatId}/messages`, cb);
+}
+
+export function listenMyChats(cb) {
+  const id = uid();
+  if (!isCloudReady() || !id) return () => {};
+  return fsListenCollection('chats', cb, [['participants', 'array-contains', id]]);
 }
 
 // ---- Circles (closed groups) ----
@@ -81,13 +116,20 @@ export function listenMyCircles(cb) {
 }
 
 // ---- Events ----
-export async function createEvent(event) {
+// invitedFriendIds: uids picked from the friends list when creating the
+// event. invitedIds (host + invitees) is what listenMyEvents queries on -
+// events no longer require a circle to be visible to the people invited.
+export async function createEvent(event, invitedFriendIds = []) {
   const id = uid();
   if (!isCloudReady() || !id) return null;
+  const invitedIds = Array.from(new Set([id, ...invitedFriendIds]));
+  const participants = { [id]: 'yes' };
+  invitedFriendIds.forEach((fid) => { participants[fid] = 'invited'; });
   return fsAdd('events', {
     ...event,
     hostId: id,
-    participants: { [id]: 'yes' },
+    invitedIds,
+    participants,
     createdAt: Date.now(),
   });
 }
@@ -100,9 +142,10 @@ export async function respondToEvent(eventId, response) {
   await fs.setDoc(ref, { participants: { [id]: response } }, { merge: true });
 }
 
-export function listenEventsForCircles(circleIds, cb) {
-  if (!isCloudReady() || !circleIds.length) return () => {};
-  return fsListenCollection('events', cb, [['circleId', 'in', circleIds.slice(0, 10)]]);
+export function listenMyEvents(cb) {
+  const id = uid();
+  if (!isCloudReady() || !id) return () => {};
+  return fsListenCollection('events', cb, [['invitedIds', 'array-contains', id]]);
 }
 
 // ---- Matches ----

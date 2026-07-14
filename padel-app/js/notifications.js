@@ -1,16 +1,16 @@
 // Lightweight in-app notifications: toast + a small dot on the bottom nav
-// when a friend or event listener (already open via Firestore's realtime
+// when a friend/event/chat listener (already open via Firestore's realtime
 // listeners) reports something new, while the app is open. This does NOT
 // cover push notifications when the app is fully closed - that needs a
 // server-side trigger (Firebase Cloud Functions -> FCM), which requires the
 // paid Blaze plan; see README "Notifiche" section.
-import { isCloudReady, listenFriends, listenMyCircles, listenEventsForCircles } from './cloud.js';
+import { isCloudReady, listenFriends, listenMyEvents, listenMyChats } from './cloud.js';
 import { currentUser } from './firebase.js';
 
 let notifyFn = () => {};
 let unsubFriends = null;
-let unsubCircles = null;
 let unsubEvents = null;
+let unsubChats = null;
 
 export function initNotifications(onNotify) {
   notifyFn = onNotify || (() => {});
@@ -22,25 +22,19 @@ export function initNotifications(onNotify) {
     notifyFn(f.name ? `${f.name} ti ha aggiunto come amico!` : 'Hai un nuovo amico!');
   });
 
-  unsubCircles = listenMyCircles((circles) => {
-    unsubEvents?.();
-    const ids = circles.map((c) => c.id);
-    if (!ids.length) return;
-    unsubEvents = watchNew(
-      (cb) => listenEventsForCircles(ids, cb),
-      (e) => {
-        if (e.hostId && e.hostId === currentUser()?.uid) return; // skip own event, already confirmed locally
-        setNavBadge('events', true);
-        notifyFn(`Nuovo evento: ${e.title}`);
-      },
-    );
+  unsubEvents = watchNew(listenMyEvents, (e) => {
+    if (e.hostId && e.hostId === currentUser()?.uid) return; // skip own event, already confirmed locally
+    setNavBadge('events', true);
+    notifyFn(`Nuovo evento: ${e.title}`);
   });
+
+  unsubChats = watchChatMessages();
 }
 
 export function stopNotifications() {
   unsubFriends?.(); unsubFriends = null;
-  unsubCircles?.(); unsubCircles = null;
   unsubEvents?.(); unsubEvents = null;
+  unsubChats?.(); unsubChats = null;
 }
 
 // Wraps a Firestore collection listener so the first snapshot (existing
@@ -59,6 +53,29 @@ function watchNew(listenFn, onNew) {
     }
     list.filter((x) => x.id && !knownIds.has(x.id)).forEach(onNew);
     knownIds = new Set(ids);
+  });
+}
+
+// Chat docs don't get a new id per message (only their lastMessageAt field
+// changes), so this tracks per-chat timestamps instead of ids.
+function watchChatMessages() {
+  const me = currentUser()?.uid;
+  let primed = false;
+  const seenAt = new Map();
+  return listenMyChats((chats) => {
+    if (!primed) {
+      primed = true;
+      chats.forEach((c) => seenAt.set(c.id, c.lastMessageAt || 0));
+      return;
+    }
+    chats.forEach((c) => {
+      const prev = seenAt.get(c.id) || 0;
+      if (c.lastMessageAt && c.lastMessageAt > prev && c.lastSenderId && c.lastSenderId !== me) {
+        setNavBadge('community', true);
+        notifyFn('Nuovo messaggio in chat');
+      }
+      seenAt.set(c.id, c.lastMessageAt || 0);
+    });
   });
 }
 

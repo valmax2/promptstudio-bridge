@@ -88,7 +88,11 @@ export async function renderCommunity(el) {
         const user = await findUserByFriendCode(code);
         if (!user) { toast('Nessun utente trovato con questo codice'); return; }
         if (user.uid === getState().profile.uid) { toast('Questo è il tuo codice!'); return; }
-        await addFriend(user.uid, { name: user.name, friendCode: user.friendCode });
+        const myProfile = getState().profile;
+        await addFriend(
+          user.uid, { name: user.name, friendCode: user.friendCode },
+          { name: myProfile.name, friendCode: myProfile.friendCode },
+        );
         toast('Amico aggiunto!');
       } catch (err) {
         toast('Errore: ' + err.message);
@@ -116,6 +120,13 @@ export async function renderCommunity(el) {
         toast('Errore: ' + err.message);
       }
     });
+
+    el.querySelectorAll('[data-chat]').forEach((btn) => btn.addEventListener('click', () => {
+      // replace:true avoids setting location.hash directly, which would
+      // fire the router's hashchange listener a moment later and re-render
+      // this route via navigate(name) with no params, wiping out uid/name.
+      navigate('chat', { replace: true, params: { uid: btn.dataset.chat, name: btn.dataset.chatName } });
+    }));
   }
 
   if (cloud) {
@@ -127,9 +138,11 @@ export async function renderCommunity(el) {
 }
 
 function friendRow(f) {
+  const name = f.name || f.friendCode || 'Amico';
   return `<div class="list-item">
     <div class="avatar">🙂</div>
-    <div class="meta"><strong>${escapeHtml(f.name || f.friendCode || 'Amico')}</strong>${f.local ? '<span>Solo locale</span>' : ''}</div>
+    <div class="meta"><strong>${escapeHtml(name)}</strong>${f.local ? '<span>Solo locale</span>' : ''}</div>
+    ${f.local ? '' : `<button class="btn ghost small" data-chat="${f.id}" data-chat-name="${escapeHtml(name)}">💬</button>`}
   </div>`;
 }
 

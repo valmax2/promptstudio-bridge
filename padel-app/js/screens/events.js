@@ -1,40 +1,58 @@
 import { getState, setState } from '../store.js';
-import { isCloudReady, createEvent, respondToEvent, listenEventsForCircles, listenMyCircles } from '../cloud.js';
+import { isCloudReady, createEvent, respondToEvent, listenMyEvents, listenFriends } from '../cloud.js';
 import { escapeHtml, formatDateTime, uid as genId } from '../utils.js';
 import { currentUser, firebaseAvailable } from '../firebase.js';
 import { navigate } from '../router.js';
 import { toast } from '../app.js';
 import { setNavBadge } from '../notifications.js';
 
+let formOpen = false;
+let invitedIds = [];
+
 export async function renderEvents(el) {
   setNavBadge('events', false);
   const cloud = isCloudReady();
-  let unsubCircles = null;
   let unsubEvents = null;
-  let myCircles = getState().circles;
+  let unsubFriends = null;
+  formOpen = false;
+  invitedIds = [];
 
   paint();
 
   function paint() {
-    const { events } = getState();
+    const { events, friends } = getState();
     const me = currentUser()?.uid;
     const sorted = [...events].sort((a, b) => new Date(a.dateTime) - new Date(b.dateTime));
 
     el.innerHTML = `
       <div class="topbar">
         <div><h1>Eventi</h1><div class="subtitle">${cloud ? 'Sincronizzati' : 'Modalità locale'}</div></div>
-        <button class="btn primary small" id="new-event">+ Crea</button>
+        <button class="btn primary small" id="new-event">${formOpen ? 'Annulla' : '+ Crea'}</button>
       </div>
 
       ${!cloud ? `<div class="card"><p>${firebaseAvailable() ? 'Accedi per invitare amici e ricevere conferme in tempo reale.' : 'Configura Firebase per gli eventi condivisi.'}</p>${firebaseAvailable() ? '<button class="btn primary block" id="go-login">Accedi</button>' : ''}</div>` : ''}
+
+      ${formOpen ? newEventForm(cloud, friends.filter((f) => !f.local)) : ''}
 
       <div class="card">
         ${sorted.length ? sorted.map((e) => eventCard(e, me)).join('') : `<div class="empty-state"><span class="icon">📅</span>Nessun evento in programma</div>`}
       </div>
     `;
 
-    el.querySelector('#new-event').addEventListener('click', () => openNewEventForm());
+    el.querySelector('#new-event').addEventListener('click', () => {
+      formOpen = !formOpen;
+      if (formOpen) invitedIds = [];
+      paint();
+    });
     el.querySelector('#go-login')?.addEventListener('click', () => navigate('login'));
+
+    el.querySelectorAll('[data-invite]').forEach((input) => input.addEventListener('change', (e) => {
+      const id = input.dataset.invite;
+      invitedIds = e.target.checked ? [...invitedIds, id] : invitedIds.filter((x) => x !== id);
+    }));
+
+    el.querySelector('#create-event')?.addEventListener('click', () => onCreateEvent(el));
+    el.querySelector('#cancel-event')?.addEventListener('click', () => { formOpen = false; paint(); });
 
     el.querySelectorAll('[data-rsvp]').forEach((btn) => {
       btn.addEventListener('click', async () => {
@@ -51,45 +69,82 @@ export async function renderEvents(el) {
     });
   }
 
-  function openNewEventForm() {
-    const title = prompt('Titolo evento (es. Partita al Club Padel Roma)');
-    if (!title) return;
-    const dateStr = prompt('Data e ora (YYYY-MM-DD HH:MM)', defaultDateTimeHint());
-    if (!dateStr) return;
-    const dateTime = parseDateTime(dateStr);
-    if (!dateTime) { toast('Formato data non valido'); return; }
-    const location = prompt('Luogo (facoltativo)', '') || '';
+  function onCreateEvent(el) {
+    const title = el.querySelector('#ev-title').value.trim();
+    const date = el.querySelector('#ev-date').value;
+    const time = el.querySelector('#ev-time').value;
+    const location = el.querySelector('#ev-location').value.trim();
+    const maxPlayers = parseInt(el.querySelector('#ev-max').value, 10) || 4;
+    if (!title) { toast('Inserisci un titolo'); return; }
+    if (!date || !time) { toast('Scegli data e ora'); return; }
+    const dt = new Date(`${date}T${time}`);
+    if (isNaN(dt.getTime())) { toast('Data/ora non valida'); return; }
+    const dateTime = dt.toISOString();
 
     if (cloud) {
-      const circleId = myCircles[0]?.id;
-      if (!circleId) { toast('Crea prima una cerchia in Community per invitare i tuoi amici'); return; }
-      createEvent({ title, dateTime, location, circleId, maxPlayers: 4 })
-        .then(() => toast('Evento creato! I membri della cerchia riceveranno una notifica.'))
+      createEvent({ title, dateTime, location, maxPlayers }, invitedIds)
+        .then(() => { toast('Evento creato! Gli amici invitati riceveranno una notifica.'); formOpen = false; paint(); })
         .catch((err) => toast('Errore: ' + err.message));
     } else {
       const events = [...getState().events, {
-        id: genId(), title, dateTime, location, maxPlayers: 4,
+        id: genId(), title, dateTime, location, maxPlayers,
         participants: { me: 'yes' }, hostName: 'Tu',
       }];
       setState({ events });
       toast('Evento creato (locale)');
+      formOpen = false;
       paint();
     }
   }
 
   if (cloud) {
-    unsubCircles = listenMyCircles((circles) => {
-      myCircles = circles;
-      setState({ circles }, { silent: true });
-      unsubEvents?.();
-      const ids = circles.map((c) => c.id);
-      if (ids.length) {
-        unsubEvents = listenEventsForCircles(ids, (list) => { setState({ events: list }, { silent: true }); paint(); });
-      }
-    });
+    unsubEvents = listenMyEvents((list) => { setState({ events: list }, { silent: true }); paint(); });
+    unsubFriends = listenFriends((list) => { setState({ friends: list }, { silent: true }); if (formOpen) paint(); });
   }
 
-  return () => { unsubCircles?.(); unsubEvents?.(); };
+  return () => { unsubEvents?.(); unsubFriends?.(); };
+}
+
+function newEventForm(cloud, friends) {
+  return `
+    <div class="card">
+      <h2>Nuovo evento</h2>
+      <div class="field">
+        <label>Titolo</label>
+        <input id="ev-title" placeholder="es. Partita al Club Padel Roma" maxlength="60">
+      </div>
+      <div class="row" style="gap:10px;">
+        <div class="field" style="flex:1;">
+          <label>Data</label>
+          <input id="ev-date" type="date" value="${defaultDateHint()}">
+        </div>
+        <div class="field" style="flex:1;">
+          <label>Ora</label>
+          <input id="ev-time" type="time" value="19:00">
+        </div>
+      </div>
+      <div class="field">
+        <label>Luogo (facoltativo)</label>
+        <input id="ev-location" placeholder="es. Padel Center Milano" maxlength="60">
+      </div>
+      <div class="field mb0">
+        <label>Numero massimo giocatori</label>
+        <input id="ev-max" type="number" min="2" max="20" value="4">
+      </div>
+      ${cloud ? `
+      <div class="field mt mb0">
+        <label>Invita amici</label>
+        ${friends.length ? friends.map((f) => `
+          <div class="toggle-row">
+            <div>${escapeHtml(f.name || f.friendCode || 'Amico')}</div>
+            <label class="switch"><input type="checkbox" data-invite="${f.id}"><span class="slider"></span></label>
+          </div>
+        `).join('') : '<p class="small">Nessun amico ancora - aggiungine in Community.</p>'}
+      </div>` : ''}
+      <button class="btn primary block mt" id="create-event">Crea evento</button>
+      <button class="btn ghost small block mt" id="cancel-event">Annulla</button>
+    </div>
+  `;
 }
 
 function eventCard(e, me) {
@@ -115,14 +170,7 @@ function eventCard(e, me) {
     </div>`;
 }
 
-function defaultDateTimeHint() {
+function defaultDateHint() {
   const d = new Date(Date.now() + 24 * 3600 * 1000);
-  d.setMinutes(0, 0, 0);
-  return d.toISOString().slice(0, 16).replace('T', ' ');
-}
-
-function parseDateTime(str) {
-  const iso = str.trim().replace(' ', 'T');
-  const d = new Date(iso);
-  return isNaN(d.getTime()) ? null : d.toISOString();
+  return d.toISOString().slice(0, 10);
 }

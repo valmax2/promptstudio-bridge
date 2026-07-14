@@ -69,22 +69,23 @@ async function resolveVoiceIndex(tts) {
   return cachedVoiceIndex;
 }
 
+// Most Android TTS engines report voices with opaque names (e.g.
+// "it-it-x-itd-network") that don't reveal gender, so picking a different
+// voice index alone doesn't reliably sound different. To guarantee an
+// audible difference regardless of what voices the device has installed,
+// the pitch nudge below is always applied on top of whichever voice gets
+// used, instead of only as a fallback when no named match is found.
+const GENDER_PITCH = { male: 0.7, female: 1.18 };
+
 async function speakNative(text) {
   const tts = nativeTts();
   const mode = VOICE_MODES[voiceMode] || VOICE_MODES.natural;
   const opts = { text, lang, rate: mode.rate, volume: 1.0, category: 'ambient' };
-  let voiceIdx = -1;
   if (typeof tts.getSupportedVoices === 'function') {
-    voiceIdx = await resolveVoiceIndex(tts);
+    const voiceIdx = await resolveVoiceIndex(tts);
+    if (voiceIdx >= 0) opts.voice = voiceIdx;
   }
-  if (voiceIdx >= 0) {
-    opts.voice = voiceIdx;
-    opts.pitch = mode.pitch;
-  } else {
-    // No matching named voice found: fall back to nudging pitch by gender.
-    const pitch = voiceGender === 'male' ? mode.pitch * 0.82 : mode.pitch * 1.1;
-    opts.pitch = Math.max(0, Math.min(2, pitch));
-  }
+  opts.pitch = Math.max(0, Math.min(2, mode.pitch * GENDER_PITCH[voiceGender]));
   await tts.speak(opts);
 }
 
@@ -99,8 +100,8 @@ function speakWeb(text) {
     const hints = voiceGender === 'male' ? MALE_HINTS : FEMALE_HINTS;
     const voices = window.speechSynthesis.getVoices();
     const match = voices.find((v) => (v.lang || '').toLowerCase().startsWith(langPrefix) && hints.some((h) => (v.name || '').toLowerCase().includes(h)));
-    if (match) { utter.voice = match; utter.pitch = mode.pitch; }
-    else utter.pitch = Math.max(0, Math.min(2, voiceGender === 'male' ? mode.pitch * 0.82 : mode.pitch * 1.1));
+    if (match) utter.voice = match;
+    utter.pitch = Math.max(0, Math.min(2, mode.pitch * GENDER_PITCH[voiceGender]));
     utter.onend = resolve;
     utter.onerror = resolve;
     window.speechSynthesis.speak(utter);

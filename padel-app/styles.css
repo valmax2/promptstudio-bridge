@@ -119,6 +119,10 @@ button { font-family: inherit; }
 .btn:disabled { opacity: 0.45; pointer-events: none; }
 .btn.small { padding: 8px 12px; font-size: 0.85em; }
 .btn.icon-only { font-size: 1.5em; padding: 6px 12px; line-height: 1; }
+.unread-dot {
+  display: inline-block; width: 9px; height: 9px; border-radius: 50%;
+  background: #FF4B4B; flex-shrink: 0;
+}
 
 input, select, textarea {
   width: 100%;
@@ -139,6 +143,7 @@ label { font-size: 0.85em; color: var(--text-dim); display: block; margin-bottom
   display: flex; align-items: flex-end; justify-content: center;
   padding: 0;
 }
+.modal-backdrop.hidden { display: none; }
 .modal-card {
   background: var(--bg-elevated); border-radius: var(--radius) var(--radius) 0 0;
   width: 100%; max-width: 480px; max-height: 80vh; overflow-y: auto;
@@ -213,6 +218,7 @@ label { font-size: 0.85em; color: var(--text-dim); display: block; margin-bottom
 }
 .avatar-pick svg { width: 100%; height: 100%; display: block; }
 .avatar-pick.selected { border-color: var(--accent); }
+.avatar-pick.frame-pick { display: flex; align-items: center; justify-content: center; font-size: 1.3em; }
 
 .list-item {
   display: flex; align-items: center; gap: 12px;
@@ -349,6 +355,12 @@ label { font-size: 0.85em; color: var(--text-dim); display: block; margin-bottom
   text-overflow: ellipsis;
 }
 .sb-name-row .serve-ball { margin-left: 6px; }
+.sb-server-player {
+  flex: 0 0 auto; display: block; width: 100%; border: none;
+  background: rgba(0,0,0,0.22); color: #fff;
+  font-size: clamp(0.7rem, 2vw, 0.9rem); font-weight: 700;
+  padding: 4px 8px; text-transform: none; letter-spacing: normal;
+}
 
 .sb-stack {
   flex: 1 1 auto;
@@ -356,6 +368,7 @@ label { font-size: 0.85em; color: var(--text-dim); display: block; margin-bottom
   grid-template-rows: 3fr 1fr 1.4fr 1fr 1.4fr;
   min-height: 0;
 }
+.sb-stack.points-only { grid-template-rows: 1fr; }
 .sb-stack > div { display: flex; align-items: center; justify-content: center; }
 .sb-point {
   font-size: min(30vw, 32vh);
@@ -498,9 +511,25 @@ label { font-size: 0.85em; color: var(--text-dim); display: block; margin-bottom
   position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
   font-size: 0.85em; background: rgba(0,0,0,0.15);
 }
+.frame-pick-wrap { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.frame-pick-wrap .pick-item-label { font-size: 0.72em; color: var(--text-dim); text-align: center; }
 
 a { color: var(--accent-2); }
 .center { text-align: center; }
 .mt { margin-top: 14px; }
 .mb0 { margin-bottom: 0; }
 .small { font-size: 0.82em; color: var(--text-dim); }
+
+.welcome-screen {
+  min-height: 100vh; display: flex; flex-direction: column; align-items: center;
+  padding: 40px 24px calc(24px + var(--safe-bottom)); text-align: center;
+}
+.welcome-icon { width: 128px; height: 128px; border-radius: 28px; margin-bottom: 18px; box-shadow: 0 8px 30px rgba(0,0,0,0.35); }
+.welcome-title { font-size: 2em; margin: 0 0 4px; }
+.welcome-tagline { color: var(--accent); font-weight: 700; margin: 0 0 18px; }
+.welcome-desc { color: var(--text-dim); line-height: 1.5; margin-bottom: 26px; }
+.welcome-cta {
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+  color: var(--accent-contrast); font-weight: 800; font-size: 1.05em; padding: 16px;
+}
+.welcome-footer { margin-top: auto; padding-top: 24px; opacity: 0.6; }

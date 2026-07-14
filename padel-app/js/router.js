@@ -14,9 +14,12 @@ export function initRouter(appEl, navElement) {
   window.addEventListener('hashchange', () => navigate(currentHashRoute()));
 }
 
+// Returns '' (not a fallback route name) when there's no hash, so callers
+// can tell "no hash yet" apart from an actual route and apply their own
+// fallback - navigate() already treats an unregistered/empty name as 'home'
+// on its own, so this doesn't change hashchange behavior.
 function currentHashRoute() {
-  const hash = location.hash.replace('#/', '').trim();
-  return hash || 'home';
+  return location.hash.replace('#/', '').trim();
 }
 
 export function startRouter(defaultRoute = 'home') {

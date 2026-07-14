@@ -3,6 +3,7 @@ import { firebaseAvailable, currentUser } from '../firebase.js';
 import {
   isCloudReady, findUserByFriendCode, addFriend, removeFriend, listenFriends,
   createCircle, joinCircle, listenMyCircles, addMemberToCircle, leaveCircle, deleteCircle,
+  listenMyChats, chatIdFor,
 } from '../cloud.js';
 import { escapeHtml, uid as genId } from '../utils.js';
 import { navigate } from '../router.js';
@@ -10,13 +11,16 @@ import { toast } from '../app.js';
 import { setNavBadge } from '../notifications.js';
 
 let addMemberOpenFor = null;
+let chats = [];
 
 export async function renderCommunity(el) {
   setNavBadge('community', false);
   const cloud = isCloudReady();
   let unsubFriends = null;
   let unsubCircles = null;
+  let unsubChats = null;
   addMemberOpenFor = null;
+  chats = [];
 
   paint();
 
@@ -26,6 +30,17 @@ export async function renderCommunity(el) {
     const circles = circlesOverride || state.circles;
     const myCode = state.profile.friendCode;
     const me = currentUser()?.uid;
+    const readReceipts = state.readReceipts || {};
+
+    const isUnreadChat = (friendId) => {
+      const chat = chats.find((c) => c.id === chatIdFor(me, friendId));
+      if (!chat || !chat.lastMessageAt || chat.lastSenderId === me) return false;
+      return chat.lastMessageAt > (readReceipts[chat.id] || 0);
+    };
+    const isUnreadCircle = (c) => {
+      if (!c.lastMessageAt || c.lastSenderId === me) return false;
+      return c.lastMessageAt > (readReceipts[c.id] || 0);
+    };
 
     el.innerHTML = `
       <div class="topbar"><h1>Community</h1><div class="subtitle">${cloud ? 'Sincronizzata' : 'Modalità locale'}</div></div>
@@ -52,7 +67,7 @@ export async function renderCommunity(el) {
           <button class="btn primary" id="add-friend-local">Aggiungi</button>
         </div>`}
         <div class="mt">
-          ${friends.length ? friends.map(friendRow).join('') : `<div class="empty-state"><span class="icon">🙋</span>Nessun amico ancora</div>`}
+          ${friends.length ? friends.map((f) => friendRow(f, isUnreadChat(f.id))).join('') : `<div class="empty-state"><span class="icon">🙋</span>Nessun amico ancora</div>`}
         </div>
       </div>
 
@@ -60,7 +75,7 @@ export async function renderCommunity(el) {
         <div class="row between"><h2>👥 Gruppi</h2>${cloud ? '<button class="btn ghost small" id="new-circle">+ Nuovo</button>' : ''}</div>
         ${!cloud ? '<p class="small">I gruppi richiedono l\'accesso per essere condivisi con gli amici.</p>' : ''}
         <div class="mt">
-          ${circles.length ? circles.map((c) => circleRow(c, me, friends)).join('') : `<div class="empty-state"><span class="icon">👥</span>Nessun gruppo</div>`}
+          ${circles.length ? circles.map((c) => circleRow(c, me, friends, isUnreadCircle(c))).join('') : `<div class="empty-state"><span class="icon">👥</span>Nessun gruppo</div>`}
         </div>
         ${cloud ? `
         <div class="row mt">
@@ -77,6 +92,11 @@ export async function renderCommunity(el) {
     el.querySelector('#copy-code')?.addEventListener('click', async () => {
       try { await navigator.clipboard.writeText(myCode); toast('Codice copiato!'); } catch { toast(`Il tuo codice: ${myCode}`); }
     });
+
+    el.querySelectorAll('[data-copy-circle-code]').forEach((btn) => btn.addEventListener('click', async () => {
+      const code = btn.dataset.copyCircleCode;
+      try { await navigator.clipboard.writeText(code); toast('Codice gruppo copiato!'); } catch { toast(`Codice gruppo: ${code}`); }
+    }));
 
     el.querySelector('#add-friend-local')?.addEventListener('click', () => {
       const name = el.querySelector('#friend-name').value.trim();
@@ -185,24 +205,26 @@ export async function renderCommunity(el) {
   if (cloud) {
     unsubFriends = listenFriends((list) => { setState({ friends: list }, { silent: true }); paint(list); });
     unsubCircles = listenMyCircles((list) => { setState({ circles: list }, { silent: true }); paint(undefined, list); });
+    unsubChats = listenMyChats((list) => { chats = list; paint(); });
   }
 
-  return () => { unsubFriends?.(); unsubCircles?.(); };
+  return () => { unsubFriends?.(); unsubCircles?.(); unsubChats?.(); };
 }
 
-function friendRow(f) {
+function friendRow(f, unread) {
   const name = f.name || f.friendCode || 'Amico';
   return `<div class="list-item">
     <div class="avatar">🙂</div>
     <div class="meta"><strong>${escapeHtml(name)}</strong>${f.local ? '<span>Solo locale</span>' : ''}</div>
     <div class="row" style="gap:4px;">
+      ${unread ? '<span class="unread-dot" title="Messaggio non letto"></span>' : ''}
       ${f.local ? '' : `<button class="btn ghost icon-only" data-chat="${f.id}" data-chat-name="${escapeHtml(name)}" aria-label="Chatta con ${escapeHtml(name)}">💬</button>`}
       <button class="btn ghost small" data-remove-friend="${f.id}" ${f.local ? 'data-remove-friend-local' : ''}>✕</button>
     </div>
   </div>`;
 }
 
-function circleRow(c, me, friends) {
+function circleRow(c, me, friends, unread) {
   const isOwner = c.ownerId === me;
   const memberIds = c.memberIds || [];
   const memberNames = memberIds.map((uid) => {
@@ -211,8 +233,12 @@ function circleRow(c, me, friends) {
     return f ? (f.name || f.friendCode || 'Amico') : 'Membro';
   });
   return `<div class="card" style="background:var(--surface-2);margin-top:10px;">
-    <div><strong>${escapeHtml(c.name)}</strong><p class="mb0 small" style="word-break:break-all;">${memberIds.length} membri: ${escapeHtml(memberNames.join(', '))}</p><p class="mb0 small" style="word-break:break-all;opacity:0.7;">codice: ${c.id}</p></div>
-    <div class="row mt" style="gap:6px;flex-wrap:wrap;">
+    <div class="row between" style="align-items:flex-start;gap:8px;">
+      <div style="min-width:0;"><strong>${escapeHtml(c.name)}</strong><p class="mb0 small" style="word-break:break-all;">${memberIds.length} membri: ${escapeHtml(memberNames.join(', '))}</p></div>
+      <button class="btn secondary small" data-copy-circle-code="${escapeHtml(c.id)}" style="flex-shrink:0;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${escapeHtml(c.id)}">${escapeHtml(c.id)} 📋</button>
+    </div>
+    <div class="row mt" style="gap:6px;flex-wrap:wrap;align-items:center;">
+      ${unread ? '<span class="unread-dot" title="Messaggio non letto"></span>' : ''}
       <button class="btn primary small" data-group-chat="${c.id}" data-group-chat-name="${escapeHtml(c.name)}">💬 Chat di gruppo</button>
       <button class="btn secondary small" data-toggle-add-member="${c.id}">+ Aggiungi amici</button>
       ${isOwner

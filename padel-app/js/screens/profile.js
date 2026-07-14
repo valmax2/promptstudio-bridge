@@ -5,7 +5,7 @@ import { navigate } from '../router.js';
 import { escapeHtml } from '../utils.js';
 import { toast } from '../app.js';
 import { avatarSvg } from '../avatars.js';
-import { frameStyle, frameBadgeHtml } from '../frames.js';
+import { FRAMES, frameStyle, frameBadgeHtml } from '../frames.js';
 
 export async function renderProfile(el) {
   const { profile } = getState();
@@ -23,6 +23,14 @@ export async function renderProfile(el) {
       <button class="btn secondary small" id="change-avatar">Cambia foto</button>
       <div class="row" style="justify-content:center;flex-wrap:wrap;gap:8px;margin-top:12px;">
         ${profile.unlockedAvatars.map((id) => `<button class="avatar-pick ${id === profile.avatarEmoji && !profile.avatarUrl ? 'selected' : ''}" data-emoji="${id}">${avatarSvg(id)}</button>`).join('')}
+      </div>
+
+      <label class="small mt" style="display:block;">Cornice</label>
+      <div class="row" style="justify-content:center;flex-wrap:wrap;gap:8px;margin-top:6px;">
+        ${FRAMES.filter((f) => profile.unlockedFrames.includes(f.id)).map((f) => `
+          <button class="avatar-pick frame-pick ${f.id === profile.equippedFrame ? 'selected' : ''}" data-frame="${f.id}" style="${frameStyle(f.id)}" title="${f.label}">${f.badge || '⭕'}</button>
+        `).join('')}
+        <button class="btn ghost small" id="more-frames">🔒 Altre</button>
       </div>
     </div>
 
@@ -56,6 +64,15 @@ export async function renderProfile(el) {
       renderProfile(el);
     });
   });
+
+  el.querySelectorAll('[data-frame]').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      updateProfile({ equippedFrame: btn.dataset.frame });
+      await syncProfile();
+      renderProfile(el);
+    });
+  });
+  el.querySelector('#more-frames')?.addEventListener('click', () => navigate('gamification'));
 
   el.querySelector('#change-avatar').addEventListener('click', () => el.querySelector('#avatar-file').click());
   el.querySelector('#avatar-file').addEventListener('change', async (e) => {

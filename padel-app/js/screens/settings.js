@@ -189,6 +189,8 @@ export async function renderSettings(el) {
       ${isCloudReady() ? `<p class="small mt mb0">🔔 Le notifiche push da server non sono ancora attive: richiedono il piano Firebase a pagamento "Blaze", che per ora resta disattivato. Le notifiche dentro l'app (amici, eventi, chat) funzionano già mentre l'app è aperta.</p>` : ''}
     </div>
     ` : ''}
+
+    <button class="btn ghost block mt" id="open-welcome">ⓘ Guida e informazioni sull'app</button>
   `;
 
   el.querySelectorAll('[data-category]').forEach((btn) => btn.addEventListener('click', () => {
@@ -265,6 +267,7 @@ export async function renderSettings(el) {
   });
 
   el.querySelector('#open-bt-setup')?.addEventListener('click', () => navigate('bluetooth-setup'));
+  el.querySelector('#open-welcome')?.addEventListener('click', () => navigate('welcome'));
 
   el.querySelector('#cloud-sync')?.addEventListener('change', (e) => { updateSettings({ cloudSyncEnabled: e.target.checked }); syncSettings(); });
   el.querySelector('#sync-now')?.addEventListener('click', async () => {

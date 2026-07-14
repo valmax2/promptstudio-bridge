@@ -16,6 +16,9 @@ import {
 let match = null;
 let history = [];
 let ttsEnabled = true;
+// Visual-only: hides the smaller game/set rows so just the point shows big
+// and full-screen - game/set are still spoken aloud via TTS regardless.
+let pointsOnlyMode = false;
 let setupMode = 'doubles';
 let setupServer = 'A';
 let setupFormat = 'classic';
@@ -287,7 +290,10 @@ function paint(el) {
       <div class="sb-topbar">
         <button id="sb-back" class="icon-btn" aria-label="Torna alla home">${BACK_ICON}</button>
         <div class="sb-mode">${modeLabel} · ${modeBadge}</div>
-        <button id="sb-mute">${ttsEnabled ? '🔊' : '🔇'}</button>
+        <div class="row" style="gap:2px;">
+          <button id="sb-display-mode" aria-label="Modalità visualizzazione" title="Solo punteggio">${pointsOnlyMode ? '🔢' : '📋'}</button>
+          <button id="sb-mute">${ttsEnabled ? '🔊' : '🔇'}</button>
+        </div>
       </div>
       <div class="sb-halves">
         ${teamHalf('A')}
@@ -309,6 +315,10 @@ function paint(el) {
     if (!ttsEnabled) stopSpeech();
     paint(el);
   });
+  el.querySelector('#sb-display-mode').addEventListener('click', () => {
+    pointsOnlyMode = !pointsOnlyMode;
+    paint(el);
+  });
   el.querySelector('#sb-undo').addEventListener('click', onUndo);
   el.querySelector('#sb-newmatch').addEventListener('click', onReset);
 
@@ -326,27 +336,45 @@ function paint(el) {
     e.stopPropagation();
     onSaveMatch(el);
   });
+  el.querySelectorAll('[data-toggle-server]').forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const team = btn.dataset.toggleServer;
+      const key = team === 'A' ? 'serverPlayerA' : 'serverPlayerB';
+      match[key] = match[key] ? 0 : 1;
+      paint(el);
+    });
+  });
 }
 
 function teamHalf(team) {
   const name = team === 'A' ? match.teamAName : match.teamBName;
+  const players = team === 'A' ? match.teamAPlayers : match.teamBPlayers;
   const disp = matchPointDisplay(match)[team.toLowerCase()];
   const gamesInSet = team === 'A' ? match.currentSet.gamesA : match.currentSet.gamesB;
   const setsWon = team === 'A' ? match.setsWonA : match.setsWonB;
   const serving = match.server === team && !match.inTiebreak && !match.inMatchTiebreak && !match.matchOver;
+  const isDoubles = players.length > 1;
+  const serverPlayerIdx = (team === 'A' ? match.serverPlayerA : match.serverPlayerB) || 0;
+  const servingPlayerName = isDoubles ? players[serverPlayerIdx] : null;
   const badge = badgeFor(team);
   const isTimeFormat = match.format === 'time';
+
+  const stackContent = pointsOnlyMode
+    ? `<div class="sb-point">${disp}</div>`
+    : `
+      <div class="sb-point">${disp}</div>
+      <div class="sb-cap">${isTimeFormat ? 'GIOCHI VINTI' : 'GAME'}</div>
+      <div class="sb-mid">${isTimeFormat ? gamesInSet : (match.inMatchTiebreak ? '—' : gamesInSet)}</div>
+      <div class="sb-cap">${isTimeFormat ? '' : 'SET'}</div>
+      <div class="sb-mid">${isTimeFormat ? '' : setsWon}</div>
+    `;
 
   return `
     <div class="sb-half sb-${team.toLowerCase()}" id="half-${team.toLowerCase()}">
       <div class="sb-name-row" data-edit-name="${team}">${escapeHtml(name)}${serving ? '<span class="serve-ball">🎾</span>' : ''}</div>
-      <div class="sb-stack">
-        <div class="sb-point">${disp}</div>
-        <div class="sb-cap">${isTimeFormat ? 'GIOCHI VINTI' : 'GAME'}</div>
-        <div class="sb-mid">${isTimeFormat ? gamesInSet : (match.inMatchTiebreak ? '—' : gamesInSet)}</div>
-        <div class="sb-cap">${isTimeFormat ? '' : 'SET'}</div>
-        <div class="sb-mid">${isTimeFormat ? '' : setsWon}</div>
-      </div>
+      ${serving && isDoubles ? `<button class="sb-server-player" data-toggle-server="${team}">Batte: ${escapeHtml(servingPlayerName)} ⇄</button>` : ''}
+      <div class="sb-stack ${pointsOnlyMode ? 'points-only' : ''}">${stackContent}</div>
       ${badge ? `<div class="sb-badge">${badge}</div>` : ''}
     </div>
   `;

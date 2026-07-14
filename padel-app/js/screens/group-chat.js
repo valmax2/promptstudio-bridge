@@ -1,5 +1,5 @@
 import { currentUser } from '../firebase.js';
-import { getState } from '../store.js';
+import { getState, markConversationRead } from '../store.js';
 import { sendCircleMessage, listenCircleMessages } from '../cloud.js';
 import { escapeHtml, BACK_ICON } from '../utils.js';
 import { navigate } from '../router.js';
@@ -69,6 +69,7 @@ export async function renderGroupChat(el, params = {}) {
     if (e.key === 'Enter') send();
   });
 
+  markConversationRead(circleId);
   unsub = listenCircleMessages(circleId, (list) => { messages = list; paintMessages(); });
 
   return () => unsub?.();

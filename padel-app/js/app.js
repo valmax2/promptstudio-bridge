@@ -21,6 +21,8 @@ import { renderKiller } from './screens/killer.js';
 import { renderGameModes } from './screens/gamemodes.js';
 import { renderChat } from './screens/chat.js';
 import { renderGroupChat } from './screens/group-chat.js';
+import { renderWelcome } from './screens/welcome.js';
+import { LITE_MODE } from './lite-mode.js';
 import { NAV_ICONS } from './nav-icons.js';
 
 const appEl = document.getElementById('app');
@@ -81,6 +83,7 @@ registerRoute('killer', renderKiller);
 registerRoute('gamemodes', renderGameModes);
 registerRoute('chat', renderChat);
 registerRoute('group-chat', renderGroupChat);
+registerRoute('welcome', renderWelcome);
 
 navEl.addEventListener('click', (e) => {
   const btn = e.target.closest('.nav-btn');
@@ -91,19 +94,30 @@ subscribe(applyTheme);
 applyTheme();
 
 initRouter(appEl, navEl);
-navEl.classList.remove('hidden');
-startRouter('home');
 
-initFirebase().then((ok) => {
+if (LITE_MODE) {
+  // Beta-test build: skip community/events/login/welcome entirely and open
+  // straight on the match setup screen - just enough to test remotes/tags,
+  // nothing else of the full app visible. Bluetooth setup is still one tap
+  // away via "Impostazioni" from there.
+  navEl.classList.add('hidden');
+  bannerEl.classList.add('hidden');
+  startRouter('scoreboard');
+} else {
+  navEl.classList.remove('hidden');
+  startRouter(getState().hasSeenWelcome ? 'home' : 'welcome');
+
+  initFirebase().then((ok) => {
+    updateBanner();
+    if (ok) {
+      onAuthChanged((user) => {
+        updateBanner();
+        if (user) initNotifications(toast); else stopNotifications();
+        window.dispatchEvent(new CustomEvent('padel:auth-changed', { detail: user }));
+      });
+    }
+  });
   updateBanner();
-  if (ok) {
-    onAuthChanged((user) => {
-      updateBanner();
-      if (user) initNotifications(toast); else stopNotifications();
-      window.dispatchEvent(new CustomEvent('padel:auth-changed', { detail: user }));
-    });
-  }
-});
-updateBanner();
+}
 
 window.addEventListener('padel:navigate', (e) => navigate(e.detail));

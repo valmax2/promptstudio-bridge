@@ -78,8 +78,11 @@ function frameTile(f, profile) {
   const unlocked = profile.unlockedFrames.includes(f.id);
   const selected = profile.equippedFrame === f.id;
   const style = unlocked ? `border-width:4px;border-color:${f.color};box-shadow:${f.id === 'none' ? 'none' : `0 0 10px 1px ${f.glow}`};` : `border-width:4px;border-color:${f.color};`;
-  return `<button class="pick-item ${unlocked ? '' : 'locked'} ${selected ? 'selected' : ''}" data-frame="${f.id}" data-level="${f.level}" style="${style}">
-    <span class="pick-item-preview">${f.badge || '⭕'}</span>
-    ${unlocked ? '' : '<span class="pick-item-lock">🔒</span>'}
-  </button>`;
+  return `<div class="frame-pick-wrap">
+    <button class="pick-item ${unlocked ? '' : 'locked'} ${selected ? 'selected' : ''}" data-frame="${f.id}" data-level="${f.level}" style="${style}">
+      <span class="pick-item-preview">${f.badge || '⭕'}</span>
+      ${unlocked ? '' : '<span class="pick-item-lock">🔒</span>'}
+    </button>
+    <span class="pick-item-label">${f.label}</span>
+  </div>`;
 }

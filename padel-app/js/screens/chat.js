@@ -1,5 +1,6 @@
 import { currentUser } from '../firebase.js';
 import { ensureChat, sendChatMessage, listenChatMessages, deleteChat, chatIdFor } from '../cloud.js';
+import { markConversationRead } from '../store.js';
 import { escapeHtml, BACK_ICON } from '../utils.js';
 import { navigate } from '../router.js';
 import { toast } from '../app.js';
@@ -75,6 +76,7 @@ export async function renderChat(el, params = {}) {
 
   try {
     const chatId = await ensureChat(friendUid);
+    markConversationRead(chatId);
     unsub = listenChatMessages(chatId, (list) => { messages = list; paintMessages(); });
   } catch (err) {
     toast('Errore chat: ' + (err.message || err));

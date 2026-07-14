@@ -39,6 +39,11 @@ export function createMatch({
     inTiebreak: false,
     inMatchTiebreak: false,
     server: startingServer,
+    // Which of the 2 players on each team (index 0/1) is currently serving -
+    // only meaningful in doubles. Not auto-rotated by the engine (real
+    // rotation conventions vary by group), just editable during the match.
+    serverPlayerA: 0,
+    serverPlayerB: 0,
     matchOver: false,
     matchWinner: null,
     startedAt: Date.now(),

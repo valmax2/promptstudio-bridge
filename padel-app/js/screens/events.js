@@ -1,5 +1,5 @@
 import { getState, setState } from '../store.js';
-import { isCloudReady, createEvent, deleteEvent, respondToEvent, listenMyEvents, listenFriends } from '../cloud.js';
+import { isCloudReady, createEvent, deleteEvent, leaveEvent, respondToEvent, listenMyEvents, listenFriends } from '../cloud.js';
 import { escapeHtml, formatDateTime, uid as genId } from '../utils.js';
 import { currentUser, firebaseAvailable } from '../firebase.js';
 import { navigate } from '../router.js';
@@ -80,6 +80,15 @@ export async function renderEvents(el) {
           toast('Evento eliminato');
           paint();
         }
+      });
+    });
+
+    el.querySelectorAll('[data-leave-event]').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        if (!confirm('Rimuovere questo evento dal tuo account? (resterà visibile agli altri invitati)')) return;
+        const id = btn.dataset.leaveEvent;
+        try { await leaveEvent(id); toast('Evento rimosso dal tuo account'); }
+        catch (err) { toast('Errore: ' + err.message); }
       });
     });
   }
@@ -168,6 +177,7 @@ function eventCard(e, me, cloud, friends, myProfile) {
   const yes = Object.values(participants).filter((v) => v === 'yes').length;
   const myStatus = me ? participants[me] : participants.me;
   const full = yes >= (e.maxPlayers || 4);
+  const isHost = cloud ? e.hostId === me : true;
   const invitedIds = e.invitedIds || Object.keys(participants);
 
   return `
@@ -187,7 +197,9 @@ function eventCard(e, me, cloud, friends, myProfile) {
         <div class="row mt" style="gap:8px;">
           <button class="btn primary small" data-rsvp="yes" data-id="${e.id}">Partecipo</button>
           <button class="btn secondary small" data-rsvp="no" data-id="${e.id}">Non posso</button>
-          <button class="btn ghost small" data-delete-event="${e.id}" aria-label="Elimina evento">🗑️</button>
+          ${isHost
+            ? `<button class="btn ghost small" data-delete-event="${e.id}" aria-label="Elimina evento per tutti">🗑️</button>`
+            : (cloud ? `<button class="btn ghost small" data-leave-event="${e.id}" aria-label="Rimuovi evento dal mio account">🗑️</button>` : '')}
         </div>
       </div>
     </div>`;

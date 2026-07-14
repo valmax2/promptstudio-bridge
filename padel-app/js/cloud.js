@@ -163,6 +163,11 @@ export async function sendCircleMessage(circleId, text) {
   const id = uid();
   if (!isCloudReady() || !id) return;
   await fsAdd(`circles/${circleId}/messages`, { senderId: id, text, createdAt: Date.now() });
+  // Mirrors sendChatMessage's lastMessage/lastMessageAt/lastSenderId on the
+  // parent doc - lets Community show an unread dot on the group without
+  // having to listen to every group's full messages subcollection.
+  const { fs } = mods();
+  await fs.updateDoc(fs.doc(db(), `circles/${circleId}`), { lastMessage: text, lastMessageAt: Date.now(), lastSenderId: id });
 }
 
 export function listenCircleMessages(circleId, cb) {
@@ -203,10 +208,28 @@ export function listenMyEvents(cb) {
   return fsListenCollection('events', cb, [['invitedIds', 'array-contains', id]]);
 }
 
+// Full delete: only the host can do this (removes the event for everyone -
+// see firestore.rules).
 export async function deleteEvent(eventId) {
   if (!isCloudReady()) return;
   const { fs } = mods();
   await fs.deleteDoc(fs.doc(db(), `events/${eventId}`));
+}
+
+// A non-host invitee "leaving" an event: removes only their own uid from
+// invitedIds/participants, so it stops showing up in their own
+// listenMyEvents query without touching anyone else's view of it. Uses
+// updateDoc + deleteField (not setDoc merge, which would only ever add/
+// overwrite map keys, never remove one).
+export async function leaveEvent(eventId) {
+  const id = uid();
+  if (!isCloudReady() || !id) return;
+  const { fs } = mods();
+  const ref = fs.doc(db(), `events/${eventId}`);
+  const snap = await fs.getDoc(ref);
+  if (!snap.exists()) return;
+  const invitedIds = (snap.data().invitedIds || []).filter((x) => x !== id);
+  await fs.updateDoc(ref, { invitedIds, [`participants.${id}`]: fs.deleteField() });
 }
 
 // ---- Matches ----

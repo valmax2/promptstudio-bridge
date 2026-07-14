@@ -44,17 +44,23 @@ service cloud.firestore {
 
     // Gli eventi sono leggibili da chi è stato invitato (host incluso); le
     // risposte RSVP possono modificare solo la propria voce in
-    // "participants"; solo l'organizzatore può modificarne il resto, ma
-    // l'eliminazione è permessa a chiunque sia stato invitato (non solo
-    // all'host), su richiesta esplicita dell'utente.
+    // "participants"; un invitato non-host può anche "uscire" (si rimuove
+    // da invitedIds/participants, senza toccare nient'altro né nessun altro
+    // invitato); solo l'organizzatore può modificare il resto o eliminarlo
+    // per tutti.
+    function leavingSelf() {
+      return resource.data.invitedIds.removeAll([request.auth.uid]) == request.resource.data.invitedIds
+        && !(request.auth.uid in request.resource.data.invitedIds);
+    }
     match /events/{eventId} {
       allow read: if isSignedIn();
       allow create: if isSignedIn() && request.resource.data.hostId == request.auth.uid;
       allow update: if isSignedIn() && (
         resource.data.hostId == request.auth.uid ||
-        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['participants'])
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['participants']) ||
+        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['participants', 'invitedIds']) && leavingSelf())
       );
-      allow delete: if isSignedIn() && request.auth.uid in resource.data.invitedIds;
+      allow delete: if isSignedIn() && resource.data.hostId == request.auth.uid;
     }
 
     // Le partite sono private a chi le ha registrate.

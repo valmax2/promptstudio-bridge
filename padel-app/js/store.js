@@ -61,6 +61,13 @@ const DEFAULT_STATE = {
   // ids of friends/events already surfaced as a notification, so the same
   // one doesn't toast/badge again on every app open - see js/notifications.js.
   seenNotifIds: [],
+  // 1:1 chat id or circle id -> timestamp of the last message the user
+  // actually opened that conversation to read, used to show a per-item
+  // unread dot in Community (separate from the generic nav badge).
+  readReceipts: {},
+  // Shows the welcome/onboarding screen once on first-ever launch; reachable
+  // again afterwards via the "ⓘ Guida" entry in Impostazioni.
+  hasSeenWelcome: false,
   friends: [],       // {id, name, phone}
   circles: [],        // {id, name, memberIds, memberNames}
   events: [],          // {id, title, dateTime, location, circleId, hostId, hostName, participants, maxPlayers}
@@ -132,6 +139,10 @@ export function addXp(amount) {
   const xp = Math.max(0, (state.profile.xp || 0) + amount);
   const level = 1 + Math.floor(xp / 500);
   return setState({ profile: { xp, level } });
+}
+
+export function markConversationRead(conversationId) {
+  return setState({ readReceipts: { [conversationId]: Date.now() } }, { silent: true });
 }
 
 export function unlockCosmetic(type, id) {

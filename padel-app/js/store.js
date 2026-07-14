@@ -35,6 +35,9 @@ const DEFAULT_STATE = {
     numberColor: '#FFFFFF',
     numberBorderColor: '#000000',
     numberBorderWidth: 0,
+    // 0 = disattivato; altrimenti annuncia a voce l'ora corrente ogni tot
+    // partite salvate, così chi gioca sa se c'è ancora tempo per un'altra.
+    announceTimeEveryMatches: 0,
   },
   profile: {
     uid: null,

@@ -5,6 +5,7 @@ import { navigate } from '../router.js';
 import { escapeHtml } from '../utils.js';
 import { toast } from '../app.js';
 import { avatarSvg } from '../avatars.js';
+import { frameStyle, frameBadgeHtml } from '../frames.js';
 
 export async function renderProfile(el) {
   const { profile } = getState();
@@ -14,7 +15,10 @@ export async function renderProfile(el) {
     <div class="topbar"><h1>Profilo</h1></div>
 
     <div class="card center">
-      <div class="avatar xl" style="margin:0 auto 12px;border-color:${frameColor(profile.equippedFrame)}">${avatarContent(profile)}</div>
+      <div class="avatar-frame-wrap" style="margin:0 auto 12px;">
+        <div class="avatar xl" style="${frameStyle(profile.equippedFrame)}">${avatarContent(profile)}</div>
+        ${frameBadgeHtml(profile.equippedFrame)}
+      </div>
       <input type="file" accept="image/*" id="avatar-file" class="hidden" style="display:none">
       <button class="btn secondary small" id="change-avatar">Cambia foto</button>
       <div class="row" style="justify-content:center;flex-wrap:wrap;gap:8px;margin-top:12px;">
@@ -94,11 +98,6 @@ async function syncProfile() {
 function avatarContent(profile) {
   if (profile.avatarUrl) return `<img src="${profile.avatarUrl}" alt="avatar">`;
   return avatarSvg(profile.avatarEmoji);
-}
-
-function frameColor(frame) {
-  const map = { none: 'var(--accent)', gold: '#FFD54F', fire: '#FF6B4A', ice: '#69D6FF' };
-  return map[frame] || 'var(--accent)';
 }
 
 function fileToDataUrl(file) {

@@ -4,17 +4,34 @@
 const SKIN = ['#F2C9A0', '#E0A972', '#C68863', '#8D5524'];
 const SMILE = 'M25,41 Q32,46 39,41';
 
+// Each avatar gets its own gradient id (derived from the bg color) so
+// several avatars can render on the same page without one's <defs> clobbering
+// another's - inline SVGs share one document-wide id namespace.
+let gradCounter = 0;
+
 function svg(bg, inner) {
+  const gid = `av-bg-${gradCounter++}`;
   return `<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" role="img">
-    <circle cx="32" cy="32" r="32" fill="${bg}"/>${inner}
+    <defs>
+      <radialGradient id="${gid}" cx="35%" cy="30%" r="75%">
+        <stop offset="0" stop-color="${bg}" stop-opacity="0.75"/>
+        <stop offset="1" stop-color="${bg}"/>
+      </radialGradient>
+    </defs>
+    <circle cx="32" cy="32" r="32" fill="url(#${gid})"/>
+    <ellipse cx="24" cy="16" rx="16" ry="9" fill="#fff" opacity="0.14"/>
+    ${inner}
   </svg>`;
 }
 
 function face(skin, mouth = SMILE) {
   return `
     <ellipse cx="32" cy="37" rx="14" ry="16" fill="${skin}"/>
+    <ellipse cx="26" cy="30" rx="5" ry="3.4" fill="#fff" opacity="0.18"/>
     <circle cx="26" cy="35" r="2.1" fill="#2b2b2b"/>
     <circle cx="38" cy="35" r="2.1" fill="#2b2b2b"/>
+    <ellipse cx="27" cy="42" rx="3.4" ry="1.8" fill="#e8907a" opacity="0.35"/>
+    <ellipse cx="37" cy="42" rx="3.4" ry="1.8" fill="#e8907a" opacity="0.35"/>
     <path d="${mouth}" stroke="#7a4a3a" stroke-width="2" fill="none" stroke-linecap="round"/>
   `;
 }

@@ -157,6 +157,10 @@ export async function renderCommunity(el) {
       catch (err) { toast('Errore: ' + err.message); }
     }));
 
+    el.querySelectorAll('[data-group-chat]').forEach((btn) => btn.addEventListener('click', () => {
+      navigate('group-chat', { replace: true, params: { id: btn.dataset.groupChat, name: btn.dataset.groupChatName } });
+    }));
+
     el.querySelectorAll('[data-chat]').forEach((btn) => btn.addEventListener('click', () => {
       // replace:true avoids setting location.hash directly, which would
       // fire the router's hashchange listener a moment later and re-render
@@ -192,7 +196,7 @@ function friendRow(f) {
     <div class="avatar">🙂</div>
     <div class="meta"><strong>${escapeHtml(name)}</strong>${f.local ? '<span>Solo locale</span>' : ''}</div>
     <div class="row" style="gap:4px;">
-      ${f.local ? '' : `<button class="btn ghost small" data-chat="${f.id}" data-chat-name="${escapeHtml(name)}">💬</button>`}
+      ${f.local ? '' : `<button class="btn ghost icon-only" data-chat="${f.id}" data-chat-name="${escapeHtml(name)}" aria-label="Chatta con ${escapeHtml(name)}">💬</button>`}
       <button class="btn ghost small" data-remove-friend="${f.id}" ${f.local ? 'data-remove-friend-local' : ''}>✕</button>
     </div>
   </div>`;
@@ -209,6 +213,7 @@ function circleRow(c, me, friends) {
   return `<div class="card" style="background:var(--surface-2);margin-top:10px;">
     <div><strong>${escapeHtml(c.name)}</strong><p class="mb0 small" style="word-break:break-all;">${memberIds.length} membri: ${escapeHtml(memberNames.join(', '))}</p><p class="mb0 small" style="word-break:break-all;opacity:0.7;">codice: ${c.id}</p></div>
     <div class="row mt" style="gap:6px;flex-wrap:wrap;">
+      <button class="btn primary small" data-group-chat="${c.id}" data-group-chat-name="${escapeHtml(c.name)}">💬 Chat di gruppo</button>
       <button class="btn secondary small" data-toggle-add-member="${c.id}">+ Aggiungi amici</button>
       ${isOwner
         ? `<button class="btn ghost small" data-delete-circle="${c.id}">🗑️ Elimina</button>`

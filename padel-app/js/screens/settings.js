@@ -2,12 +2,12 @@ import { getState, updateSettings } from '../store.js';
 import { navigate } from '../router.js';
 import { pushProfile } from '../cloud.js';
 import { isCloudReady } from '../cloud.js';
-import { firebaseAvailable, currentUser, registerPushToken } from '../firebase.js';
+import { firebaseAvailable, currentUser } from '../firebase.js';
 import { say, speechSupported } from '../speech.js';
 import { toast } from '../app.js';
 import { COLOR_PRESETS } from '../color-presets.js';
 import { remoteSupported, bleTagSupported } from '../ble-remote.js';
-import { BACK_ICON } from '../utils.js';
+import { BACK_ICON, BLUETOOTH_ICON } from '../utils.js';
 
 let activeCategory = 'aspetto';
 
@@ -16,7 +16,7 @@ const CATEGORIES = [
   { id: 'audio', icon: '🔊', label: 'Audio' },
   { id: 'partita', icon: '🎾', label: 'Partita' },
   { id: 'colori', icon: '🖌️', label: 'Colori' },
-  { id: 'bluetooth', icon: '🔵', label: 'Bluetooth' },
+  { id: 'bluetooth', icon: BLUETOOTH_ICON, label: 'Bluetooth' },
   { id: 'cloud', icon: '☁️', label: 'Cloud' },
 ];
 
@@ -103,6 +103,13 @@ export async function renderSettings(el) {
         <div><strong>Super tie-break al 3° set</strong><p class="mb0 small">Il set decisivo si gioca al tie-break fino a 10</p></div>
         <label class="switch"><input type="checkbox" id="super-tb" ${settings.superTiebreak3rdSet ? 'checked' : ''}><span class="slider"></span></label>
       </div>
+      <div class="field mt mb0">
+        <label>🕐 Annuncia l'ora ogni tot partite</label>
+        <p class="small">Utile per sapere se c'è ancora tempo per un'altra partita prima di lasciare il campo.</p>
+        <div class="segmented">
+          ${[0, 1, 2, 3, 5].map((n) => `<button data-time-announce="${n}" class="${settings.announceTimeEveryMatches === n ? 'active' : ''}">${n === 0 ? 'Mai' : n === 1 ? 'Ogni partita' : `Ogni ${n}`}</button>`).join('')}
+        </div>
+      </div>
       <button class="btn ghost small block mt" id="go-gamemodes">📖 Tutte le modalità di gioco</button>
     </div>
     ` : ''}
@@ -167,7 +174,7 @@ export async function renderSettings(el) {
         <label class="switch"><input type="checkbox" id="cloud-sync" ${settings.cloudSyncEnabled ? 'checked' : ''} ${firebaseAvailable() ? '' : 'disabled'}><span class="slider"></span></label>
       </div>
       ${isCloudReady() ? '<button class="btn primary block mt" id="sync-now">Sincronizza ora</button>' : ''}
-      ${isCloudReady() ? '<button class="btn secondary block mt" id="enable-push">Attiva notifiche push</button>' : ''}
+      ${isCloudReady() ? `<p class="small mt mb0">🔔 Le notifiche push da server non sono ancora attive: richiedono il piano Firebase a pagamento "Blaze", che per ora resta disattivato. Le notifiche dentro l'app (amici, eventi, chat) funzionano già mentre l'app è aperta.</p>` : ''}
     </div>
     ` : ''}
   `;
@@ -199,6 +206,11 @@ export async function renderSettings(el) {
   el.querySelector('#tts')?.addEventListener('change', (e) => { updateSettings({ ttsEnabled: e.target.checked }); renderSettings(el); syncSettings(); });
   el.querySelector('#golden')?.addEventListener('change', (e) => { updateSettings({ goldenPoint: e.target.checked }); syncSettings(); });
   el.querySelector('#super-tb')?.addEventListener('change', (e) => { updateSettings({ superTiebreak3rdSet: e.target.checked }); syncSettings(); });
+  el.querySelectorAll('[data-time-announce]').forEach((btn) => btn.addEventListener('click', () => {
+    updateSettings({ announceTimeEveryMatches: parseInt(btn.dataset.timeAnnounce, 10) });
+    renderSettings(el);
+    syncSettings();
+  }));
   el.querySelector('#test-voice')?.addEventListener('click', () => say('40 pari, punto d\'oro'));
   el.querySelector('#go-gamemodes')?.addEventListener('click', () => navigate('gamemodes'));
 
@@ -239,15 +251,6 @@ export async function renderSettings(el) {
   el.querySelector('#sync-now')?.addEventListener('click', async () => {
     await syncSettings();
     toast('Sincronizzato con il cloud');
-  });
-  el.querySelector('#enable-push')?.addEventListener('click', async () => {
-    const token = await registerPushToken();
-    if (token) {
-      await pushProfile({ ...getState().profile, pushToken: token });
-      toast('Notifiche push attivate');
-    } else {
-      toast('Impossibile attivare le notifiche (permesso negato?)');
-    }
   });
 }
 

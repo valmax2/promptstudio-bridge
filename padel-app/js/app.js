@@ -19,6 +19,7 @@ import { renderAmericano } from './screens/americano.js';
 import { renderKiller } from './screens/killer.js';
 import { renderGameModes } from './screens/gamemodes.js';
 import { renderChat } from './screens/chat.js';
+import { renderGroupChat } from './screens/group-chat.js';
 import { NAV_ICONS } from './nav-icons.js';
 
 const appEl = document.getElementById('app');
@@ -77,6 +78,7 @@ registerRoute('americano', renderAmericano);
 registerRoute('killer', renderKiller);
 registerRoute('gamemodes', renderGameModes);
 registerRoute('chat', renderChat);
+registerRoute('group-chat', renderGroupChat);
 
 navEl.addEventListener('click', (e) => {
   const btn = e.target.closest('.nav-btn');

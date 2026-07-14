@@ -3,6 +3,7 @@ import { navigate } from '../router.js';
 import { firebaseAvailable } from '../firebase.js';
 import { escapeHtml } from '../utils.js';
 import { avatarSvg } from '../avatars.js';
+import { frameStyle, frameBadgeHtml } from '../frames.js';
 
 export async function renderHome(el) {
   const { profile, matches, events } = getState();
@@ -15,15 +16,16 @@ export async function renderHome(el) {
   const wins = matches.filter((m) => m.wonByMe).length;
 
   el.innerHTML = `
-    <div class="topbar">
-      <div>
-        <h1>Ciao, ${escapeHtml(profile.name)} 👋</h1>
-        <div class="subtitle">${authed ? 'Sincronizzato con il cloud' : firebaseAvailable() ? 'Non hai ancora effettuato l\'accesso' : 'Modalità locale'}</div>
+    <div class="row" style="justify-content:flex-end;">
+      <button class="icon-btn" id="go-settings" aria-label="Impostazioni" title="Impostazioni">⚙️</button>
+    </div>
+    <div class="center" style="margin-bottom:18px;">
+      <div class="avatar-frame-wrap" style="margin:0 auto 10px;">
+        <div class="avatar xxl" style="${frameStyle(profile.equippedFrame)}">${avatarContent(profile)}</div>
+        ${frameBadgeHtml(profile.equippedFrame)}
       </div>
-      <div class="row" style="gap:10px;">
-        <button class="icon-btn" id="go-settings" aria-label="Impostazioni" title="Impostazioni">⚙️</button>
-        <div class="avatar">${avatarContent(profile)}</div>
-      </div>
+      <h1 class="mb0">Ciao, ${escapeHtml(profile.name)} 👋</h1>
+      <div class="subtitle">${authed ? 'Sincronizzato con il cloud' : firebaseAvailable() ? 'Non hai ancora effettuato l\'accesso' : 'Modalità locale'}</div>
     </div>
 
     ${!authed ? `

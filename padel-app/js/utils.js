@@ -2,6 +2,10 @@
 // devices, unlike the "←" text glyph whose weight/size varies by font.
 export const BACK_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>';
 
+// The real Bluetooth rune on a filled blue badge - clearer at a glance than
+// the generic 🔵 dot emoji used before, which just read as "a blue circle".
+export const BLUETOOTH_ICON = '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="12" fill="#2196F3"/><polyline points="8.5 7.5 15.5 15.5 12 19 12 5 15.5 8.5 8.5 16.5" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
 export function escapeHtml(str = '') {
   return String(str).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }

@@ -158,6 +158,18 @@ export function listenMyCircles(cb) {
   return fsListenCollection('circles', cb, [['memberIds', 'array-contains', id]]);
 }
 
+// ---- Group chat (one thread per circle, shared by all its members) ----
+export async function sendCircleMessage(circleId, text) {
+  const id = uid();
+  if (!isCloudReady() || !id) return;
+  await fsAdd(`circles/${circleId}/messages`, { senderId: id, text, createdAt: Date.now() });
+}
+
+export function listenCircleMessages(circleId, cb) {
+  if (!isCloudReady()) return () => {};
+  return fsListenCollection(`circles/${circleId}/messages`, cb);
+}
+
 // ---- Events ----
 // invitedFriendIds: uids picked from the friends list when creating the
 // event. invitedIds (host + invitees) is what listenMyEvents queries on -

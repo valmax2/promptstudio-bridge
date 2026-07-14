@@ -149,16 +149,3 @@ export async function uploadAvatar(uid, blob) {
   return storageMod.getDownloadURL(ref);
 }
 
-// ---- Messaging: push token registration ----
-export async function registerPushToken() {
-  if (!_messaging) return null;
-  try {
-    const { msg } = _mods;
-    const permission = await Notification.requestPermission();
-    if (permission !== 'granted') return null;
-    return await msg.getToken(_messaging, { vapidKey });
-  } catch (err) {
-    console.warn('[firebase] Push registration fallita:', err.message);
-    return null;
-  }
-}

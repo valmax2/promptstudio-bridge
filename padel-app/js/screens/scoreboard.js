@@ -409,7 +409,22 @@ async function onSaveMatch(el) {
   addXp(match.matchWinner === 'A' ? 40 : 15);
   try { await pushMatch(record); } catch {}
   toast('Partita salvata! Hai guadagnato XP 🎉');
+  maybeAnnounceTime();
   match = null;
   history = [];
   await renderScoreboard(el);
+}
+
+// "Ogni tot partite" (Impostazioni > Partita): reads the total match count
+// after saving rather than a separate session counter, so "ogni 2" always
+// means "after the 2nd, 4th, 6th... match ever recorded" - no extra state
+// to keep in sync.
+function maybeAnnounceTime() {
+  const { settings, matches } = getState();
+  const n = settings.announceTimeEveryMatches;
+  if (!n || matches.length % n !== 0) return;
+  const now = new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+  const text = `Sono le ${now}. Avete tempo per un'altra partita?`;
+  if (settings.ttsEnabled) say(text);
+  toast(text);
 }

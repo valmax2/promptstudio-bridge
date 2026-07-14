@@ -2,15 +2,7 @@ import { getState, updateProfile, unlockCosmetic } from '../store.js';
 import { pushProfile } from '../cloud.js';
 import { toast } from '../app.js';
 import { AVATARS } from '../avatars.js';
-const FRAMES = [
-  { id: 'none', label: 'Nessuna', level: 1, color: 'var(--accent)' },
-  { id: 'bronze', label: 'Bronzo', level: 2, color: '#CD7F32' },
-  { id: 'silver', label: 'Argento', level: 4, color: '#C0C0C0' },
-  { id: 'gold', label: 'Oro', level: 6, color: '#FFD54F' },
-  { id: 'fire', label: 'Fuoco', level: 9, color: '#FF6B4A' },
-  { id: 'ice', label: 'Ghiaccio', level: 12, color: '#69D6FF' },
-  { id: 'neon', label: 'Neon', level: 16, color: '#B388FF' },
-];
+import { FRAMES } from '../frames.js';
 
 export async function renderGamification(el) {
   autoUnlock();
@@ -84,7 +76,8 @@ function avatarTile(a, profile) {
 function frameTile(f, profile) {
   const unlocked = profile.unlockedFrames.includes(f.id);
   const selected = profile.equippedFrame === f.id;
-  return `<button class="pick-item ${unlocked ? '' : 'locked'} ${selected ? 'selected' : ''}" data-frame="${f.id}" data-level="${f.level}" style="border-color:${selected ? f.color : 'transparent'}">
-    ${unlocked ? '🖼️' : '🔒'}
+  const style = unlocked ? `border-width:4px;border-color:${f.color};box-shadow:${f.id === 'none' ? 'none' : `0 0 10px 1px ${f.glow}`};` : 'border-color:transparent;';
+  return `<button class="pick-item ${unlocked ? '' : 'locked'} ${selected ? 'selected' : ''}" data-frame="${f.id}" data-level="${f.level}" style="${style}">
+    ${unlocked ? (f.badge || '⭕') : '🔒'}
   </button>`;
 }

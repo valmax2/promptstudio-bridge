@@ -52,12 +52,34 @@ cat > package.json <<'EOF'
 { "name": "padel-app-capacitor-build", "version": "1.0.0", "private": true }
 EOF
 npm install @capacitor/core @capacitor/cli @capacitor/android @capacitor-community/text-to-speech >/dev/null
+npm install --save-dev @capacitor/assets >/dev/null
 
 echo "▶ Inizializzo Capacitor ($APP_ID)"
 npx cap init "$APP_NAME" "$APP_ID" --web-dir=www
 
 echo "▶ Aggiungo la piattaforma Android"
 npx cap add android
+
+echo "▶ Imposto un versionCode univoco (timestamp) ad ogni build"
+# Senza questo, ogni build genera lo stesso versionCode/versionName di
+# default di Capacitor ("1" / "1.0"): con la stessa firma E la stessa
+# versione, alcuni telefoni/launcher Android considerano l'APK "già
+# installato" e non ne aggiornano davvero i file - da qui la necessità di
+# disinstallare sempre per vedere le novità. Un versionCode sempre crescente
+# fa sì che ogni build sia riconosciuta come un aggiornamento vero.
+VERSION_CODE=$(date +%s)
+sed -i "s/versionCode 1\$/versionCode $VERSION_CODE/" android/app/build.gradle
+sed -i "s/versionName \"1.0\"/versionName \"1.0.$VERSION_CODE\"/" android/app/build.gradle
+
+echo "▶ Genero l'icona nativa dell'app Android da icon.svg"
+# Senza questo passaggio l'APK usa l'icona segnaposto generica di Capacitor
+# creata da "cap add android": icon.svg viene sì copiata in www/ (usata
+# solo come favicon dentro la WebView), ma l'icona vera del launcher va
+# rigenerata esplicitamente nelle risorse native (android/app/src/main/res).
+mkdir -p assets
+cp "$HERE"/icon.svg assets/icon-only.svg
+npx capacitor-assets generate --android || echo "⚠ Generazione icona saltata (l'APK userà l'icona precedente)."
+
 npx cap sync android
 
 echo "▶ Correggo un conflitto Gradle noto (classi Kotlin duplicate: kotlin-stdlib"

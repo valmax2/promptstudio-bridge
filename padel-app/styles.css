@@ -151,6 +151,21 @@ label { font-size: 0.85em; color: var(--text-dim); display: block; margin-bottom
 }
 .modal-card h2 { display: flex; align-items: center; justify-content: space-between; }
 
+.crop-viewport {
+  position: relative; width: 100%; max-width: 300px; aspect-ratio: 1;
+  margin: 12px auto 0; overflow: hidden; border-radius: 16px;
+  background: var(--surface-2); touch-action: none; cursor: grab;
+}
+.crop-viewport img {
+  position: absolute; top: 0; left: 0; max-width: none;
+  user-select: none; pointer-events: none;
+}
+.crop-viewport.crop-circle::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  border-radius: 50%; box-shadow: 0 0 0 999px rgba(0,0,0,0.45);
+  border: 2px dashed rgba(255,255,255,0.8);
+}
+
 .chat-thread {
   display: flex; flex-direction: column; gap: 8px;
   max-height: 62vh; overflow-y: auto;

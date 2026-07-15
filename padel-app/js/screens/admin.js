@@ -7,6 +7,7 @@ import { navigate } from '../router.js';
 import { escapeHtml } from '../utils.js';
 import { toast } from '../app.js';
 import { isAdmin } from '../admin.js';
+import { openImageCropper } from '../image-crop.js';
 
 export async function renderAdmin(el) {
   if (!isAdmin()) {
@@ -96,13 +97,18 @@ export async function renderAdmin(el) {
 
   async function handleUpload(kind, e) {
     const file = e.target.files[0];
+    e.target.value = '';
     if (!file) return;
     const labelInput = el.querySelector(kind === 'avatar' ? '#new-avatar-label' : '#new-frame-label');
     const label = labelInput.value.trim().slice(0, 30) || (kind === 'avatar' ? 'Avatar' : 'Cornice');
+
+    const blob = await openImageCropper(file, { shape: kind === 'avatar' ? 'circle' : 'square' });
+    if (!blob) return;
+
     uploading = true;
     paint();
     try {
-      await uploadCustomCatalogItem(kind, label, file);
+      await uploadCustomCatalogItem(kind, label, blob);
       toast(kind === 'avatar' ? 'Avatar caricato!' : 'Cornice caricata!');
     } catch (err) {
       toast('Errore: ' + err.message);

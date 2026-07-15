@@ -1,5 +1,7 @@
 package com.padelapp.app;
 
+import android.content.Intent;
+import android.provider.Settings;
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
@@ -32,5 +34,17 @@ public class RemoteControlPlugin extends Plugin {
         JSObject ret = new JSObject();
         ret.put("enabled", remoteEnabled);
         call.resolve(ret);
+    }
+
+    // Jumps straight to Android's own Bluetooth settings screen - regular
+    // remotes/keyboards must be paired there (no app, including this one, is
+    // allowed to pair a Bluetooth HID device on the user's behalf), so this
+    // saves them hunting through the phone's system settings menu.
+    @PluginMethod
+    public void openBluetoothSettings(PluginCall call) {
+        Intent intent = new Intent(Settings.ACTION_BLUETOOTH_SETTINGS);
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        getActivity().startActivity(intent);
+        call.resolve();
     }
 }

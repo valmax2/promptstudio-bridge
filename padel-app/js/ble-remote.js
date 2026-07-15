@@ -55,6 +55,16 @@ export async function disableRemote() {
   try { await remoteControl()?.disable(); } catch {}
 }
 
+// Jumps to Android's own Bluetooth settings screen - regular remotes/
+// keyboards must be paired there, no app can do it on their behalf. Returns
+// false when unsupported (browser preview) so callers can fall back to
+// just telling the user where to look.
+export async function openBluetoothSettings() {
+  const rc = remoteControl();
+  if (!rc?.openBluetoothSettings) return false;
+  try { await rc.openBluetoothSettings(); return true; } catch { return false; }
+}
+
 export function listenRawPresses(cb) {
   const handler = (e) => cb(e.detail);
   window.addEventListener('padel-hw-key', handler);

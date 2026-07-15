@@ -5,7 +5,7 @@ import { pushProfile } from '../cloud.js';
 import { toast } from '../app.js';
 import {
   KEY_LABELS, ACTION_LABELS, PATTERN_LABELS, remoteSupported, captureNextPress,
-  enableRemote, disableRemote, listenRawPresses,
+  enableRemote, disableRemote, listenRawPresses, openBluetoothSettings,
   bleTagSupported, scanBleTags, connectBleTag, disconnectBleTag,
 } from '../ble-remote.js';
 import { escapeHtml, uid as genId, BACK_ICON } from '../utils.js';
@@ -70,17 +70,13 @@ function paint(el) {
   const { settings } = getState();
 
   el.innerHTML = `
-    <div class="topbar"><div class="row"><button class="icon-btn" id="bt-back" aria-label="Indietro">${BACK_ICON}</button><h1>🔵 Bluetooth &amp; Telecomandi</h1></div></div>
-
-    ${LITE_MODE ? '' : `
-    <div class="card">
-      <p class="small">Qui puoi collegare telecomandi Bluetooth e portachiavi "trova oggetto", e decidere cosa deve fare ogni pulsante (punto, annulla, ecc). Tutto in un unico posto.</p>
+    <div class="topbar"><div class="row"><button class="icon-btn" id="bt-back" aria-label="Indietro">${BACK_ICON}</button><h1>🔵 Bluetooth &amp; Telecomandi</h1></div>
+      <button class="btn ghost small" id="bt-help">❓ Come funziona</button>
     </div>
-    `}
 
     <div class="card" id="bt-live-card">
       <h2>📡 Test dal vivo</h2>
-      ${LITE_MODE ? '' : `<p class="small">Premi un pulsante su un telecomando accoppiato o su un tag collegato: se il telefono lo riceve, lo vedrai comparire qui sotto <strong>subito</strong>. Se non compare nulla, il dispositivo non è ancora accoppiato/collegato correttamente - prova prima dalle Impostazioni Bluetooth di Android (per i telecomandi) o dalla sezione "Portachiavi" qui sotto.</p>`}
+      ${LITE_MODE ? '' : `<p class="small">Premi un pulsante sul dispositivo appena collegato: se il telefono lo riceve, lo vedrai comparire qui sotto <strong>subito</strong>. Se non compare nulla, non è ancora accoppiato/collegato correttamente - riprova dal passo 1 qui sotto.</p>`}
       <div id="bt-live-log"></div>
     </div>
 
@@ -92,38 +88,13 @@ function paint(el) {
       ${!settings.bleRemoteEnabled ? '<p class="small mb0" style="color:var(--danger,#e5484d);">⚠️ Spento: anche se colleghi tutto qui sotto, in partita i pulsanti non faranno nulla finché non lo riattivi.</p>' : ''}
     </div>
 
-    ${remoteSupported() ? `
     <div class="card">
-      <h2>🎮 Telecomandi Bluetooth</h2>
-      ${LITE_MODE ? '' : `<p class="small">Per telecomandi tipo "selfie remote", scatto foto da smartwatch, o tastiere Bluetooth generiche. <strong>Prima accoppia il dispositivo dalle Impostazioni Bluetooth di Android</strong> (come una tastiera), poi torna qui.</p>`}
+      <h2>🔍 Passo 1 · Trova il dispositivo</h2>
+      ${LITE_MODE ? '' : `<p class="small">Un unico punto di partenza per qualsiasi telecomando, tastiera o tag "trova oggetto". Se non sai qual è il tuo, tocca "❓ Come funziona" qui sopra.</p>`}
 
-      <div class="card" style="background:var(--surface-2);margin-top:10px;">
-        <label>Configurazione rapida</label>
-        <div class="segmented">
-          <button data-quick-mode="two" class="${quickSetupMode === 'two' ? 'active' : ''}">🔀 Due telecomandi</button>
-          <button data-quick-mode="one" class="${quickSetupMode === 'one' ? 'active' : ''}">🎯 Uno solo</button>
-        </div>
-        ${quickSetupMode === 'two' ? `
-        ${LITE_MODE ? '' : '<p class="small mt">Un telecomando diverso per ogni squadra. Su ciascuno: click singolo = punto, doppio click = annulla ultimo punto.</p>'}
-        ${quickCapturing === 'A' ? '<p class="mb0">📡 Premi un tasto sul telecomando Slot 1 (Noi)…</p>' : `<button class="btn secondary block mt" id="quick-pair-a">🔵 Associa Slot 1 (Noi)</button>`}
-        ${quickCapturing === 'B' ? '<p class="mb0 mt">📡 Premi un tasto sul telecomando Slot 2 (Avversari)…</p>' : `<button class="btn secondary block mt" id="quick-pair-b">🔵 Associa Slot 2 (Avversari)</button>`}
-        ` : `
-        ${LITE_MODE ? '' : '<p class="small mt">Un solo telecomando per entrambe le squadre: click singolo = punto Noi, doppio click = punto Avversari, doppio click lento = annulla.</p>'}
-        ${quickCapturing === 'single' ? '<p class="mb0">📡 Premi un tasto sul telecomando…</p>' : `<button class="btn secondary block mt" id="quick-pair-single">🔵 Associa telecomando unico</button>`}
-        `}
-      </div>
-
-      <label class="mt" style="display:block;">Tutte le associazioni</label>
-      ${renderBindingsUI(settings.remoteBindings)}
-    </div>
-    ` : `<div class="card"><h2>🎮 Telecomandi Bluetooth</h2><p class="small">Richiede l'app installata come APK Android (non funziona nell'anteprima da browser).</p></div>`}
-
-    <div class="card">
-      <h2>🔑 Portachiavi / Tag BLE <span class="small" style="opacity:0.7;">(sperimentale)</span></h2>
       ${bleTagSupported() ? `
-        ${LITE_MODE ? '' : '<p class="small">Per portachiavi "trova oggetto" e simili, che non si accoppiano come tastiera. Puoi collegare <strong>più di un tag</strong> (es. uno per squadra) - funziona con molti modelli economici, ma non è garantito su tutti.</p>'}
         ${settings.bleTags.map((t) => tagRow(t, settings.remoteBindings)).join('')}
-        <button class="btn secondary block mt" id="bletag-scan" ${bleScanning ? 'disabled' : ''}>${bleScanning ? 'Ricerca in corso… (6s)' : (settings.bleTags.length ? '🔍 Cerca un altro tag' : '🔍 Cerca dispositivi')}</button>
+        <button class="btn secondary block mt" id="bletag-scan" ${bleScanning ? 'disabled' : ''}>${bleScanning ? 'Ricerca in corso… (6s)' : (settings.bleTags.length ? '🔍 Cerca un altro tag Bluetooth' : '🔍 Cerca tag Bluetooth')}</button>
         <div class="mt">
           ${bleScanResults.filter((d) => !settings.bleTags.some((t) => t.address === d.address)).map((d) => `
             <div class="list-item">
@@ -131,10 +102,41 @@ function paint(el) {
               <div class="meta"><strong>${escapeHtml(d.name)}</strong><span>${d.address}</span></div>
               <button class="btn primary small" data-tag-connect="${d.address}" data-tag-name="${escapeHtml(d.name)}" ${bleConnecting ? 'disabled' : ''}>Connetti</button>
             </div>
-          `).join('') || (bleScanning || settings.bleTags.length ? '' : '<p class="small">Nessun dispositivo ancora cercato.</p>')}
+          `).join('') || (bleScanning || settings.bleTags.length ? '' : '<p class="small mb0">Nessun tag ancora cercato.</p>')}
         </div>
-      ` : '<p class="small">Richiede l\'app installata come APK Android.</p>'}
+      ` : ''}
+
+      ${remoteSupported() ? `
+        <button class="btn secondary block mt" id="open-android-bt">📱 Ho un telecomando o una tastiera → Apri Impostazioni Android</button>
+        ${LITE_MODE ? '' : '<p class="small mt mb0">Accoppialo lì come faresti con una cuffia, poi torna qui e vai al Passo 2.</p>'}
+      ` : ''}
+
+      ${!bleTagSupported() && !remoteSupported() ? '<p class="small">Richiede l\'app installata come APK Android (non funziona nell\'anteprima da browser).</p>' : ''}
     </div>
+
+    ${remoteSupported() ? `
+    <div class="card">
+      <h2>🎮 Passo 2 · Cosa deve fare ogni pulsante</h2>
+      <div class="card" style="background:var(--surface-2);margin-top:10px;">
+        <label>Configurazione rapida</label>
+        <div class="segmented">
+          <button data-quick-mode="two" class="${quickSetupMode === 'two' ? 'active' : ''}">🔀 Due dispositivi</button>
+          <button data-quick-mode="one" class="${quickSetupMode === 'one' ? 'active' : ''}">🎯 Uno solo</button>
+        </div>
+        ${quickSetupMode === 'two' ? `
+        ${LITE_MODE ? '' : '<p class="small mt">Un dispositivo diverso per ogni squadra. Su ciascuno: click singolo = punto, doppio click = annulla ultimo punto.</p>'}
+        ${quickCapturing === 'A' ? '<p class="mb0">📡 Premi un tasto sul dispositivo Slot 1 (Noi)…</p>' : `<button class="btn secondary block mt" id="quick-pair-a">🔵 Associa Slot 1 (Noi)</button>`}
+        ${quickCapturing === 'B' ? '<p class="mb0 mt">📡 Premi un tasto sul dispositivo Slot 2 (Avversari)…</p>' : `<button class="btn secondary block mt" id="quick-pair-b">🔵 Associa Slot 2 (Avversari)</button>`}
+        ` : `
+        ${LITE_MODE ? '' : '<p class="small mt">Un solo dispositivo per entrambe le squadre: click singolo = punto Noi, doppio click = punto Avversari, doppio click lento = annulla.</p>'}
+        ${quickCapturing === 'single' ? '<p class="mb0">📡 Premi un tasto sul dispositivo…</p>' : `<button class="btn secondary block mt" id="quick-pair-single">🔵 Associa dispositivo unico</button>`}
+        `}
+      </div>
+
+      <label class="mt" style="display:block;">Tutte le associazioni</label>
+      ${renderBindingsUI(settings.remoteBindings)}
+    </div>
+    ` : ''}
 
     ${LITE_MODE ? '' : `
     <div class="card">
@@ -142,6 +144,18 @@ function paint(el) {
       <p class="small">L'annuncio vocale segue automaticamente l'uscita audio attiva del telefono: se una cassa o cuffia Bluetooth è già collegata (dalle Impostazioni Bluetooth di Android), l'audio esce da lì senza bisogno di scegliere nulla qui.</p>
     </div>
     `}
+
+    <div class="modal-backdrop hidden" id="bt-help-modal">
+      <div class="modal-card">
+        <h2><span>❓ Come funziona il Bluetooth</span><button class="icon-btn" id="bt-help-close" aria-label="Chiudi">✕</button></h2>
+        <p><strong>Ci sono due tipi di dispositivo</strong>, e per questo trovi due pulsanti al Passo 1:</p>
+        <p><strong>🎮 Telecomandi e tastiere</strong> (es. "selfie remote", scatto foto da smartwatch) si comportano come una tastiera Bluetooth. Per motivi di sicurezza, <strong>nessuna app può accoppiarli da sola</strong>: vanno accoppiati prima dalle Impostazioni Bluetooth di Android (il pulsante "Apri Impostazioni Android" ti ci porta direttamente), poi torni qui.</p>
+        <p><strong>🔑 Tag/portachiavi "trova oggetto"</strong> (es. iTag) invece l'app li trova e collega da sola: basta premere "Cerca tag Bluetooth" qui sopra, senza toccare le Impostazioni di Android.</p>
+        <p><strong>Passo 2</strong> è uguale per entrambi: scegli cosa deve fare ogni pulsante (segnare un punto, annullare, ecc), premendolo quando l'app te lo chiede.</p>
+        <p><strong>📡 Test dal vivo</strong>, in alto, ti mostra subito ogni pressione che arriva al telefono - usalo per capire se il problema è nell'accoppiamento (non arriva nulla) o nell'associazione (arriva ma non fa quello che vuoi).</p>
+        <button class="btn primary block mt" id="bt-help-done">Ho capito</button>
+      </div>
+    </div>
   `;
 
   renderLiveLog(el);
@@ -158,6 +172,17 @@ function renderLiveLog(el) {
 
 function wireEvents(el) {
   el.querySelector('#bt-back').addEventListener('click', () => navigate('settings'));
+
+  const helpModal = el.querySelector('#bt-help-modal');
+  el.querySelector('#bt-help').addEventListener('click', () => helpModal.classList.remove('hidden'));
+  el.querySelector('#bt-help-close').addEventListener('click', () => helpModal.classList.add('hidden'));
+  el.querySelector('#bt-help-done').addEventListener('click', () => helpModal.classList.add('hidden'));
+  helpModal.addEventListener('click', (e) => { if (e.target === helpModal) helpModal.classList.add('hidden'); });
+
+  el.querySelector('#open-android-bt')?.addEventListener('click', async () => {
+    const opened = await openBluetoothSettings();
+    if (!opened) toast('Apri manualmente Impostazioni → Bluetooth sul telefono');
+  });
 
   el.querySelector('#ble-enabled')?.addEventListener('change', (e) => {
     updateSettings({ bleRemoteEnabled: e.target.checked });

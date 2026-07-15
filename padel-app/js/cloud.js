@@ -247,12 +247,21 @@ export function listenMyMatches(cb) {
 }
 
 // ---- Admin catalog (custom avatars/frames, see js/admin.js) ----
-export async function uploadCustomCatalogItem(kind, label, blob) {
+// order controls where the item lands in the shared picker grid relative to
+// the built-in avatars/frames (which use multiples of 10, see js/avatars.js
+// and js/frames.js) - defaults to the end of the list when not specified.
+export async function uploadCustomCatalogItem(kind, label, blob, order = 9999) {
   if (!isCloudReady()) return;
   const itemId = genId();
   const collection = kind === 'avatar' ? 'customAvatars' : 'customFrames';
   const imageUrl = await uploadCatalogImage(`admin-${collection}/${itemId}`, blob);
-  await fsSet(`${collection}/${itemId}`, { label, imageUrl, createdAt: Date.now() });
+  await fsSet(`${collection}/${itemId}`, { label, imageUrl, order, createdAt: Date.now() });
+}
+
+export async function updateCustomCatalogItemOrder(kind, itemId, order) {
+  if (!isCloudReady()) return;
+  const collection = kind === 'avatar' ? 'customAvatars' : 'customFrames';
+  await fsSet(`${collection}/${itemId}`, { order });
 }
 
 export function listenCustomAvatars(cb) {

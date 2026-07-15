@@ -3,7 +3,7 @@ import { getState } from './store.js';
 // Profile avatar frames, unlocked by leveling up (see gamification.js). Each
 // one pairs a border color/glow with a small corner badge so equipping one
 // actually reads as "themed decoration" rather than just a plain colored ring.
-export const FRAMES = [
+const FRAMES_RAW = [
   { id: 'none', label: 'Nessuna', level: 1, color: 'var(--accent)', glow: 'transparent', badge: '' },
   // Sbloccate fin da subito (livello 1) - semplici di proposito, per dare
   // già una scelta a chi è appena partito; le più elaborate restano un
@@ -15,6 +15,11 @@ export const FRAMES = [
   { id: 'ice', label: 'Ghiaccio', level: 12, color: '#69D6FF', glow: 'rgba(105,214,255,0.65)', badge: '❄️' },
   { id: 'neon', label: 'Neon', level: 16, color: '#B388FF', glow: 'rgba(179,136,255,0.7)', badge: '⚡' },
 ];
+
+// order gives every built-in frame a stable position in the shared picker
+// grid, spaced by 10 so custom frames uploaded from the admin panel can be
+// slotted in between any two of them (see js/admin.js).
+export const FRAMES = FRAMES_RAW.map((f, i) => ({ ...f, order: (i + 1) * 10 }));
 
 // Custom frames caricate dall'admin (vedi js/admin.js) sono immagini intere
 // sovrapposte all'avatar, non un colore di bordo - identificate da un id

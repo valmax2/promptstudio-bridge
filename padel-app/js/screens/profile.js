@@ -4,7 +4,7 @@ import { firebaseAvailable, signOutUser, currentUser } from '../firebase.js';
 import { navigate } from '../router.js';
 import { escapeHtml } from '../utils.js';
 import { toast } from '../app.js';
-import { avatarSvg } from '../avatars.js';
+import { avatarSvg, avatarById } from '../avatars.js';
 import { FRAMES, frameStyle, frameBadgeHtml, frameOverlayHtml } from '../frames.js';
 import { isAdmin } from '../admin.js';
 
@@ -18,6 +18,20 @@ export async function renderProfile(el) {
     const { profile, customAvatars, customFrames } = getState();
     const authed = !!profile.uid;
 
+    // Avatar/cornici predefiniti e caricati dall'admin condividono la stessa
+    // griglia, mescolati per "order" (vedi js/avatars.js, js/frames.js e
+    // js/admin.js) - non sono più due gruppi separati con i predefiniti
+    // sempre per primi.
+    const avatarItems = [
+      ...profile.unlockedAvatars.map((id) => ({ kind: 'builtin', id, order: avatarById(id).order })),
+      ...customAvatars.map((a) => ({ kind: 'custom', id: a.id, order: a.order ?? 9999, imageUrl: a.imageUrl, label: a.label })),
+    ].sort((a, b) => a.order - b.order);
+
+    const frameItems = [
+      ...FRAMES.filter((f) => profile.unlockedFrames.includes(f.id)).map((f) => ({ kind: 'builtin', ...f })),
+      ...customFrames.map((f) => ({ kind: 'custom', id: f.id, order: f.order ?? 9999, imageUrl: f.imageUrl, label: f.label })),
+    ].sort((a, b) => a.order - b.order);
+
     el.innerHTML = `
       <div class="topbar"><h1>Profilo</h1></div>
 
@@ -30,16 +44,18 @@ export async function renderProfile(el) {
         <input type="file" accept="image/*" id="avatar-file" class="hidden" style="display:none">
         <button class="btn secondary small" id="change-avatar">Cambia foto</button>
         <div class="row" style="justify-content:center;flex-wrap:wrap;gap:8px;margin-top:12px;">
-          ${profile.unlockedAvatars.map((id) => `<button class="avatar-pick ${id === profile.avatarEmoji && !profile.avatarUrl ? 'selected' : ''}" data-emoji="${id}">${avatarSvg(id)}</button>`).join('')}
-          ${customAvatars.map((a) => `<button class="avatar-pick" data-custom-avatar="${a.id}" title="${escapeHtml(a.label || '')}" style="${profile.avatarUrl === a.imageUrl ? 'border-color:var(--accent);' : ''}"><img src="${a.imageUrl}" alt="${escapeHtml(a.label || '')}" style="width:100%;height:100%;object-fit:cover;"></button>`).join('')}
+          ${avatarItems.map((it) => it.kind === 'builtin'
+            ? `<button class="avatar-pick ${it.id === profile.avatarEmoji && !profile.avatarUrl ? 'selected' : ''}" data-emoji="${it.id}">${avatarSvg(it.id)}</button>`
+            : `<button class="avatar-pick" data-custom-avatar="${it.id}" title="${escapeHtml(it.label || '')}" style="${profile.avatarUrl === it.imageUrl ? 'border-color:var(--accent);' : ''}"><img src="${it.imageUrl}" alt="${escapeHtml(it.label || '')}" style="width:100%;height:100%;object-fit:cover;"></button>`
+          ).join('')}
         </div>
 
         <label class="small mt" style="display:block;">Cornice</label>
         <div class="row" style="justify-content:center;flex-wrap:wrap;gap:8px;margin-top:6px;">
-          ${FRAMES.filter((f) => profile.unlockedFrames.includes(f.id)).map((f) => `
-            <button class="avatar-pick frame-pick ${f.id === profile.equippedFrame ? 'selected' : ''}" data-frame="${f.id}" style="${frameStyle(f.id)}" title="${f.label}">${f.badge || '⭕'}</button>
-          `).join('')}
-          ${customFrames.map((f) => `<button class="avatar-pick frame-pick ${profile.equippedFrame === `custom:${f.id}` ? 'selected' : ''}" data-custom-frame="${f.id}" title="${escapeHtml(f.label || '')}"><img src="${f.imageUrl}" alt="" style="width:100%;height:100%;object-fit:contain;"></button>`).join('')}
+          ${frameItems.map((it) => it.kind === 'builtin'
+            ? `<button class="avatar-pick frame-pick ${it.id === profile.equippedFrame ? 'selected' : ''}" data-frame="${it.id}" style="${frameStyle(it.id)}" title="${it.label}">${it.badge || '⭕'}</button>`
+            : `<button class="avatar-pick frame-pick ${profile.equippedFrame === `custom:${it.id}` ? 'selected' : ''}" data-custom-frame="${it.id}" title="${escapeHtml(it.label || '')}"><img src="${it.imageUrl}" alt="" style="width:100%;height:100%;object-fit:contain;"></button>`
+          ).join('')}
           <button class="btn ghost small" id="more-frames">🔒 Altre</button>
         </div>
       </div>

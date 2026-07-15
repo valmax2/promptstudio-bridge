@@ -1,6 +1,7 @@
 import { getState, setState } from '../store.js';
 import {
   listenCustomAvatars, listenCustomFrames, uploadCustomCatalogItem, deleteCustomCatalogItem,
+  updateCustomCatalogItemOrder,
 } from '../cloud.js';
 import { firebaseAvailable } from '../firebase.js';
 import { navigate } from '../router.js';
@@ -22,13 +23,14 @@ export async function renderAdmin(el) {
   paint();
 
   function paint() {
-    const { customAvatars, customFrames } = getState();
+    const customAvatars = [...getState().customAvatars].sort((a, b) => (a.order ?? 9999) - (b.order ?? 9999));
+    const customFrames = [...getState().customFrames].sort((a, b) => (a.order ?? 9999) - (b.order ?? 9999));
 
     el.innerHTML = `
       <div class="topbar"><h1>🛠️ Amministratore</h1></div>
 
       <div class="card">
-        <p class="small">Carica qui immagini che tutti i giocatori potranno scegliere come avatar o cornice, in "Premi" e nel Profilo.</p>
+        <p class="small">Carica qui immagini che tutti i giocatori potranno scegliere come avatar o cornice, in "Premi" e nel Profilo. Il campo "Posizione" decide dove appare nella lista: un numero più basso lo mette più in alto (i disegni originali usano 10, 20, 30... quindi ad es. 5 lo mette prima di tutti, 15 tra il primo e il secondo). Lascialo vuoto per metterlo in fondo, e puoi sempre cambiarlo dopo.</p>
       </div>
 
       <div class="card">
@@ -36,6 +38,10 @@ export async function renderAdmin(el) {
         <div class="field">
           <label>Nome</label>
           <input id="new-avatar-label" placeholder="es. Volpe dorata" maxlength="30">
+        </div>
+        <div class="field">
+          <label>Posizione (opzionale)</label>
+          <input id="new-avatar-order" type="number" placeholder="es. 5 per metterlo primo">
         </div>
         <input type="file" accept="image/*" id="new-avatar-file" class="hidden" style="display:none">
         <button class="btn secondary block" id="pick-avatar-file" ${uploading ? 'disabled' : ''}>${uploading ? 'Caricamento...' : '📷 Scegli immagine e carica'}</button>
@@ -48,6 +54,8 @@ export async function renderAdmin(el) {
             <div class="frame-pick-wrap">
               <div class="pick-item"><span class="pick-item-preview"><img src="${a.imageUrl}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"></span></div>
               <span class="pick-item-label">${escapeHtml(a.label || '')}</span>
+              <input type="number" class="small" data-order-avatar="${a.id}" value="${a.order ?? 9999}" style="width:64px;text-align:center;margin-top:4px;">
+              <button class="btn ghost small" data-save-order-avatar="${a.id}">✓</button>
               <button class="btn danger small" data-del-avatar="${a.id}">Elimina</button>
             </div>
           `).join('') || '<p class="small mb0">Nessuno.</p>'}
@@ -59,6 +67,10 @@ export async function renderAdmin(el) {
         <div class="field">
           <label>Nome</label>
           <input id="new-frame-label" placeholder="es. Fulmine oro" maxlength="30">
+        </div>
+        <div class="field">
+          <label>Posizione (opzionale)</label>
+          <input id="new-frame-order" type="number" placeholder="es. 5 per metterla prima">
         </div>
         <input type="file" accept="image/*" id="new-frame-file" class="hidden" style="display:none">
         <button class="btn secondary block" id="pick-frame-file" ${uploading ? 'disabled' : ''}>${uploading ? 'Caricamento...' : '🖼️ Scegli immagine e carica'}</button>
@@ -72,6 +84,8 @@ export async function renderAdmin(el) {
             <div class="frame-pick-wrap">
               <div class="pick-item"><span class="pick-item-preview"><img src="${f.imageUrl}" alt="" style="width:100%;height:100%;object-fit:contain;"></span></div>
               <span class="pick-item-label">${escapeHtml(f.label || '')}</span>
+              <input type="number" class="small" data-order-frame="${f.id}" value="${f.order ?? 9999}" style="width:64px;text-align:center;margin-top:4px;">
+              <button class="btn ghost small" data-save-order-frame="${f.id}">✓</button>
               <button class="btn danger small" data-del-frame="${f.id}">Elimina</button>
             </div>
           `).join('') || '<p class="small mb0">Nessuna.</p>'}
@@ -93,6 +107,21 @@ export async function renderAdmin(el) {
       await deleteCustomCatalogItem('frame', btn.dataset.delFrame);
       toast('Cornice eliminata');
     }));
+
+    el.querySelectorAll('[data-save-order-avatar]').forEach((btn) => btn.addEventListener('click', async () => {
+      const id = btn.dataset.saveOrderAvatar;
+      const input = el.querySelector(`[data-order-avatar="${id}"]`);
+      const order = parseInt(input.value, 10);
+      await updateCustomCatalogItemOrder('avatar', id, isNaN(order) ? 9999 : order);
+      toast('Posizione aggiornata');
+    }));
+    el.querySelectorAll('[data-save-order-frame]').forEach((btn) => btn.addEventListener('click', async () => {
+      const id = btn.dataset.saveOrderFrame;
+      const input = el.querySelector(`[data-order-frame="${id}"]`);
+      const order = parseInt(input.value, 10);
+      await updateCustomCatalogItemOrder('frame', id, isNaN(order) ? 9999 : order);
+      toast('Posizione aggiornata');
+    }));
   }
 
   async function handleUpload(kind, e) {
@@ -100,7 +129,10 @@ export async function renderAdmin(el) {
     e.target.value = '';
     if (!file) return;
     const labelInput = el.querySelector(kind === 'avatar' ? '#new-avatar-label' : '#new-frame-label');
+    const orderInput = el.querySelector(kind === 'avatar' ? '#new-avatar-order' : '#new-frame-order');
     const label = labelInput.value.trim().slice(0, 30) || (kind === 'avatar' ? 'Avatar' : 'Cornice');
+    const orderVal = parseInt(orderInput.value, 10);
+    const order = isNaN(orderVal) ? 9999 : orderVal;
 
     const blob = await openImageCropper(file, { shape: kind === 'avatar' ? 'circle' : 'square' });
     if (!blob) return;
@@ -108,7 +140,7 @@ export async function renderAdmin(el) {
     uploading = true;
     paint();
     try {
-      await uploadCustomCatalogItem(kind, label, blob);
+      await uploadCustomCatalogItem(kind, label, blob, order);
       toast(kind === 'avatar' ? 'Avatar caricato!' : 'Cornice caricata!');
     } catch (err) {
       toast('Errore: ' + err.message);

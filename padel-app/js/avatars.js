@@ -36,51 +36,13 @@ function face(skin, mouth = SMILE) {
   `;
 }
 
-export const AVATARS = [
+// I primi 5 avatar disegnati qui in origine (f-ponytail, m-shortbrown,
+// f-curly, m-afro, f-bob-headband) sono stati rimossi su richiesta - quelli
+// personalizzati caricati dal pannello amministratore (vedi js/admin.js)
+// prendono il loro posto nelle prime posizioni della griglia.
+const AVATARS_RAW = [
   {
-    id: 'f-ponytail', gender: 'f', level: 1,
-    svg: svg('#FF6B9D', `
-      <ellipse cx="32" cy="25" rx="16" ry="14" fill="#4A2C2A"/>
-      <ellipse cx="49" cy="32" rx="5" ry="11" fill="#4A2C2A" transform="rotate(24 49 32)"/>
-      ${face(SKIN[0])}
-    `),
-  },
-  {
-    id: 'm-shortbrown', gender: 'm', level: 1,
-    svg: svg('#4FC3F7', `
-      <ellipse cx="32" cy="23" rx="15" ry="11" fill="#5D4037"/>
-      ${face(SKIN[1])}
-    `),
-  },
-  {
-    id: 'f-curly', gender: 'f', level: 2,
-    svg: svg('#FFB74D', `
-      <g fill="#B33F1E">
-        <circle cx="18" cy="23" r="6.5"/><circle cx="24" cy="15" r="6.5"/><circle cx="32" cy="12" r="6.5"/>
-        <circle cx="40" cy="15" r="6.5"/><circle cx="46" cy="23" r="6.5"/><circle cx="13" cy="31" r="5.5"/><circle cx="51" cy="31" r="5.5"/>
-      </g>
-      ${face(SKIN[2])}
-    `),
-  },
-  {
-    id: 'm-afro', gender: 'm', level: 3,
-    svg: svg('#66BB6A', `
-      <circle cx="32" cy="24" r="19" fill="#222"/>
-      ${face(SKIN[3])}
-    `),
-  },
-  {
-    id: 'f-bob-headband', gender: 'f', level: 5,
-    svg: svg('#BA68C8', `
-      <ellipse cx="32" cy="24" rx="17" ry="15" fill="#F4D03F"/>
-      <rect x="16" y="26" width="8" height="20" rx="4" fill="#F4D03F"/>
-      <rect x="40" y="26" width="8" height="20" rx="4" fill="#F4D03F"/>
-      ${face(SKIN[0])}
-      <rect x="17" y="21" width="30" height="4.5" rx="2.25" fill="#FF4D8D"/>
-    `),
-  },
-  {
-    id: 'm-cap', gender: 'm', level: 7,
+    id: 'm-cap', gender: 'm', level: 1,
     svg: svg('#FF7043', `
       <ellipse cx="32" cy="25" rx="15" ry="10" fill="#3E3E3E"/>
       ${face(SKIN[1])}
@@ -89,7 +51,7 @@ export const AVATARS = [
     `),
   },
   {
-    id: 'f-longhair', gender: 'f', level: 9,
+    id: 'f-longhair', gender: 'f', level: 3,
     svg: svg('#26C6DA', `
       <path d="M16,24 Q16,10 32,10 Q48,10 48,24 L50,52 Q47,57 43,52 L43,30 Q32,24 21,30 L21,52 Q17,57 14,52 Z" fill="#2B2B2B"/>
       ${face(SKIN[2])}
@@ -97,14 +59,14 @@ export const AVATARS = [
     `),
   },
   {
-    id: 'm-beard', gender: 'm', level: 12,
+    id: 'm-beard', gender: 'm', level: 6,
     svg: svg('#90A4AE', `
       ${face(SKIN[3], 'M27,42 Q32,44 37,42')}
       <path d="M19,40 Q32,56 45,40 L45,47 Q32,60 19,47 Z" fill="#3E2723"/>
     `),
   },
   {
-    id: 'f-buns-visor', gender: 'f', level: 15,
+    id: 'f-buns-visor', gender: 'f', level: 9,
     svg: svg('#FFD54F', `
       <ellipse cx="32" cy="25" rx="15" ry="10" fill="#6D4C41"/>
       <circle cx="19" cy="15" r="6.5" fill="#6D4C41"/>
@@ -114,7 +76,7 @@ export const AVATARS = [
     `),
   },
   {
-    id: 'm-glasses', gender: 'm', level: 18,
+    id: 'm-glasses', gender: 'm', level: 12,
     svg: svg('#7E57C2', `
       <path d="M16,25 Q19,10 33,11 Q48,12 47,26 Q40,15 30,15 Q19,15 16,25 Z" fill="#212121"/>
       ${face(SKIN[1])}
@@ -124,7 +86,7 @@ export const AVATARS = [
     `),
   },
   {
-    id: 'f-side-braid', gender: 'f', level: 20,
+    id: 'f-side-braid', gender: 'f', level: 15,
     svg: svg('#9575CD', `
       <ellipse cx="32" cy="24" rx="15" ry="12" fill="#D4A24C"/>
       <g fill="#D4A24C"><ellipse cx="44" cy="34" rx="4" ry="5"/><ellipse cx="45" cy="42" rx="3.6" ry="5"/><ellipse cx="45" cy="50" rx="3.2" ry="5"/></g>
@@ -132,14 +94,14 @@ export const AVATARS = [
     `),
   },
   {
-    id: 'm-buzzcut', gender: 'm', level: 22,
+    id: 'm-buzzcut', gender: 'm', level: 18,
     svg: svg('#FF8A65', `
       <ellipse cx="32" cy="24" rx="14.5" ry="8" fill="#3E2723"/>
       ${face(SKIN[2])}
     `),
   },
   {
-    id: 'f-punk-buns', gender: 'f', level: 24,
+    id: 'f-punk-buns', gender: 'f', level: 21,
     svg: svg('#EC407A', `
       <ellipse cx="32" cy="24" rx="14" ry="9" fill="#AB47BC"/>
       <circle cx="19" cy="14" r="6" fill="#AB47BC"/><circle cx="45" cy="14" r="6" fill="#AB47BC"/>
@@ -147,14 +109,14 @@ export const AVATARS = [
     `),
   },
   {
-    id: 'm-mohawk', gender: 'm', level: 26,
+    id: 'm-mohawk', gender: 'm', level: 24,
     svg: svg('#00897B', `
       <path d="M29,5 L35,5 L34,27 Q32,25 30,27 Z" fill="#212121"/>
       ${face(SKIN[3])}
     `),
   },
   {
-    id: 'f-racket-bow', gender: 'f', level: 28,
+    id: 'f-racket-bow', gender: 'f', level: 27,
     svg: svg('#F8BBD0', `
       <circle cx="32" cy="22" r="13" fill="none" stroke="#fff" stroke-width="3"/>
       <rect x="29" y="33" width="6" height="18" rx="3" fill="#fff"/>
@@ -196,6 +158,11 @@ export const AVATARS = [
     `),
   },
 ];
+
+// order gives every built-in avatar a stable position in the shared picker
+// grid (see profile.js/gamification.js), spaced by 10 so custom avatars
+// uploaded from the admin panel can be slotted in between any two of them.
+export const AVATARS = AVATARS_RAW.map((a, i) => ({ ...a, order: (i + 1) * 10 }));
 
 export function avatarById(id) {
   return AVATARS.find((a) => a.id === id) || AVATARS[0];

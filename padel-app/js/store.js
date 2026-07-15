@@ -50,12 +50,12 @@ const DEFAULT_STATE = {
     // Despite the name (kept for compatibility with existing synced
     // profiles), this holds an illustrated-avatar id, not an emoji - see
     // js/avatars.js.
-    avatarEmoji: 'f-ponytail',
+    avatarEmoji: 'm-cap',
     avatarUrl: null,
     equippedFrame: 'none',
     xp: 0,
     level: 1,
-    unlockedAvatars: ['f-ponytail', 'm-shortbrown', 'f-curly', 'm-afro'],
+    unlockedAvatars: ['m-cap'],
     unlockedFrames: ['none', 'bronze', 'silver'],
   },
   // ids of friends/events already surfaced as a notification, so the same

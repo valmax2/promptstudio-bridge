@@ -18,6 +18,19 @@ export async function renderGamification(el) {
     const xpIntoLevel = profile.xp % 500;
     const pct = Math.round((xpIntoLevel / 500) * 100);
 
+    // Predefiniti e caricati dall'admin condividono la stessa griglia,
+    // mescolati per "order" (vedi js/avatars.js, js/frames.js e
+    // js/admin.js) invece di stare sempre in due sezioni separate.
+    const avatarItems = [
+      ...AVATARS.map((a) => ({ kind: 'builtin', ...a })),
+      ...customAvatars.map((a) => ({ kind: 'custom', id: a.id, order: a.order ?? 9999, imageUrl: a.imageUrl, label: a.label })),
+    ].sort((a, b) => a.order - b.order);
+
+    const frameItems = [
+      ...FRAMES.map((f) => ({ kind: 'builtin', ...f })),
+      ...customFrames.map((f) => ({ kind: 'custom', id: f.id, order: f.order ?? 9999, imageUrl: f.imageUrl, label: f.label })),
+    ].sort((a, b) => a.order - b.order);
+
     el.innerHTML = `
       <div class="topbar"><h1>Premi</h1></div>
 
@@ -30,32 +43,16 @@ export async function renderGamification(el) {
       <div class="card">
         <h2>Avatar</h2>
         <div class="picker-grid">
-          ${AVATARS.map((a) => avatarTile(a, profile)).join('')}
+          ${avatarItems.map((it) => it.kind === 'builtin' ? avatarTile(it, profile) : customAvatarTile(it, profile)).join('')}
         </div>
       </div>
 
       <div class="card">
         <h2>Cornici profilo</h2>
         <div class="picker-grid">
-          ${FRAMES.map((f) => frameTile(f, profile)).join('')}
+          ${frameItems.map((it) => it.kind === 'builtin' ? frameTile(it, profile) : customFrameTile(it, profile)).join('')}
         </div>
       </div>
-
-      ${customAvatars.length ? `
-      <div class="card">
-        <h2>Avatar speciali</h2>
-        <div class="picker-grid">
-          ${customAvatars.map((a) => customAvatarTile(a, profile)).join('')}
-        </div>
-      </div>` : ''}
-
-      ${customFrames.length ? `
-      <div class="card">
-        <h2>Cornici speciali</h2>
-        <div class="picker-grid">
-          ${customFrames.map((f) => customFrameTile(f, profile)).join('')}
-        </div>
-      </div>` : ''}
     `;
 
     el.querySelectorAll('[data-avatar]').forEach((btn) => btn.addEventListener('click', async () => {

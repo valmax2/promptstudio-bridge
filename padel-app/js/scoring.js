@@ -1,8 +1,14 @@
 // Padel scoring engine: games (0/15/30/40 + deuce/advantage or golden point),
 // sets to 6 (tiebreak at 6-6), best of 3 sets, with an optional match
 // tiebreak (super tiebreak to 10) as the decider instead of a full 3rd set.
+import { LITE_MODE } from './lite-mode.js';
+
 const LABELS = ['0', '15', '30', '40'];
-export const pointLabel = (n) => LABELS[n] ?? String(n);
+// La build beta serve solo a testare l'accoppiamento di telecomandi/tag: un
+// conteggio semplice (0,1,2,3...) rende immediato verificare che ogni
+// pressione corrisponda a un punto, senza dover tradurre "trenta" in "due
+// pressioni" - niente terminologia da padel vero.
+export const pointLabel = (n) => (LITE_MODE ? String(n) : (LABELS[n] ?? String(n)));
 
 const other = (t) => (t === 'A' ? 'B' : 'A');
 
@@ -231,7 +237,7 @@ export function matchPointDisplay(match) {
     return { a: String(match.currentGame.a), b: String(match.currentGame.b) };
   }
   const g = match.currentGame;
-  if (g.advantage) {
+  if (g.advantage && !LITE_MODE) {
     return {
       a: g.advantage === 'A' ? 'AD' : '40',
       b: g.advantage === 'B' ? 'AD' : '40',

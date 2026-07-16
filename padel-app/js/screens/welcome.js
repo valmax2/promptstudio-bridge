@@ -27,9 +27,9 @@ export async function renderWelcome(el) {
     <div class="modal-backdrop hidden" id="tutorial-modal">
       <div class="modal-card">
         <h2><span>📖 Come funziona</span><button class="icon-btn" id="tutorial-close" aria-label="Chiudi">✕</button></h2>
-        <p><strong>1. Nuova partita</strong> — dalla Home scegli Doppio/Singolo, Americano o Killer, imposta chi serve e il formato, poi gioca toccando il lato di chi fa punto.</p>
+        <p><strong>1. Nuova partita</strong> — dalla Home scegli Doppio/Singolo, Americano o Killer, imposta chi serve e il formato, poi gioca toccando il lato di chi fa punto. A fine partita viene salvata automaticamente nelle Statistiche (modificabile o eliminabile da lì).</p>
         <p><strong>2. Telecomando Bluetooth</strong> — in Impostazioni → Bluetooth puoi associare telecomandi o tag per segnare i punti senza toccare lo schermo.</p>
-        <p><strong>3. Community</strong> — aggiungi amici con un codice, crea gruppi con chat condivisa, e organizza eventi.</p>
+        <p><strong>3. Community</strong> — aggiungi amici con un codice (puoi anche condividerlo su WhatsApp), crea gruppi con chat condivisa, e organizza eventi.</p>
         <p><strong>4. Premi</strong> — una vetrina di novità scelta di volta in volta, sempre visibile dal Profilo.</p>
         <button class="btn primary block mt" id="tutorial-done">Ho capito</button>
       </div>

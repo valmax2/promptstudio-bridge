@@ -1,7 +1,12 @@
-import { getState } from '../store.js';
+import { getState, replaceCollection } from '../store.js';
 import { escapeHtml } from '../utils.js';
+import { toast } from '../app.js';
 
 export async function renderStats(el) {
+  await paint(el);
+}
+
+async function paint(el) {
   const { matches } = getState();
 
   const total = matches.length;
@@ -33,6 +38,13 @@ export async function renderStats(el) {
       ${matches.length ? matches.map(matchRow).join('') : `<div class="empty-state"><span class="icon">📊</span>Gioca la tua prima partita dal segnapunti!</div>`}
     </div>
   `;
+
+  el.querySelectorAll('[data-edit-match]').forEach((btn) => {
+    btn.addEventListener('click', () => onEditMatch(btn.dataset.editMatch, el));
+  });
+  el.querySelectorAll('[data-delete-match]').forEach((btn) => {
+    btn.addEventListener('click', () => onDeleteMatch(btn.dataset.deleteMatch, el));
+  });
 }
 
 function matchRow(m) {
@@ -44,7 +56,39 @@ function matchRow(m) {
       <span>${m.mode === 'singles' ? 'Singolo' : 'Doppio'} · ${(m.sets || []).map((s) => `${s.a}-${s.b}`).join(', ')} · ${new Date(m.date).toLocaleDateString('it-IT')}</span>
     </div>
     <span class="badge ${won ? 'accent' : ''}">${won ? 'Vinta' : 'Persa'}</span>
+    <button class="icon-btn" data-edit-match="${m.id}" aria-label="Modifica partita">✏️</button>
+    <button class="icon-btn" data-delete-match="${m.id}" aria-label="Elimina partita">🗑️</button>
   </div>`;
+}
+
+async function onEditMatch(id, el) {
+  const { matches } = getState();
+  const m = matches.find((x) => x.id === id);
+  if (!m) return;
+  const nameA = prompt('Nome squadra/giocatore 1', m.teamAName);
+  if (nameA === null) return;
+  const nameB = prompt('Nome squadra/giocatore 2', m.teamBName);
+  if (nameB === null) return;
+  const winner = prompt('Chi ha vinto? Scrivi "1" o "2" (vuoto = pareggio)', m.winner === 'A' ? '1' : m.winner === 'B' ? '2' : '');
+  if (winner === null) return;
+  const updated = {
+    ...m,
+    teamAName: nameA.trim().slice(0, 24) || m.teamAName,
+    teamBName: nameB.trim().slice(0, 24) || m.teamBName,
+    winner: winner.trim() === '1' ? 'A' : winner.trim() === '2' ? 'B' : null,
+  };
+  const next = matches.map((x) => (x.id === id ? updated : x));
+  replaceCollection('matches', next);
+  toast('Partita aggiornata');
+  await paint(el);
+}
+
+async function onDeleteMatch(id, el) {
+  if (!confirm('Eliminare questa partita dallo storico?')) return;
+  const { matches } = getState();
+  replaceCollection('matches', matches.filter((x) => x.id !== id));
+  toast('Partita eliminata');
+  await paint(el);
 }
 
 function computeStreak(matches) {

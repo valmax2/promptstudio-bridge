@@ -52,7 +52,10 @@ export async function renderCommunity(el) {
 
       ${cloud && myCode ? `<div class="card row between">
         <div><strong>Il tuo codice amico</strong><p class="mb0 small">Condividilo per farti aggiungere</p></div>
-        <button class="btn secondary" id="copy-code">${escapeHtml(myCode)} 📋</button>
+        <div class="row" style="gap:8px;">
+          <button class="btn secondary" id="copy-code">${escapeHtml(myCode)} 📋</button>
+          <button class="btn secondary" id="whatsapp-code" aria-label="Condividi su WhatsApp">🟢</button>
+        </div>
       </div>` : ''}
 
       <div class="card">
@@ -91,6 +94,11 @@ export async function renderCommunity(el) {
 
     el.querySelector('#copy-code')?.addEventListener('click', async () => {
       try { await navigator.clipboard.writeText(myCode); toast('Codice copiato!'); } catch { toast(`Il tuo codice: ${myCode}`); }
+    });
+
+    el.querySelector('#whatsapp-code')?.addEventListener('click', () => {
+      const text = `Aggiungimi su Padel App! Il mio codice amico è ${myCode}. Scarica l'app qui: (link in arrivo)`;
+      window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
     });
 
     el.querySelectorAll('[data-copy-circle-code]').forEach((btn) => btn.addEventListener('click', async () => {

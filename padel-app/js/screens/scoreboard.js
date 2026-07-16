@@ -16,6 +16,7 @@ import {
 
 let match = null;
 let history = [];
+let matchAutoSaved = false;
 let ttsEnabled = true;
 // Visual-only: hides the smaller game/set rows so just the point shows big
 // and full-screen - game/set are still spoken aloud via TTS regardless.
@@ -108,6 +109,10 @@ function startLive(el) {
         const winner = match.matchWinner ? `Vince ${teamName(match, match.matchWinner)}!` : 'Pareggio!';
         if (ttsEnabled) say(`Tempo scaduto! ${winner}`);
         toast(winner);
+        if (match.matchOver && !matchAutoSaved) {
+          matchAutoSaved = true;
+          saveMatchRecord(match);
+        }
       }
       paint(document.querySelector('.screen'));
     }, 1000);
@@ -278,6 +283,7 @@ function paintSetup(el) {
       timeLimitMinutes: setupTimeMinutes,
     });
     history = [];
+    matchAutoSaved = false;
     startLive(el);
     if (settings.ttsEnabled) {
       const servingPlayers = setupServer === 'A' ? match.teamAPlayers : match.teamBPlayers;
@@ -308,6 +314,7 @@ function paint(el) {
         <div class="sb-mode">${modeLabel} · ${modeBadge}</div>
         <div class="row" style="gap:2px;">
           <button id="sb-display-mode" aria-label="Modalità visualizzazione" title="Solo punteggio">${pointsOnlyMode ? '🔢' : '📋'}</button>
+          <button id="sb-number-size" aria-label="Ingrandisci numero punteggio" title="Ingrandisci numero">➕</button>
           <button id="sb-mute">${ttsEnabled ? '🔊' : '🔇'}</button>
         </div>
       </div>
@@ -335,6 +342,10 @@ function paint(el) {
     pointsOnlyMode = !pointsOnlyMode;
     paint(el);
   });
+  el.querySelector('#sb-number-size').addEventListener('click', () => {
+    const current = getState().settings.numberSizeStep || 0;
+    updateSettings({ numberSizeStep: (current + 1) % 4 });
+  });
   el.querySelector('#sb-undo').addEventListener('click', onUndo);
   el.querySelector('#sb-newmatch').addEventListener('click', onReset);
 
@@ -347,10 +358,6 @@ function paint(el) {
       e.stopPropagation();
       onEditName(nameEl.dataset.editName, el);
     });
-  });
-  el.querySelector('#save-match')?.addEventListener('click', (e) => {
-    e.stopPropagation();
-    onSaveMatch(el);
   });
   el.querySelectorAll('[data-toggle-server]').forEach((btn) => {
     btn.addEventListener('click', (e) => {
@@ -427,7 +434,7 @@ function matchOverOverlay() {
     <div class="sb-overlay">
       <h2>${title}</h2>
       <p>${detail}</p>
-      <button class="btn primary" id="save-match">Salva partita nelle statistiche</button>
+      <p class="small">✅ Salvata automaticamente nelle statistiche</p>
     </div>
   `;
 }
@@ -439,24 +446,35 @@ function onPoint(team) {
   match = next;
   if (ttsEnabled) say(announcement);
   if (events.matchWon) toast(announcement);
+  if (match.matchOver && !matchAutoSaved) {
+    matchAutoSaved = true;
+    saveMatchRecord(match);
+  }
   paint(document.querySelector('.screen'));
 }
 
 function onUndo() {
   if (!match || !history.length) return;
+  if (match.matchOver) matchAutoSaved = false;
   match = history.pop();
   stopSpeech();
   paint(document.querySelector('.screen'));
 }
 
-function onReset() {
-  if (!confirm('Iniziare una nuova partita? Il punteggio attuale andrà perso se non salvato.')) return;
+async function onReset() {
+  const el = document.querySelector('.screen');
+  if (match && !match.matchOver) {
+    if (!confirm('Iniziare una nuova partita? Il punteggio attuale andrà perso.')) return;
+  } else if (match && match.matchOver) {
+    await maybeAnnounceTime(el);
+  }
   match = null;
   history = [];
+  matchAutoSaved = false;
   stopSpeech();
   stopHwKeys();
   disableRemote();
-  paintSetup(document.querySelector('.screen'));
+  paintSetup(el);
 }
 
 function onEditName(team, el) {
@@ -468,24 +486,19 @@ function onEditName(team, el) {
   paint(el);
 }
 
-async function onSaveMatch(el) {
+async function saveMatchRecord(m) {
   const record = {
     date: new Date().toISOString(),
-    teamAName: match.teamAName,
-    teamBName: match.teamBName,
-    mode: match.mode,
-    sets: match.sets,
-    winner: match.matchWinner,
-    golden: match.goldenPoint,
-    superTiebreak: match.superTiebreak3rdSet,
+    teamAName: m.teamAName,
+    teamBName: m.teamBName,
+    mode: m.mode,
+    sets: m.sets,
+    winner: m.matchWinner,
+    golden: m.goldenPoint,
+    superTiebreak: m.superTiebreak3rdSet,
   };
   addMatch(record);
   try { await pushMatch(record); } catch {}
-  toast('Partita salvata!');
-  await maybeAnnounceTime(el);
-  match = null;
-  history = [];
-  await renderScoreboard(el);
 }
 
 // "Ogni tot partite" (Impostazioni > Partita): reads the total match count

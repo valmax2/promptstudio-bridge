@@ -64,6 +64,12 @@ export function nearestColorName(hex) {
   return best;
 }
 
+// Multiplier applied to the score digit's base font-size per step (see
+// .sb-point in styles.css) - kept modest since the base size already nearly
+// fills the available space; mostly matters in "solo punteggio" mode and in
+// portrait, where there's extra room to grow into.
+const NUMBER_SIZE_SCALES = [1, 1.15, 1.3, 1.45];
+
 export function applyColorsToDom(settings) {
   const root = document.documentElement.style;
   root.setProperty('--team-a-color', settings.teamAColor);
@@ -71,4 +77,5 @@ export function applyColorsToDom(settings) {
   root.setProperty('--number-color', settings.numberColor);
   root.setProperty('--number-border-color', settings.numberBorderColor);
   root.setProperty('--number-border-width', `${settings.numberBorderWidth || 0}px`);
+  root.setProperty('--number-size-scale', NUMBER_SIZE_SCALES[settings.numberSizeStep || 0] ?? 1);
 }

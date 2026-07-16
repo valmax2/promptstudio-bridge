@@ -2,6 +2,7 @@ package com.padelapp.app;
 
 import android.content.Intent;
 import android.provider.Settings;
+import android.view.WindowManager;
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
@@ -45,6 +46,23 @@ public class RemoteControlPlugin extends Plugin {
         Intent intent = new Intent(Settings.ACTION_BLUETOOTH_SETTINGS);
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         getActivity().startActivity(intent);
+        call.resolve();
+    }
+
+    // Keeps the screen on (no dim, no auto-lock) while a match is being
+    // scored - a long match with the phone just sitting on a chair would
+    // otherwise dim/sleep mid-game. Toggled off again the moment the
+    // scoreboard screen is left, so it doesn't affect battery elsewhere.
+    @PluginMethod
+    public void setKeepScreenOn(PluginCall call) {
+        boolean enabled = call.getBoolean("enabled", false);
+        getActivity().runOnUiThread(() -> {
+            if (enabled) {
+                getActivity().getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+            } else {
+                getActivity().getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+            }
+        });
         call.resolve();
     }
 }

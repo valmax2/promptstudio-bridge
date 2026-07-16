@@ -15,21 +15,22 @@ let bleScanResults = [];
 let bleScanning = false;
 let bleConnecting = false;
 
-// "Add binding" wizard state: null -> 'waiting' (press a key) -> 'pattern'
-// (choose single/double/doubleSlow) -> 'action' (choose what it does) -> saved.
+// "Add binding" (advanced/manual) wizard state: null -> 'waiting' (press a
+// key) -> 'pattern' (choose single/double/doubleSlow) -> 'action' (choose
+// what it does) -> saved.
 let addBindingStep = null;
 let addBindingCapture = null;
 let addBindingPattern = null;
-// Optional label shown during the "waiting" step (e.g. a tag's name), so
-// pressing a specific device's button doesn't feel like a blind guess even
-// though the capture itself still accepts any device.
 let addBindingHint = null;
 
-// "Configurazione rapida": null | 'A' | 'B' | 'single' - which quick slot is
-// currently waiting for a key press.
-let quickCapturing = null;
-// 'two' = un telecomando per squadra, 'one' = un solo telecomando per entrambe.
-let quickSetupMode = 'two';
+// Guided step-by-step wizard for pairing one device at a time - the whole
+// point of task #67: someone with zero Bluetooth experience should never
+// have to guess what to do next. null = not in the wizard (showing the
+// overview instead). Steps: 'slot' -> 'type' -> 'pairRemote'/'pairTag' ->
+// 'capture' -> 'done'.
+let wizardStep = null;
+let wizardSlot = 'A';
+let wizardCapturing = false;
 
 // Rolling log of raw presses seen while this screen is open, newest first -
 // lets the user see with their own eyes whether a press is reaching the app
@@ -45,8 +46,13 @@ export async function renderBluetoothSetup(el) {
   addBindingCapture = null;
   addBindingPattern = null;
   addBindingHint = null;
-  quickCapturing = null;
   liveLog = [];
+
+  const { settings } = getState();
+  const nothingConfiguredYet = !settings.remoteBindings.length && !settings.bleTags.length;
+  wizardStep = nothingConfiguredYet ? 'slot' : null;
+  wizardSlot = 'A';
+  wizardCapturing = false;
 
   if (remoteSupported()) await enableRemote();
   stopLiveFeed = listenRawPresses(({ keyCode, deviceDescriptor, deviceName }) => {
@@ -76,7 +82,7 @@ function paint(el) {
 
     <div class="card" id="bt-live-card">
       <h2>📡 Test dal vivo</h2>
-      ${LITE_MODE ? '' : `<p class="small">Premi un pulsante sul dispositivo appena collegato: se il telefono lo riceve, lo vedrai comparire qui sotto <strong>subito</strong>. Se non compare nulla, non è ancora accoppiato/collegato correttamente - riprova dal passo 1 qui sotto.</p>`}
+      ${LITE_MODE ? '' : `<p class="small">Premi un pulsante sul dispositivo appena collegato: se il telefono lo riceve, lo vedrai comparire qui sotto <strong>subito</strong>.</p>`}
       <div id="bt-live-log"></div>
     </div>
 
@@ -88,55 +94,7 @@ function paint(el) {
       ${!settings.bleRemoteEnabled ? '<p class="small mb0" style="color:var(--danger,#e5484d);">⚠️ Spento: anche se colleghi tutto qui sotto, in partita i pulsanti non faranno nulla finché non lo riattivi.</p>' : ''}
     </div>
 
-    <div class="card">
-      <h2>🔍 Passo 1 · Trova il dispositivo</h2>
-      ${LITE_MODE ? '' : `<p class="small">Un unico punto di partenza per qualsiasi telecomando, tastiera o tag "trova oggetto". Se non sai qual è il tuo, tocca "❓ Come funziona" qui sopra.</p>`}
-
-      ${bleTagSupported() ? `
-        ${settings.bleTags.map((t) => tagRow(t, settings.remoteBindings)).join('')}
-        <button class="btn secondary block mt" id="bletag-scan" ${bleScanning ? 'disabled' : ''}>${bleScanning ? 'Ricerca in corso… (6s)' : (settings.bleTags.length ? '🔍 Cerca un altro tag Bluetooth' : '🔍 Cerca tag Bluetooth')}</button>
-        <div class="mt">
-          ${bleScanResults.filter((d) => !settings.bleTags.some((t) => t.address === d.address)).map((d) => `
-            <div class="list-item">
-              <div class="avatar">🔑</div>
-              <div class="meta"><strong>${escapeHtml(d.name)}</strong><span>${d.address}</span></div>
-              <button class="btn primary small" data-tag-connect="${d.address}" data-tag-name="${escapeHtml(d.name)}" ${bleConnecting ? 'disabled' : ''}>Connetti</button>
-            </div>
-          `).join('') || (bleScanning || settings.bleTags.length ? '' : '<p class="small mb0">Nessun tag ancora cercato.</p>')}
-        </div>
-      ` : ''}
-
-      ${remoteSupported() ? `
-        <button class="btn secondary block mt" id="open-android-bt">📱 Ho un telecomando o una tastiera → Apri Impostazioni Android</button>
-        ${LITE_MODE ? '' : '<p class="small mt mb0">Accoppialo lì come faresti con una cuffia, poi torna qui e vai al Passo 2.</p>'}
-      ` : ''}
-
-      ${!bleTagSupported() && !remoteSupported() ? '<p class="small">Richiede l\'app installata come APK Android (non funziona nell\'anteprima da browser).</p>' : ''}
-    </div>
-
-    ${remoteSupported() ? `
-    <div class="card">
-      <h2>🎮 Passo 2 · Cosa deve fare ogni pulsante</h2>
-      <div class="card" style="background:var(--surface-2);margin-top:10px;">
-        <label>Configurazione rapida</label>
-        <div class="segmented">
-          <button data-quick-mode="two" class="${quickSetupMode === 'two' ? 'active' : ''}">🔀 Due dispositivi</button>
-          <button data-quick-mode="one" class="${quickSetupMode === 'one' ? 'active' : ''}">🎯 Uno solo</button>
-        </div>
-        ${quickSetupMode === 'two' ? `
-        ${LITE_MODE ? '' : '<p class="small mt">Un dispositivo diverso per ogni squadra. Su ciascuno: click singolo = punto, doppio click = annulla ultimo punto.</p>'}
-        ${quickCapturing === 'A' ? '<p class="mb0">📡 Premi un tasto sul dispositivo Slot 1 (Noi)…</p>' : `<button class="btn secondary block mt" id="quick-pair-a">🔵 Associa Slot 1 (Noi)</button>`}
-        ${quickCapturing === 'B' ? '<p class="mb0 mt">📡 Premi un tasto sul dispositivo Slot 2 (Avversari)…</p>' : `<button class="btn secondary block mt" id="quick-pair-b">🔵 Associa Slot 2 (Avversari)</button>`}
-        ` : `
-        ${LITE_MODE ? '' : '<p class="small mt">Un solo dispositivo per entrambe le squadre: click singolo = punto Noi, doppio click = punto Avversari, doppio click lento = annulla.</p>'}
-        ${quickCapturing === 'single' ? '<p class="mb0">📡 Premi un tasto sul dispositivo…</p>' : `<button class="btn secondary block mt" id="quick-pair-single">🔵 Associa dispositivo unico</button>`}
-        `}
-      </div>
-
-      <label class="mt" style="display:block;">Tutte le associazioni</label>
-      ${renderBindingsUI(settings.remoteBindings)}
-    </div>
-    ` : ''}
+    ${wizardStep ? wizardCard() : overviewCard(settings)}
 
     ${LITE_MODE ? '' : `
     <div class="card">
@@ -148,11 +106,10 @@ function paint(el) {
     <div class="modal-backdrop hidden" id="bt-help-modal">
       <div class="modal-card">
         <h2><span>❓ Come funziona il Bluetooth</span><button class="icon-btn" id="bt-help-close" aria-label="Chiudi">✕</button></h2>
-        <p><strong>Ci sono due tipi di dispositivo</strong>, e per questo trovi due pulsanti al Passo 1:</p>
-        <p><strong>🎮 Telecomandi e tastiere</strong> (es. "selfie remote", scatto foto da smartwatch) si comportano come una tastiera Bluetooth. Per motivi di sicurezza, <strong>nessuna app può accoppiarli da sola</strong>: vanno accoppiati prima dalle Impostazioni Bluetooth di Android (il pulsante "Apri Impostazioni Android" ti ci porta direttamente), poi torni qui.</p>
-        <p><strong>🔑 Tag/portachiavi "trova oggetto"</strong> (es. iTag) invece l'app li trova e collega da sola: basta premere "Cerca tag Bluetooth" qui sopra, senza toccare le Impostazioni di Android.</p>
-        <p><strong>Passo 2</strong> è uguale per entrambi: scegli cosa deve fare ogni pulsante (segnare un punto, annullare, ecc), premendolo quando l'app te lo chiede.</p>
-        <p><strong>📡 Test dal vivo</strong>, in alto, ti mostra subito ogni pressione che arriva al telefono - usalo per capire se il problema è nell'accoppiamento (non arriva nulla) o nell'associazione (arriva ma non fa quello che vuoi).</p>
+        <p><strong>Ci sono due tipi di dispositivo</strong>, e la procedura guidata te lo chiede subito:</p>
+        <p><strong>🎮 Telecomandi e tastiere</strong> (es. "selfie remote", scatto foto da smartwatch) si comportano come una tastiera Bluetooth. Per motivi di sicurezza, <strong>nessuna app può accoppiarli da sola</strong>: vanno accoppiati prima dalle Impostazioni Bluetooth di Android, poi si torna qui.</p>
+        <p><strong>🔑 Tag/portachiavi "trova oggetto"</strong> (es. iTag) invece l'app li trova e collega da sola: basta premere "Cerca", senza toccare le Impostazioni di Android.</p>
+        <p><strong>📡 Test dal vivo</strong>, in alto, mostra subito ogni pressione che arriva al telefono - usalo per capire se il problema è nell'accoppiamento (non arriva nulla) o nell'associazione (arriva ma non fa quello che vuoi).</p>
         <button class="btn primary block mt" id="bt-help-done">Ho capito</button>
       </div>
     </div>
@@ -160,6 +117,100 @@ function paint(el) {
 
   renderLiveLog(el);
   wireEvents(el);
+}
+
+// ---- Guided wizard (one device at a time) ----
+function wizardCard() {
+  const slotLabel = wizardSlot === 'A' ? 'Squadra Noi' : 'Squadra Avversari';
+  const stepNumber = { slot: 1, type: 2, pairRemote: 3, pairTag: 3, capture: 4, done: 5 }[wizardStep];
+  return `
+    <div class="card">
+      <h2>Procedura guidata · Passo ${stepNumber} di 5</h2>
+
+      ${wizardStep === 'slot' ? `
+        <p class="small">Per quale squadra è questo dispositivo?</p>
+        <button class="btn secondary block mt" data-wizard-slot="A">🟦 Squadra Noi</button>
+        <button class="btn secondary block mt" data-wizard-slot="B">🟧 Squadra Avversari</button>
+      ` : ''}
+
+      ${wizardStep === 'type' ? `
+        <p class="small">Dispositivo per: <strong>${slotLabel}</strong>. Che dispositivo hai?</p>
+        ${remoteSupported() ? '<button class="btn secondary block mt" data-wizard-type="remote">🎮 Un telecomando o una tastiera</button>' : ''}
+        ${bleTagSupported() ? '<button class="btn secondary block mt" data-wizard-type="tag">🔑 Un tag/portachiavi "trova oggetto"</button>' : ''}
+        ${!remoteSupported() && !bleTagSupported() ? '<p class="small">Richiede l\'app installata come APK Android (non funziona nell\'anteprima da browser).</p>' : ''}
+        <button class="btn ghost small mt" id="wizard-back">← Indietro</button>
+      ` : ''}
+
+      ${wizardStep === 'pairRemote' ? `
+        <p class="small">Dispositivo per: <strong>${slotLabel}</strong>. Accoppialo prima dalle Impostazioni Bluetooth del telefono (come faresti con una cuffia).</p>
+        <button class="btn secondary block mt" id="open-android-bt">📱 Apri Impostazioni Bluetooth Android</button>
+        <button class="btn primary block mt" id="wizard-remote-done">✓ Fatto, l'ho accoppiato</button>
+        <button class="btn ghost small mt" id="wizard-back">← Indietro</button>
+      ` : ''}
+
+      ${wizardStep === 'pairTag' ? `
+        <p class="small">Dispositivo per: <strong>${slotLabel}</strong>. Cerca il tag qui sotto e collegalo.</p>
+        <button class="btn secondary block mt" id="bletag-scan" ${bleScanning ? 'disabled' : ''}>${bleScanning ? 'Ricerca in corso… (6s)' : '🔍 Cerca tag Bluetooth'}</button>
+        <div class="mt">
+          ${bleScanResults.map((d) => `
+            <div class="list-item">
+              <div class="avatar">🔑</div>
+              <div class="meta"><strong>${escapeHtml(d.name)}</strong><span>${d.address}</span></div>
+              <button class="btn primary small" data-tag-connect="${d.address}" data-tag-name="${escapeHtml(d.name)}" ${bleConnecting ? 'disabled' : ''}>Connetti</button>
+            </div>
+          `).join('') || (bleScanning ? '' : '<p class="small mb0">Nessun dispositivo ancora cercato.</p>')}
+        </div>
+        <button class="btn ghost small mt" id="wizard-back">← Indietro</button>
+      ` : ''}
+
+      ${wizardStep === 'capture' ? `
+        <p class="small">Dispositivo per: <strong>${slotLabel}</strong>. Ora premi il pulsante che userai per segnare il punto.</p>
+        ${wizardCapturing ? '<p class="mb0">📡 Premi un pulsante entro 8 secondi…</p>' : `<button class="btn primary block mt" id="wizard-capture">🔴 Premi qui e poi il pulsante sul dispositivo</button>`}
+      ` : ''}
+
+      ${wizardStep === 'done' ? `
+        <p>🎉 Fatto! ${slotLabel} può già segnare punti e annullare (doppio click).</p>
+        <p class="small">Prova a premere il pulsante: dovresti vederlo comparire qui sopra in "Test dal vivo".</p>
+        <button class="btn secondary block mt" id="wizard-add-another">➕ Aggiungi un altro dispositivo</button>
+        <button class="btn primary block mt" id="wizard-finish">✓ Fine, torna alle impostazioni</button>
+      ` : ''}
+    </div>
+  `;
+}
+
+// ---- Overview shown once at least one device is already configured ----
+function overviewCard(settings) {
+  return `
+    <div class="card">
+      <div class="row between"><h2>Dispositivi configurati</h2></div>
+      ${settings.bleTags.map((t) => tagRow(t, settings.remoteBindings)).join('')}
+      ${groupedRemoteRows(settings.remoteBindings)}
+      <button class="btn primary block mt" id="wizard-start">➕ Aggiungi un altro dispositivo (guidata)</button>
+    </div>
+
+    <div class="card">
+      <label style="display:block;">Gestione avanzata (associazioni singole)</label>
+      ${renderBindingsUI(settings.remoteBindings)}
+    </div>
+  `;
+}
+
+// Collapses the flat remoteBindings list into one row per physical device,
+// so the overview shows "un dispositivo" instead of two loose rows (single
+// click, double click) for the same remote.
+function groupedRemoteRows(bindings) {
+  const byDevice = new Map();
+  bindings.forEach((b) => {
+    if (!byDevice.has(b.deviceDescriptor)) byDevice.set(b.deviceDescriptor, { deviceName: b.deviceName, bindings: [] });
+    byDevice.get(b.deviceDescriptor).bindings.push(b);
+  });
+  return [...byDevice.values()].map((d) => `
+    <div class="card" style="background:var(--surface-2);margin-top:10px;">
+      <div class="toggle-row">
+        <div><strong>🎮 ${escapeHtml(d.deviceName)}</strong><p class="mb0 small">${d.bindings.length} associazion${d.bindings.length === 1 ? 'e' : 'i'}</p></div>
+      </div>
+    </div>
+  `).join('');
 }
 
 function renderLiveLog(el) {
@@ -190,24 +241,32 @@ function wireEvents(el) {
     syncSettings();
   });
 
-  el.querySelectorAll('[data-quick-mode]').forEach((btn) => btn.addEventListener('click', () => {
-    quickSetupMode = btn.dataset.quickMode;
+  // ---- Wizard navigation ----
+  el.querySelector('#wizard-start')?.addEventListener('click', () => { wizardStep = 'slot'; paint(el); });
+  el.querySelector('#wizard-back')?.addEventListener('click', () => {
+    wizardStep = wizardStep === 'type' ? 'slot' : 'type';
+    paint(el);
+  });
+  el.querySelectorAll('[data-wizard-slot]').forEach((btn) => btn.addEventListener('click', () => {
+    wizardSlot = btn.dataset.wizardSlot;
+    wizardStep = 'type';
     paint(el);
   }));
-  el.querySelector('#quick-pair-a')?.addEventListener('click', () => quickPair(el, 'A', [
-    { pattern: 'single', action: 'pointA' },
-    { pattern: 'double', action: 'undo' },
-  ]));
-  el.querySelector('#quick-pair-b')?.addEventListener('click', () => quickPair(el, 'B', [
-    { pattern: 'single', action: 'pointB' },
-    { pattern: 'double', action: 'undo' },
-  ]));
-  el.querySelector('#quick-pair-single')?.addEventListener('click', () => quickPair(el, 'single', [
-    { pattern: 'single', action: 'pointA' },
-    { pattern: 'double', action: 'pointB' },
-    { pattern: 'doubleSlow', action: 'undo' },
-  ]));
+  el.querySelectorAll('[data-wizard-type]').forEach((btn) => btn.addEventListener('click', () => {
+    wizardStep = btn.dataset.wizardType === 'remote' ? 'pairRemote' : 'pairTag';
+    bleScanResults = [];
+    paint(el);
+  }));
+  el.querySelector('#wizard-remote-done')?.addEventListener('click', () => { wizardStep = 'capture'; paint(el); });
+  el.querySelector('#wizard-capture')?.addEventListener('click', () => wizardCapture(el));
+  el.querySelector('#wizard-add-another')?.addEventListener('click', () => {
+    wizardStep = 'slot';
+    wizardSlot = 'A';
+    paint(el);
+  });
+  el.querySelector('#wizard-finish')?.addEventListener('click', () => { wizardStep = null; paint(el); });
 
+  // ---- Advanced manual binding editor ----
   el.querySelector('#add-binding')?.addEventListener('click', () => startAddBinding(el));
   el.querySelectorAll('[data-configure-tag]').forEach((btn) => btn.addEventListener('click', () => {
     startAddBinding(el, btn.dataset.configureTag);
@@ -254,10 +313,10 @@ function wireEvents(el) {
     bleScanResults = [];
     paint(el);
     const { devices, error } = await scanBleTags();
-    bleScanResults = devices;
+    bleScanResults = devices.filter((d) => !getState().settings.bleTags.some((t) => t.address === d.address));
     bleScanning = false;
     if (error) toast('Errore: ' + error);
-    else if (!bleScanResults.filter((d) => !getState().settings.bleTags.some((t) => t.address === d.address)).length) {
+    else if (!bleScanResults.length) {
       toast('Nessun dispositivo trovato. Assicurati che sia acceso e vicino, e che la Localizzazione del telefono sia attiva.');
     }
     paint(el);
@@ -270,8 +329,13 @@ function wireEvents(el) {
         await connectBleTag(btn.dataset.tagConnect);
         const tag = { id: genId(), address: btn.dataset.tagConnect, deviceName: btn.dataset.tagName, enabled: true };
         updateSettings({ bleTags: [...getState().settings.bleTags, tag] });
-        toast('Connesso! Prova a premere il pulsante: dovresti vederlo comparire nel Test dal vivo qui sopra.');
         syncSettings();
+        if (wizardStep === 'pairTag') {
+          wizardStep = 'capture';
+          toast('Connesso!');
+        } else {
+          toast('Connesso! Prova a premere il pulsante: dovresti vederlo comparire nel Test dal vivo qui sopra.');
+        }
       } catch (err) {
         toast('Connessione fallita: ' + (err.message || err));
       }
@@ -299,6 +363,39 @@ function wireEvents(el) {
   }));
 }
 
+// Captures the next press for the device just paired/connected in the
+// wizard and binds it straight to point-for-this-slot (single click) and
+// undo (double click) - the simple default that covers the vast majority of
+// use, with the manual editor below still available for anything fancier.
+async function wizardCapture(el) {
+  wizardCapturing = true;
+  paint(el);
+  const capture = await captureNextPress(8000);
+  wizardCapturing = false;
+  if (!capture) {
+    toast('Nessun tasto rilevato, riprova');
+    paint(el);
+    return;
+  }
+  const pointAction = wizardSlot === 'A' ? 'pointA' : 'pointB';
+  const newBindings = [
+    { pattern: 'single', action: pointAction },
+    { pattern: 'double', action: 'undo' },
+  ].map(({ pattern, action }) => ({
+    id: genId(),
+    deviceDescriptor: capture.deviceDescriptor,
+    deviceName: capture.deviceName || 'Telecomando',
+    keyCode: capture.keyCode,
+    keyLabel: KEY_LABELS[capture.keyCode] || String(capture.keyCode),
+    pattern,
+    action,
+  }));
+  updateSettings({ remoteBindings: [...getState().settings.remoteBindings, ...newBindings] });
+  wizardStep = 'done';
+  paint(el);
+  syncSettings();
+}
+
 async function startAddBinding(el, hint) {
   addBindingStep = 'waiting';
   addBindingHint = hint || null;
@@ -313,32 +410,6 @@ async function startAddBinding(el, hint) {
     addBindingStep = 'pattern';
   }
   paint(el);
-}
-
-async function quickPair(el, slot, patternActions) {
-  quickCapturing = slot;
-  paint(el);
-  const capture = await captureNextPress(8000);
-  quickCapturing = null;
-  if (!capture) {
-    toast('Nessun tasto rilevato, riprova');
-    paint(el);
-    return;
-  }
-  const newBindings = patternActions.map(({ pattern, action }) => ({
-    id: genId(),
-    deviceDescriptor: capture.deviceDescriptor,
-    deviceName: capture.deviceName || 'Telecomando',
-    keyCode: capture.keyCode,
-    keyLabel: KEY_LABELS[capture.keyCode] || String(capture.keyCode),
-    pattern,
-    action,
-  }));
-  updateSettings({ remoteBindings: [...getState().settings.remoteBindings, ...newBindings] });
-  const slotLabel = slot === 'A' ? 'Slot 1 (Noi)' : slot === 'B' ? 'Slot 2 (Avversari)' : 'telecomando unico';
-  toast(`Associato: ${slotLabel}!`);
-  paint(el);
-  syncSettings();
 }
 
 function renderBindingsUI(bindings) {
@@ -386,7 +457,7 @@ function tagRow(t, remoteBindings) {
   const hasBindings = remoteBindings.some((b) => b.deviceDescriptor === t.address);
   return `<div class="card" style="background:var(--surface-2);margin-top:10px;">
     <div class="toggle-row">
-      <div><strong>${escapeHtml(t.deviceName || 'Dispositivo')}</strong><p class="mb0 small">${t.address}</p></div>
+      <div><strong>🔑 ${escapeHtml(t.deviceName || 'Dispositivo')}</strong><p class="mb0 small">${t.address}</p></div>
       <label class="switch"><input type="checkbox" data-tag-enabled="${t.id}" ${t.enabled ? 'checked' : ''}><span class="slider"></span></label>
     </div>
     ${hasBindings

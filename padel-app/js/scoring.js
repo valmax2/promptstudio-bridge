@@ -50,11 +50,19 @@ export function createMatch({
     inMatchTiebreak: false,
     server: startingServer,
     // Which of the 2 players on each team (index 0/1) is currently serving -
-    // only meaningful in doubles. Not auto-rotated by the engine (real
-    // rotation conventions vary by group), just editable during the match -
-    // see the "Batte: <nome> ⇄" toggle in the live scoreboard.
+    // only meaningful in doubles. Auto-alternates between partners every
+    // time that team's service turn comes back around (see awardGame below,
+    // matching real padel rotation), but the very first turn each team
+    // serves keeps whatever was picked (or the 0 default) - still editable
+    // manually mid-game via the "Batte: <nome> ⇄" toggle in the live
+    // scoreboard.
     serverPlayerA: startingServer === 'A' ? startingServerPlayerIdx : 0,
     serverPlayerB: startingServer === 'B' ? startingServerPlayerIdx : 0,
+    // How many service turns each team has had so far - lets awardGame tell
+    // "first turn" (keep as picked/defaulted) apart from later turns (start
+    // alternating the serving partner).
+    serverTurnCountA: startingServer === 'A' ? 1 : 0,
+    serverTurnCountB: startingServer === 'B' ? 1 : 0,
     matchOver: false,
     matchWinner: null,
     startedAt: Date.now(),
@@ -133,10 +141,30 @@ function nextServerAnnouncement(match) {
   return name ? `. Batte ${name}` : '';
 }
 
+// Called whenever `team` becomes the next server: on that team's first ever
+// service turn the player picked at setup (or the 0 default) stays as-is,
+// but from the second turn onward the serving partner alternates - exactly
+// how real padel doubles rotates service within a team.
+function alternateServingPlayer(match, team) {
+  const players = team === 'A' ? match.teamAPlayers : match.teamBPlayers;
+  if (players.length < 2) return;
+  const turnKey = team === 'A' ? 'serverTurnCountA' : 'serverTurnCountB';
+  if (match[turnKey] >= 1) {
+    if (team === 'A') match.serverPlayerA = match.serverPlayerA === 0 ? 1 : 0;
+    else match.serverPlayerB = match.serverPlayerB === 0 ? 1 : 0;
+  }
+  match[turnKey]++;
+}
+
 function awardGame(match, team) {
   if (team === 'A') match.currentSet.gamesA++; else match.currentSet.gamesB++;
   match.currentGame = { a: 0, b: 0, advantage: null };
-  match.server = other(team);
+  // Service alternates by game count regardless of who won it - using the
+  // *winner* here would wrongly let the same team serve twice in a row
+  // whenever they break the other side's serve, instead of the other team
+  // always taking over next game.
+  match.server = other(match.server);
+  alternateServingPlayer(match, match.server);
   const { gamesA, gamesB } = match.currentSet;
   let announcement = `Gioco ${teamName(match, team)}`;
   let setWon = false;

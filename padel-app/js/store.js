@@ -36,6 +36,11 @@ const DEFAULT_STATE = {
     numberColor: '#FFFFFF',
     numberBorderColor: '#000000',
     numberBorderWidth: 0,
+    // 0-3: quanto ingrandire il numero del punteggio oltre la dimensione
+    // normale (vedi color-presets.js applyColorsToDom) - utile soprattutto
+    // in modalità "solo punteggio" e in verticale, dove c'è più spazio
+    // libero da riempire.
+    numberSizeStep: 0,
     // 0 = disattivato; altrimenti annuncia a voce l'ora corrente ogni tot
     // partite salvate, così chi gioca sa se c'è ancora tempo per un'altra.
     announceTimeEveryMatches: 0,
@@ -52,11 +57,6 @@ const DEFAULT_STATE = {
     // js/avatars.js.
     avatarEmoji: 'm-cap',
     avatarUrl: null,
-    equippedFrame: 'none',
-    xp: 0,
-    level: 1,
-    unlockedAvatars: ['m-cap'],
-    unlockedFrames: ['none', 'bronze', 'silver'],
   },
   // ids of friends/events already surfaced as a notification, so the same
   // one doesn't toast/badge again on every app open - see js/notifications.js.
@@ -72,10 +72,13 @@ const DEFAULT_STATE = {
   circles: [],        // {id, name, memberIds, memberNames}
   events: [],          // {id, title, dateTime, location, circleId, hostId, hostName, participants, maxPlayers}
   matches: [],          // {id, date, teamAName, teamBName, sets, winner, golden, superTiebreak}
-  // Catalogo condiviso di avatar/cornici custom caricati dall'admin (vedi
-  // js/admin.js): {id, label, imageUrl, createdAt}.
+  // Catalogo condiviso di avatar custom caricati dall'admin (vedi
+  // js/admin.js): {id, label, imageUrl, order, createdAt}.
   customAvatars: [],
-  customFrames: [],
+  // Vetrina "Premi": sempre al massimo 5 elementi, gestiti solo dall'admin
+  // (niente XP/livelli/sblocchi - solo un annuncio/vetrina che chiunque
+  // vede ma solo lei può cambiare). {id, label, imageUrl, order, createdAt}.
+  prizes: [],
 };
 
 function loadState() {
@@ -139,21 +142,8 @@ export function addMatch(match) {
   return setState({ matches });
 }
 
-export function addXp(amount) {
-  const xp = Math.max(0, (state.profile.xp || 0) + amount);
-  const level = 1 + Math.floor(xp / 500);
-  return setState({ profile: { xp, level } });
-}
-
 export function markConversationRead(conversationId) {
   return setState({ readReceipts: { [conversationId]: Date.now() } }, { silent: true });
-}
-
-export function unlockCosmetic(type, id) {
-  const key = type === 'avatar' ? 'unlockedAvatars' : 'unlockedFrames';
-  const current = state.profile[key] || [];
-  if (current.includes(id)) return state;
-  return setState({ profile: { [key]: [...current, id] } });
 }
 
 export function replaceCollection(name, items) {

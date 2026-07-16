@@ -160,9 +160,16 @@ export async function renderSettings(el) {
         <label>Colore bordo numeri</label>
         <input type="color" id="color-border" value="${normalizeHex(settings.numberBorderColor)}">
       </div>
-      <div class="field mb0">
+      <div class="field">
         <label>Spessore bordo numeri</label>
         <input type="range" min="0" max="6" step="1" id="border-width" value="${settings.numberBorderWidth}">
+      </div>
+      <div class="field mb0">
+        <label>Dimensione numero punteggio</label>
+        <div class="segmented">
+          ${['Normale', 'Grande', 'Più grande', 'Massima'].map((label, i) => `<button data-number-size="${i}" class="${(settings.numberSizeStep || 0) === i ? 'active' : ''}">${label}</button>`).join('')}
+        </div>
+        <p class="small mt mb0">Utile soprattutto in modalità "solo punteggio" e con il telefono in verticale.</p>
       </div>
     </div>
     ` : ''}
@@ -265,6 +272,12 @@ export async function renderSettings(el) {
   ['#color-a', '#color-b', '#color-number', '#color-border', '#border-width'].forEach((sel) => {
     el.querySelector(sel)?.addEventListener('change', () => { renderSettings(el); syncSettings(); });
   });
+
+  el.querySelectorAll('[data-number-size]').forEach((btn) => btn.addEventListener('click', () => {
+    updateSettings({ numberSizeStep: parseInt(btn.dataset.numberSize, 10) });
+    renderSettings(el);
+    syncSettings();
+  }));
 
   el.querySelector('#open-bt-setup')?.addEventListener('click', () => navigate('bluetooth-setup'));
   el.querySelector('#open-welcome')?.addEventListener('click', () => navigate('welcome'));

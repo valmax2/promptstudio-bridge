@@ -1,4 +1,4 @@
-import { getState, addMatch, addXp, updateSettings } from '../store.js';
+import { getState, addMatch, updateSettings } from '../store.js';
 import { pushMatch } from '../cloud.js';
 import { say, stopSpeech } from '../speech.js';
 import { escapeHtml, BACK_ICON } from '../utils.js';
@@ -11,7 +11,7 @@ import { nearestColorName } from '../color-presets.js';
 import { LITE_MODE } from '../lite-mode.js';
 import {
   enableRemote, disableRemote, listenBindings,
-  connectBleTag, disconnectBleTag,
+  connectBleTag, disconnectBleTag, setKeepScreenOn,
 } from '../ble-remote.js';
 
 let match = null;
@@ -36,6 +36,7 @@ export async function renderScoreboard(el) {
   ttsEnabled = settings.ttsEnabled;
 
   document.getElementById('bottom-nav').classList.add('hidden');
+  setKeepScreenOn(true);
   if (match) startLive(el);
   else paintSetup(el);
 
@@ -44,6 +45,7 @@ export async function renderScoreboard(el) {
     stopHwKeys();
     disableRemote();
     disconnectBleTag();
+    setKeepScreenOn(false);
     clearInterval(timeInterval);
     document.getElementById('bottom-nav').classList.remove('hidden');
   };
@@ -478,9 +480,8 @@ async function onSaveMatch(el) {
     superTiebreak: match.superTiebreak3rdSet,
   };
   addMatch(record);
-  addXp(match.matchWinner === 'A' ? 40 : 15);
   try { await pushMatch(record); } catch {}
-  toast('Partita salvata! Hai guadagnato XP 🎉');
+  toast('Partita salvata!');
   await maybeAnnounceTime(el);
   match = null;
   history = [];

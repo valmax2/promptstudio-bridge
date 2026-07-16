@@ -12,15 +12,30 @@
 export const KEY_LABELS = {
   24: 'Volume +',
   25: 'Volume -',
+  164: 'Muto',
   27: 'Fotocamera',
-  79: 'Tasto cuffie',
+  80: 'Focus / Scatto',
   85: 'Play / Pausa',
+  126: 'Play',
+  127: 'Pausa',
+  86: 'Stop',
+  130: 'Registra',
   87: 'Avanti ⏭',
   88: 'Indietro ⏮',
+  79: 'Tasto cuffie',
   21: 'Freccia sinistra',
   22: 'Freccia destra',
+  19: 'Freccia su',
+  20: 'Freccia giù',
   23: 'Centro / OK',
   66: 'Invio',
+  62: 'Spazio',
+  92: 'Pagina su',
+  93: 'Pagina giù',
+  168: 'Zoom +',
+  169: 'Zoom -',
+  96: 'Pulsante A',
+  97: 'Pulsante B',
   9001: 'Pulsante tag',
 };
 
@@ -63,6 +78,13 @@ export async function openBluetoothSettings() {
   const rc = remoteControl();
   if (!rc?.openBluetoothSettings) return false;
   try { await rc.openBluetoothSettings(); return true; } catch { return false; }
+}
+
+// Keeps the screen from dimming/locking while true - used for the whole
+// time the scoreboard screen (setup + live match) is open, so a long match
+// doesn't get interrupted by the phone going to sleep mid-game.
+export async function setKeepScreenOn(enabled) {
+  try { await remoteControl()?.setKeepScreenOn({ enabled }); } catch {}
 }
 
 export function listenRawPresses(cb) {

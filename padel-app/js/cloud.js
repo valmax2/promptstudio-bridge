@@ -246,22 +246,25 @@ export function listenMyMatches(cb) {
   return fsListenCollection('matches', cb, [['createdBy', '==', id]]);
 }
 
-// ---- Admin catalog (custom avatars/frames, see js/admin.js) ----
+// ---- Admin catalog (custom avatars + prize showcase, see js/admin.js) ----
 // order controls where the item lands in the shared picker grid relative to
-// the built-in avatars/frames (which use multiples of 10, see js/avatars.js
-// and js/frames.js) - defaults to the end of the list when not specified.
+// the built-in avatars (which use multiples of 10, see js/avatars.js) -
+// defaults to the end of the list when not specified.
+function collectionFor(kind) {
+  return kind === 'avatar' ? 'customAvatars' : 'prizes';
+}
+
 export async function uploadCustomCatalogItem(kind, label, blob, order = 9999) {
   if (!isCloudReady()) return;
   const itemId = genId();
-  const collection = kind === 'avatar' ? 'customAvatars' : 'customFrames';
+  const collection = collectionFor(kind);
   const imageUrl = await uploadCatalogImage(`admin-${collection}/${itemId}`, blob);
   await fsSet(`${collection}/${itemId}`, { label, imageUrl, order, createdAt: Date.now() });
 }
 
 export async function updateCustomCatalogItemOrder(kind, itemId, order) {
   if (!isCloudReady()) return;
-  const collection = kind === 'avatar' ? 'customAvatars' : 'customFrames';
-  await fsSet(`${collection}/${itemId}`, { order });
+  await fsSet(`${collectionFor(kind)}/${itemId}`, { order });
 }
 
 export function listenCustomAvatars(cb) {
@@ -269,14 +272,13 @@ export function listenCustomAvatars(cb) {
   return fsListenCollection('customAvatars', cb);
 }
 
-export function listenCustomFrames(cb) {
+export function listenPrizes(cb) {
   if (!firebaseAvailable()) return () => {};
-  return fsListenCollection('customFrames', cb);
+  return fsListenCollection('prizes', cb);
 }
 
 export async function deleteCustomCatalogItem(kind, itemId) {
   if (!isCloudReady()) return;
   const { fs } = mods();
-  const collection = kind === 'avatar' ? 'customAvatars' : 'customFrames';
-  await fs.deleteDoc(fs.doc(db(), `${collection}/${itemId}`));
+  await fs.deleteDoc(fs.doc(db(), `${collectionFor(kind)}/${itemId}`));
 }

@@ -390,7 +390,7 @@ label { font-size: 0.85em; color: var(--text-dim); display: block; margin-bottom
 .sb-stack.points-only { grid-template-rows: 1fr; }
 .sb-stack > div { display: flex; align-items: center; justify-content: center; }
 .sb-point {
-  font-size: min(30vw, 32vh);
+  font-size: min(calc(30vw * var(--number-size-scale, 1)), calc(32vh * var(--number-size-scale, 1)));
   font-weight: 800;
   line-height: 1;
   background: rgba(0,0,0,0.08);

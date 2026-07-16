@@ -67,14 +67,14 @@ service cloud.firestore {
       allow delete: if isSignedIn() && resource.data.hostId == request.auth.uid;
     }
 
-    // Catalogo condiviso di avatar/cornici custom caricati dall'admin -
-    // leggibile da chiunque sia autenticato (per mostrarli in "Premi"),
-    // scrivibile solo dall'admin.
+    // Catalogo condiviso di avatar custom caricati dall'admin, e vetrina
+    // "Premi" (max 5 elementi, applicato lato client in js/screens/admin.js)
+    // - leggibili da chiunque sia autenticato, scrivibili solo dall'admin.
     match /customAvatars/{itemId} {
       allow read: if isSignedIn();
       allow write: if isAdmin();
     }
-    match /customFrames/{itemId} {
+    match /prizes/{itemId} {
       allow read: if isSignedIn();
       allow write: if isAdmin();
     }

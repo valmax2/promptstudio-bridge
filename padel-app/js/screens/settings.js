@@ -31,6 +31,15 @@ const FONTS = [
 
 export async function renderSettings(el) {
   activeCategory = 'bluetooth';
+  paint(el);
+}
+
+// Separate from renderSettings() on purpose: renderSettings only runs once
+// per navigation into this screen (and resets the category tab to
+// Bluetooth then), while every internal re-render after a click/toggle
+// calls paint() directly - otherwise every single interaction would also
+// reset the category back to Bluetooth, making the other tabs unclickable.
+function paint(el) {
   const { settings } = getState();
 
   el.innerHTML = `
@@ -217,25 +226,25 @@ export async function renderSettings(el) {
 
   el.querySelectorAll('[data-category]').forEach((btn) => btn.addEventListener('click', () => {
     activeCategory = btn.dataset.category;
-    renderSettings(el);
+    paint(el);
   }));
 
   el.querySelectorAll('[data-app-lang]').forEach((btn) => btn.addEventListener('click', () => {
     updateSettings({ appLanguage: btn.dataset.appLang });
-    renderSettings(el);
+    paint(el);
     syncSettings();
   }));
 
   el.querySelectorAll('[data-theme]').forEach((btn) => btn.addEventListener('click', () => {
     updateSettings({ theme: btn.dataset.theme });
-    renderSettings(el);
+    paint(el);
     syncSettings();
   }));
 
   el.querySelectorAll('[data-ui-accent]').forEach((btn) => btn.addEventListener('click', () => {
     updateSettings({ uiAccent: btn.dataset.uiAccent });
     applyUiAccent(btn.dataset.uiAccent);
-    renderSettings(el);
+    paint(el);
     syncSettings();
   }));
 
@@ -243,7 +252,7 @@ export async function renderSettings(el) {
 
   el.querySelector('#font-family')?.addEventListener('change', (e) => {
     updateSettings({ fontFamily: e.target.value });
-    renderSettings(el);
+    paint(el);
     syncSettings();
   });
 
@@ -252,12 +261,12 @@ export async function renderSettings(el) {
   });
   el.querySelector('#font-scale')?.addEventListener('change', syncSettings);
 
-  el.querySelector('#tts')?.addEventListener('change', (e) => { updateSettings({ ttsEnabled: e.target.checked }); renderSettings(el); syncSettings(); });
+  el.querySelector('#tts')?.addEventListener('change', (e) => { updateSettings({ ttsEnabled: e.target.checked }); paint(el); syncSettings(); });
   el.querySelector('#golden')?.addEventListener('change', (e) => { updateSettings({ goldenPoint: e.target.checked }); syncSettings(); });
   el.querySelector('#super-tb')?.addEventListener('change', (e) => { updateSettings({ superTiebreak3rdSet: e.target.checked }); syncSettings(); });
   el.querySelectorAll('[data-time-announce]').forEach((btn) => btn.addEventListener('click', () => {
     updateSettings({ announceTimeEveryMatches: parseInt(btn.dataset.timeAnnounce, 10) });
-    renderSettings(el);
+    paint(el);
     syncSettings();
   }));
   el.querySelector('#test-voice')?.addEventListener('click', () => say('40 pari, punto d\'oro'));
@@ -265,12 +274,12 @@ export async function renderSettings(el) {
 
   el.querySelectorAll('[data-voice-mode]').forEach((btn) => btn.addEventListener('click', () => {
     updateSettings({ ttsVoiceMode: btn.dataset.voiceMode });
-    renderSettings(el);
+    paint(el);
     syncSettings();
   }));
   el.querySelectorAll('[data-voice-lang]').forEach((btn) => btn.addEventListener('click', () => {
     updateSettings({ ttsVoiceLang: btn.dataset.voiceLang });
-    renderSettings(el);
+    paint(el);
     syncSettings();
   }));
 
@@ -282,7 +291,7 @@ export async function renderSettings(el) {
       const { label, ...colors } = COLOR_PRESETS[key];
       updateSettings({ colorPreset: key, ...colors });
     }
-    renderSettings(el);
+    paint(el);
     syncSettings();
   }));
   el.querySelector('#color-a')?.addEventListener('input', (e) => updateSettings({ teamAColor: e.target.value, colorPreset: 'custom' }));
@@ -291,12 +300,12 @@ export async function renderSettings(el) {
   el.querySelector('#color-border')?.addEventListener('input', (e) => updateSettings({ numberBorderColor: e.target.value, colorPreset: 'custom' }));
   el.querySelector('#border-width')?.addEventListener('input', (e) => updateSettings({ numberBorderWidth: parseInt(e.target.value, 10), colorPreset: 'custom' }));
   ['#color-a', '#color-b', '#color-number', '#color-border', '#border-width'].forEach((sel) => {
-    el.querySelector(sel)?.addEventListener('change', () => { renderSettings(el); syncSettings(); });
+    el.querySelector(sel)?.addEventListener('change', () => { paint(el); syncSettings(); });
   });
 
   el.querySelectorAll('[data-number-size]').forEach((btn) => btn.addEventListener('click', () => {
     updateSettings({ numberSizeStep: parseInt(btn.dataset.numberSize, 10) });
-    renderSettings(el);
+    paint(el);
     syncSettings();
   }));
 
@@ -309,7 +318,7 @@ export async function renderSettings(el) {
     updateSettings({ remoteBindings: [], bleTags: [] });
     syncSettings();
     toast('Bluetooth resettato');
-    renderSettings(el);
+    paint(el);
   });
   el.querySelector('#open-welcome')?.addEventListener('click', () => navigate('welcome'));
 

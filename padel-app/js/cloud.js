@@ -267,6 +267,16 @@ export async function updateCustomCatalogItemOrder(kind, itemId, order) {
   await fsSet(`${collectionFor(kind)}/${itemId}`, { order });
 }
 
+// Replaces just the image of an already-existing item (same id, label and
+// order untouched) - lets the admin fix a bad photo without deleting and
+// recreating the whole entry.
+export async function updateCustomCatalogItemImage(kind, itemId, blob) {
+  if (!isCloudReady()) return;
+  const collection = collectionFor(kind);
+  const imageUrl = await uploadCatalogImage(`admin-${collection}/${itemId}`, blob);
+  await fsSet(`${collection}/${itemId}`, { imageUrl });
+}
+
 export function listenCustomAvatars(cb) {
   if (!firebaseAvailable()) return () => {};
   return fsListenCollection('customAvatars', cb);
@@ -297,6 +307,12 @@ export async function addCompatibleRemote(label, link, blob, order = 9999) {
 export async function updateCompatibleRemoteOrder(itemId, order) {
   if (!isCloudReady()) return;
   await fsSet(`compatibleRemotes/${itemId}`, { order });
+}
+
+export async function updateCompatibleRemoteImage(itemId, blob) {
+  if (!isCloudReady()) return;
+  const imageUrl = await uploadCatalogImage(`admin-compatibleRemotes/${itemId}`, blob);
+  await fsSet(`compatibleRemotes/${itemId}`, { imageUrl });
 }
 
 export function listenCompatibleRemotes(cb) {

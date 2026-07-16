@@ -6,7 +6,7 @@ import { toast } from '../app.js';
 import {
   KEY_LABELS, ACTION_LABELS, PATTERN_LABELS, remoteSupported, captureNextPress,
   enableRemote, disableRemote, listenRawPresses, openBluetoothSettings,
-  bleTagSupported, scanBleTags, connectBleTag, disconnectBleTag,
+  bleTagSupported, scanBleTags, connectBleTag,
 } from '../ble-remote.js';
 import { escapeHtml, uid as genId, BACK_ICON } from '../utils.js';
 import { LITE_MODE } from '../lite-mode.js';
@@ -102,12 +102,6 @@ function paint(el) {
       <p class="small">L'annuncio vocale segue automaticamente l'uscita audio attiva del telefono: se una cassa o cuffia Bluetooth è già collegata (dalle Impostazioni Bluetooth di Android), l'audio esce da lì senza bisogno di scegliere nulla qui.</p>
     </div>
     `}
-
-    <div class="card">
-      <h2>📡 Telecomandi compatibili</h2>
-      <p class="small">Una lista di telecomandi consigliati con link diretto.</p>
-      <button class="btn secondary block" id="bt-open-remote-board">Vedi la lista</button>
-    </div>
 
     <div class="modal-backdrop hidden" id="bt-help-modal">
       <div class="modal-card">
@@ -236,8 +230,6 @@ function wireEvents(el) {
   el.querySelector('#bt-help-done').addEventListener('click', () => helpModal.classList.add('hidden'));
   helpModal.addEventListener('click', (e) => { if (e.target === helpModal) helpModal.classList.add('hidden'); });
 
-  el.querySelector('#bt-open-remote-board')?.addEventListener('click', () => navigate('remote-board'));
-
   el.querySelector('#open-android-bt')?.addEventListener('click', async () => {
     const opened = await openBluetoothSettings();
     if (!opened) toast('Apri manualmente Impostazioni → Bluetooth sul telefono');
@@ -351,20 +343,18 @@ function wireEvents(el) {
       paint(el);
     });
   });
-  el.querySelectorAll('[data-tag-enabled]').forEach((input) => input.addEventListener('change', async (e) => {
+  el.querySelectorAll('[data-tag-enabled]').forEach((input) => input.addEventListener('change', (e) => {
     const id = input.dataset.tagEnabled;
     const enabled = e.target.checked;
     const tags = getState().settings.bleTags;
-    const tag = tags.find((t) => t.id === id);
+    // La connessione/disconnessione effettiva è gestita globalmente in
+    // app.js (reconcileBleTags), che reagisce a questo stesso cambio di
+    // stato - così un tag resta connesso anche fuori da questa schermata.
     updateSettings({ bleTags: tags.map((t) => (t.id === id ? { ...t, enabled } : t)) });
-    if (!enabled && tag) await disconnectBleTag(tag.address);
-    else if (enabled && tag) await connectBleTag(tag.address).catch(() => {});
     syncSettings();
   }));
-  el.querySelectorAll('[data-tag-forget]').forEach((btn) => btn.addEventListener('click', async () => {
+  el.querySelectorAll('[data-tag-forget]').forEach((btn) => btn.addEventListener('click', () => {
     const id = btn.dataset.tagForget;
-    const tag = getState().settings.bleTags.find((t) => t.id === id);
-    if (tag) await disconnectBleTag(tag.address);
     updateSettings({ bleTags: getState().settings.bleTags.filter((t) => t.id !== id) });
     paint(el);
     syncSettings();

@@ -1,8 +1,9 @@
 import { getState, setState } from '../store.js';
 import {
   listenCustomAvatars, listenPrizes, uploadCustomCatalogItem, deleteCustomCatalogItem,
-  updateCustomCatalogItemOrder,
+  updateCustomCatalogItemOrder, updateCustomCatalogItemImage,
   listenCompatibleRemotes, addCompatibleRemote, updateCompatibleRemoteOrder, deleteCompatibleRemote,
+  updateCompatibleRemoteImage,
   listenWelcomeImage, uploadWelcomeImage,
 } from '../cloud.js';
 import { firebaseAvailable } from '../firebase.js';
@@ -28,6 +29,10 @@ export async function renderAdmin(el) {
   let uploading = false;
   let uploadingWelcomeImage = false;
   let pickedRemoteImage = null;
+  // { kind: 'avatar'|'prize'|'remote', id, shape } dell'elemento la cui foto
+  // stiamo per sostituire cliccando sulla sua anteprima già esistente -
+  // riusa un solo input file nascosto invece di uno per riga.
+  let editingImage = null;
 
   paint();
 
@@ -65,7 +70,7 @@ export async function renderAdmin(el) {
         <div class="picker-grid">
           ${customAvatars.map((a) => `
             <div class="frame-pick-wrap">
-              <div class="pick-item"><span class="pick-item-preview"><img src="${a.imageUrl}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"></span></div>
+              <div class="pick-item" data-edit-image="avatar:${a.id}" title="Clicca per cambiare foto" style="cursor:pointer;"><span class="pick-item-preview"><img src="${a.imageUrl}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"></span></div>
               <span class="pick-item-label">${escapeHtml(a.label || '')}</span>
               <input type="number" class="small" data-order-avatar="${a.id}" value="${a.order ?? 9999}" style="width:64px;text-align:center;margin-top:4px;">
               <button class="btn ghost small" data-save-order-avatar="${a.id}">✓</button>
@@ -97,7 +102,7 @@ export async function renderAdmin(el) {
         <div class="picker-grid">
           ${prizes.map((p) => `
             <div class="frame-pick-wrap">
-              <div class="pick-item"><span class="pick-item-preview"><img src="${p.imageUrl}" alt="" style="width:100%;height:100%;object-fit:cover;"></span></div>
+              <div class="pick-item" data-edit-image="prize:${p.id}" title="Clicca per cambiare foto" style="cursor:pointer;"><span class="pick-item-preview"><img src="${p.imageUrl}" alt="" style="width:100%;height:100%;object-fit:cover;"></span></div>
               <span class="pick-item-label">${escapeHtml(p.label || '')}</span>
               <input type="number" class="small" data-order-prize="${p.id}" value="${p.order ?? 9999}" style="width:64px;text-align:center;margin-top:4px;">
               <button class="btn ghost small" data-save-order-prize="${p.id}">✓</button>
@@ -142,7 +147,7 @@ export async function renderAdmin(el) {
         <div class="mt">
           ${compatibleRemotes.map((r) => `
             <div class="list-item">
-              <div class="avatar">${r.imageUrl ? `<img src="${r.imageUrl}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">` : '🎮'}</div>
+              <div class="avatar" data-edit-image="remote:${r.id}" title="Clicca per cambiare foto" style="cursor:pointer;">${r.imageUrl ? `<img src="${r.imageUrl}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">` : '🎮'}</div>
               <div class="meta"><strong>${escapeHtml(r.label || '')}</strong><span>${escapeHtml(r.link || '')}</span></div>
               <input type="number" class="small" data-order-remote="${r.id}" value="${r.order ?? 9999}" style="width:56px;text-align:center;">
               <button class="btn ghost small" data-save-order-remote="${r.id}">✓</button>
@@ -151,6 +156,8 @@ export async function renderAdmin(el) {
           `).join('') || '<p class="small mb0">Nessuno.</p>'}
         </div>
       </div>
+
+      <input type="file" accept="image/*" id="edit-image-file" class="hidden" style="display:none">
     `;
 
     el.querySelector('#pick-avatar-file').addEventListener('click', () => el.querySelector('#new-avatar-file').click());
@@ -237,6 +244,30 @@ export async function renderAdmin(el) {
       await updateCompatibleRemoteOrder(id, isNaN(order) ? 9999 : order);
       toast('Posizione aggiornata');
     }));
+
+    el.querySelectorAll('[data-edit-image]').forEach((box) => box.addEventListener('click', () => {
+      const [kind, id] = box.dataset.editImage.split(':');
+      editingImage = { kind, id };
+      el.querySelector('#edit-image-file').click();
+    }));
+    el.querySelector('#edit-image-file').addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      e.target.value = '';
+      if (!file || !editingImage) return;
+      const { kind, id } = editingImage;
+      const shape = kind === 'prize' ? 'square' : 'circle';
+      const blob = await openImageCropper(file, { shape });
+      editingImage = null;
+      if (!blob) return;
+      try {
+        if (kind === 'remote') await updateCompatibleRemoteImage(id, blob);
+        else await updateCustomCatalogItemImage(kind, id, blob);
+        toast('Foto aggiornata!');
+      } catch (err) {
+        toast('Errore: ' + err.message);
+      }
+      paint();
+    });
   }
 
   async function handleUpload(kind, e) {

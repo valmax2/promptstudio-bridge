@@ -5,6 +5,7 @@ import { configureSpeech } from './speech.js';
 import { applyColorsToDom } from './color-presets.js';
 import { applyUiAccent } from './ui-accents.js';
 import { initNotifications, stopNotifications } from './notifications.js';
+import { bleTagSupported, connectBleTag, disconnectBleTag } from './ble-remote.js';
 
 import { renderLogin } from './screens/login.js';
 import { renderHome } from './screens/home.js';
@@ -61,6 +62,25 @@ function updateBanner() {
   }
 }
 
+// Keeps every enabled BLE tag connected for as long as the app is open,
+// instead of only while the scoreboard screen happens to be mounted - a
+// disconnected tag beeps on its own (its "anti-lost" alarm) and takes a
+// moment to reconnect, both of which used to happen every time you left and
+// came back to the scoreboard. Reacts to any settings change (a tag added,
+// enabled/disabled, or forgotten) rather than owning its own event wiring.
+let connectedTagAddresses = new Set();
+function reconcileBleTags() {
+  if (!bleTagSupported()) return;
+  const enabled = new Set(getState().settings.bleTags.filter((t) => t.enabled).map((t) => t.address));
+  enabled.forEach((address) => {
+    if (!connectedTagAddresses.has(address)) connectBleTag(address).catch(() => {});
+  });
+  connectedTagAddresses.forEach((address) => {
+    if (!enabled.has(address)) disconnectBleTag(address);
+  });
+  connectedTagAddresses = enabled;
+}
+
 export function toast(message, duration = 2400) {
   const container = document.getElementById('toast-container');
   const el = document.createElement('div');
@@ -96,6 +116,9 @@ navEl.addEventListener('click', (e) => {
 
 subscribe(applyTheme);
 applyTheme();
+
+subscribe(reconcileBleTags);
+reconcileBleTags();
 
 initRouter(appEl, navEl);
 

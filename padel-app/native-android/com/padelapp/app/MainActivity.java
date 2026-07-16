@@ -69,9 +69,20 @@ public class MainActivity extends BridgeActivity {
         }
     }
 
+    // A phone/tablet's own physical volume rocker sends the exact same
+    // keycodes as a cheap Bluetooth remote emulating a volume button - the
+    // only way to tell them apart is InputDevice.isExternal(): true for a
+    // real external accessory, false for hardware built into the device
+    // itself. Without this check, enabling the remote silently disabled the
+    // phone's own volume buttons for as long as a match was open.
+    private boolean isExternalDevice(KeyEvent event) {
+        InputDevice device = event.getDevice();
+        return device != null && device.isExternal();
+    }
+
     @Override
     public boolean dispatchKeyEvent(KeyEvent event) {
-        if (RemoteControlPlugin.remoteEnabled && isRemoteKey(event.getKeyCode())) {
+        if (RemoteControlPlugin.remoteEnabled && isRemoteKey(event.getKeyCode()) && isExternalDevice(event)) {
             if (event.getAction() == KeyEvent.ACTION_DOWN && event.getRepeatCount() == 0) {
                 final int keyCode = event.getKeyCode();
                 final int deviceId = event.getDeviceId();

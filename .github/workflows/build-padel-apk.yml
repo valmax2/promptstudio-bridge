@@ -40,6 +40,10 @@ jobs:
       - name: Installa i pacchetti Android SDK richiesti
         run: sdkmanager --install "platform-tools" "platforms;android-34" "build-tools;34.0.0"
 
+      - name: Imposto il numero di versione visibile nell'app
+        working-directory: padel-app
+        run: sed -i "s/'dev'/'V${{ github.run_number }}'/" js/version.js
+
       - name: Compilo l'APK di debug
         working-directory: padel-app
         run: bash build-apk.sh
@@ -83,6 +87,10 @@ jobs:
 
       - name: Installa i pacchetti Android SDK richiesti
         run: sdkmanager --install "platform-tools" "platforms;android-34" "build-tools;34.0.0"
+
+      - name: Imposto il numero di versione visibile nell'app
+        working-directory: padel-app
+        run: sed -i "s/'dev'/'V${{ github.run_number }}'/" js/version.js
 
       - name: Compilo l'APK beta di debug
         working-directory: padel-app

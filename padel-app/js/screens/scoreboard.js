@@ -11,7 +11,7 @@ import { nearestColorName } from '../color-presets.js';
 import { LITE_MODE } from '../lite-mode.js';
 import {
   enableRemote, disableRemote, listenBindings,
-  connectBleTag, disconnectBleTag, setKeepScreenOn,
+  setKeepScreenOn,
 } from '../ble-remote.js';
 
 let match = null;
@@ -47,7 +47,6 @@ export async function renderScoreboard(el) {
     stopSpeech();
     stopHwKeys();
     disableRemote();
-    disconnectBleTag();
     setKeepScreenOn(false);
     clearInterval(timeInterval);
     document.getElementById('bottom-nav').classList.remove('hidden');
@@ -69,10 +68,10 @@ function setupRemoteListening(el) {
     disableRemote();
   }
 
-  // Physical connections are independent of the bindings toggle above - a
-  // tag stays connected whenever enabled, regardless of whether an action
-  // has been bound to it yet.
-  settings.bleTags.filter((t) => t.enabled).forEach((t) => connectBleTag(t.address).catch(() => {}));
+  // BLE tags themselves stay connected for as long as the app is open (see
+  // js/app.js's reconcileBleTags) - not tied to this screen anymore, so a
+  // tag never has to reconnect (and briefly beep/lag) just from navigating
+  // away and back.
 }
 
 function handleRemoteAction(action, el) {
@@ -384,6 +383,7 @@ function paintSetup(el) {
 // ===== Live scoreboard =====
 
 function paint(el) {
+  const { settings } = getState();
   let modeLabel;
   if (match.format === 'time') {
     modeLabel = match.matchOver ? 'Partita conclusa' : `⏱️ ${formatRemaining(match.matchEndsAt)}`;
@@ -400,6 +400,7 @@ function paint(el) {
         <div class="row" style="gap:2px;">
           <button id="sb-display-mode" aria-label="Modalità visualizzazione" title="Solo punteggio">${pointsOnlyMode ? '🔢' : '📋'}</button>
           <button id="sb-number-size" aria-label="Ingrandisci numero punteggio" title="Ingrandisci numero">➕</button>
+          <button id="sb-remote-toggle" aria-label="Abilita/disabilita telecomando" title="${settings.bleRemoteEnabled ? 'Telecomando abilitato' : 'Telecomando disabilitato'}">${settings.bleRemoteEnabled ? '🎮' : '🚫'}</button>
           <button id="sb-mute">${ttsEnabled ? '🔊' : '🔇'}</button>
         </div>
       </div>
@@ -425,6 +426,11 @@ function paint(el) {
   });
   el.querySelector('#sb-display-mode').addEventListener('click', () => {
     pointsOnlyMode = !pointsOnlyMode;
+    paint(el);
+  });
+  el.querySelector('#sb-remote-toggle').addEventListener('click', () => {
+    updateSettings({ bleRemoteEnabled: !getState().settings.bleRemoteEnabled });
+    setupRemoteListening(el);
     paint(el);
   });
   el.querySelector('#sb-number-size').addEventListener('click', () => {

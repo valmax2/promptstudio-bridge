@@ -7,10 +7,11 @@ import { say, speechSupported } from '../speech.js';
 import { toast } from '../app.js';
 import { COLOR_PRESETS } from '../color-presets.js';
 import { UI_ACCENT_PRESETS, applyUiAccent } from '../ui-accents.js';
-import { remoteSupported, bleTagSupported } from '../ble-remote.js';
+import { remoteSupported, bleTagSupported, disconnectBleTag } from '../ble-remote.js';
 import { BACK_ICON, BLUETOOTH_ICON } from '../utils.js';
+import { APP_VERSION } from '../version.js';
 
-let activeCategory = 'aspetto';
+let activeCategory = 'bluetooth';
 
 const CATEGORIES = [
   { id: 'aspetto', icon: '🎨', label: 'Aspetto' },
@@ -29,6 +30,7 @@ const FONTS = [
 ];
 
 export async function renderSettings(el) {
+  activeCategory = 'bluetooth';
   const { settings } = getState();
 
   el.innerHTML = `
@@ -188,7 +190,11 @@ export async function renderSettings(el) {
       <p class="small">${settings.bleRemoteEnabled ? '✅ Telecomando abilitato.' : '⚠️ Telecomando disabilitato: i pulsanti non faranno nulla in partita.'} ${settings.remoteBindings.length} associazion${settings.remoteBindings.length === 1 ? 'e' : 'i'} configurat${settings.remoteBindings.length === 1 ? 'a' : 'e'}, ${settings.bleTags.length} tag collegat${settings.bleTags.length === 1 ? 'o' : 'i'}.</p>
       ${remoteSupported() || bleTagSupported() ? `
       <button class="btn primary block mt" id="open-bt-setup">🔵 Apri configurazione Bluetooth</button>
+      <button class="btn secondary block mt" id="open-remote-board">📡 Telecomandi compatibili</button>
       ` : `<p class="small">Richiede l'app installata come APK Android (non funziona nell'anteprima da browser).</p>`}
+      ${settings.remoteBindings.length || settings.bleTags.length ? `
+      <button class="btn danger block mt" id="reset-bluetooth">🗑️ Reset Bluetooth (cancella tutto)</button>
+      ` : ''}
     </div>
     ` : ''}
 
@@ -206,6 +212,7 @@ export async function renderSettings(el) {
     ` : ''}
 
     <button class="btn ghost block mt" id="open-welcome">ⓘ Guida e informazioni sull'app</button>
+    <p class="small center mt mb0" style="opacity:0.6;">Padel App ${APP_VERSION}</p>
   `;
 
   el.querySelectorAll('[data-category]').forEach((btn) => btn.addEventListener('click', () => {
@@ -294,6 +301,16 @@ export async function renderSettings(el) {
   }));
 
   el.querySelector('#open-bt-setup')?.addEventListener('click', () => navigate('bluetooth-setup'));
+  el.querySelector('#open-remote-board')?.addEventListener('click', () => navigate('remote-board'));
+  el.querySelector('#reset-bluetooth')?.addEventListener('click', () => {
+    if (!confirm('Cancellare tutte le associazioni di telecomandi e tag Bluetooth?')) return;
+    if (!confirm('Sei sicuro? Dovrai riconfigurare da zero ogni telecomando e tag.')) return;
+    disconnectBleTag();
+    updateSettings({ remoteBindings: [], bleTags: [] });
+    syncSettings();
+    toast('Bluetooth resettato');
+    renderSettings(el);
+  });
   el.querySelector('#open-welcome')?.addEventListener('click', () => navigate('welcome'));
 
   el.querySelector('#cloud-sync')?.addEventListener('change', (e) => { updateSettings({ cloudSyncEnabled: e.target.checked }); syncSettings(); });

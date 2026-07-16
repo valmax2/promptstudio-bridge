@@ -15,9 +15,6 @@ export async function renderHome(el) {
   const wins = matches.filter((m) => m.wonByMe).length;
 
   el.innerHTML = `
-    <div class="row" style="justify-content:flex-end;">
-      <button class="icon-btn" id="go-settings" aria-label="Impostazioni" title="Impostazioni">⚙️</button>
-    </div>
     <div class="center" style="margin-bottom:18px;">
       <div class="avatar xxl" style="margin:0 auto 10px;">${avatarContent(profile)}</div>
       <h1 class="mb0">Ciao, ${escapeHtml(profile.name)} 👋</h1>
@@ -72,7 +69,6 @@ export async function renderHome(el) {
   `;
 
   el.querySelector('#go-login')?.addEventListener('click', () => navigate('login'));
-  el.querySelector('#go-settings').addEventListener('click', () => navigate('settings'));
   el.querySelector('#go-gamemodes').addEventListener('click', () => navigate('gamemodes'));
   el.querySelector('#go-scoreboard').addEventListener('click', () => navigate('scoreboard'));
   el.querySelector('#go-americano').addEventListener('click', () => navigate('americano'));

@@ -4,6 +4,12 @@ import { navigate } from '../router.js';
 // TODO: sostituisci con la tua email reale di supporto.
 const SUPPORT_EMAIL = 'supporto@padelapp.app';
 
+// SVG a dimensione fissa (18x18) cosi le icone dei due pulsanti risultano
+// sempre identiche, a differenza degli emoji che su Android variano molto
+// di dimensione reale da un glifo all'altro pur nello stesso font-size.
+const BOOK_ICON = `<svg class="btn-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>`;
+const MAIL_ICON = `<svg class="btn-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 6-10 7L2 6"/></svg>`;
+
 export async function renderWelcome(el) {
   el.innerHTML = `
     <div class="welcome-screen">
@@ -18,8 +24,8 @@ export async function renderWelcome(el) {
       </p>
       <button class="btn primary block welcome-cta" id="welcome-open">▶ Apri l'app</button>
       <div class="row" style="gap:10px;margin-top:14px;">
-        <button class="btn secondary" id="welcome-tutorial" style="flex:1;">📖 Tutorial</button>
-        <button class="btn secondary" id="welcome-support" style="flex:1;">✉️ Supporto</button>
+        <button class="btn secondary" id="welcome-tutorial" style="flex:1;min-width:0;">${BOOK_ICON} Tutorial</button>
+        <button class="btn secondary" id="welcome-support" style="flex:1;min-width:0;">${MAIL_ICON} Supporto</button>
       </div>
       <p class="welcome-footer small">di VStudioApps · Privacy</p>
     </div>

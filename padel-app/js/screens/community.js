@@ -13,6 +13,10 @@ import { setNavBadge } from '../notifications.js';
 let addMemberOpenFor = null;
 let chats = [];
 
+// Icona WhatsApp inline (non un emoji) cosi ha una dimensione fissa e un
+// aspetto riconoscibile, invece di un generico pallino colorato.
+const WHATSAPP_ICON = `<svg viewBox="0 0 24 24" width="20" height="20"><path fill="#fff" d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.39 1.26 4.81L2 22l5.42-1.42a9.87 9.87 0 0 0 4.62 1.18h.01c5.46 0 9.9-4.45 9.9-9.91 0-2.65-1.03-5.14-2.9-7.01A9.82 9.82 0 0 0 12.04 2m0 1.67c2.2 0 4.26.86 5.82 2.42a8.19 8.19 0 0 1 2.41 5.82c0 4.55-3.7 8.25-8.25 8.25a8.2 8.2 0 0 1-4.19-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.18 8.18 0 0 1-1.26-4.38c0-4.55 3.71-8.25 8.26-8.25M8.53 6.7c-.17 0-.45.06-.68.32-.24.25-.9.88-.9 2.15s.92 2.5 1.05 2.67c.13.17 1.8 2.83 4.45 3.86 2.2.86 2.65.69 3.12.65.48-.04 1.55-.63 1.77-1.24s.22-1.13.15-1.24c-.06-.11-.24-.17-.5-.3s-1.55-.77-1.79-.86c-.24-.09-.41-.13-.59.13-.17.26-.67.86-.82 1.03-.15.17-.3.19-.56.06-.26-.13-1.09-.4-2.07-1.28-.77-.68-1.28-1.53-1.43-1.79-.15-.26-.02-.4.11-.53.12-.11.26-.3.39-.45.13-.15.17-.26.26-.43.09-.17.04-.32-.02-.45-.06-.13-.59-1.44-.82-1.96-.21-.51-.43-.44-.6-.45z"/></svg>`;
+
 export async function renderCommunity(el) {
   setNavBadge('community', false);
   const cloud = isCloudReady();
@@ -54,7 +58,7 @@ export async function renderCommunity(el) {
         <div><strong>Il tuo codice amico</strong><p class="mb0 small">Condividilo per farti aggiungere</p></div>
         <div class="row" style="gap:8px;">
           <button class="btn secondary" id="copy-code">${escapeHtml(myCode)} 📋</button>
-          <button class="btn secondary" id="whatsapp-code" aria-label="Condividi su WhatsApp">🟢</button>
+          <button class="btn" id="whatsapp-code" aria-label="Condividi su WhatsApp" style="background:#25D366;padding:12px;">${WHATSAPP_ICON}</button>
         </div>
       </div>` : ''}
 

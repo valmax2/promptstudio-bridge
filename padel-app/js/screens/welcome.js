@@ -2,6 +2,7 @@ import { getState, setState } from '../store.js';
 import { navigate } from '../router.js';
 import { firebaseAvailable } from '../firebase.js';
 import { listenWelcomeImage } from '../cloud.js';
+import { t } from '../i18n.js';
 
 // TODO: sostituisci con la tua email reale di supporto.
 const SUPPORT_EMAIL = 'supporto@padelapp.app';
@@ -33,29 +34,24 @@ function paint(el) {
     <div class="welcome-screen">
       <img class="welcome-icon" src="${welcomeImageUrl || './icon.svg'}" alt="Padel App">
       <h1 class="welcome-title">Padel App</h1>
-      <p class="welcome-tagline">Il tuo segnapunti &amp; assistente intelligente</p>
-      <p class="welcome-desc">
-        Gestisci le tue partite di <strong>padel</strong> in tempo reale. Aggiorna il punteggio
-        direttamente sul tabellone o usa telecomandi e <strong>tag Bluetooth</strong> per fare
-        tutto dal campo. Ascolta l'assistente con <strong>sintesi vocale</strong> che annuncia i
-        punti, gestisci le tue <strong>squadre</strong> e consulta storici e statistiche avanzate.
-      </p>
-      <button class="btn primary block welcome-cta" id="welcome-open">▶ Apri l'app</button>
+      <p class="welcome-tagline">${t('welcomeTagline')}</p>
+      <p class="welcome-desc">${t('welcomeDesc')}</p>
+      <button class="btn primary block welcome-cta" id="welcome-open">${t('welcomeOpen')}</button>
       <div class="row" style="gap:10px;margin-top:14px;">
-        <button class="btn secondary" id="welcome-tutorial" style="flex:1;min-width:0;">${BOOK_ICON} Tutorial</button>
-        <button class="btn secondary" id="welcome-support" style="flex:1;min-width:0;">${MAIL_ICON} Supporto</button>
+        <button class="btn secondary" id="welcome-tutorial" style="flex:1;min-width:0;">${BOOK_ICON} ${t('welcomeTutorial')}</button>
+        <button class="btn secondary" id="welcome-support" style="flex:1;min-width:0;">${MAIL_ICON} ${t('welcomeSupport')}</button>
       </div>
-      <p class="welcome-footer small">di VStudioApps · Privacy</p>
+      <p class="welcome-footer small">${t('welcomeFooter')}</p>
     </div>
 
     <div class="modal-backdrop hidden" id="tutorial-modal">
       <div class="modal-card">
-        <h2><span>📖 Come funziona</span><button class="icon-btn" id="tutorial-close" aria-label="Chiudi">✕</button></h2>
-        <p><strong>1. Nuova partita</strong> — dalla Home scegli Doppio/Singolo, Americano o Killer, imposta chi serve e il formato, poi gioca toccando il lato di chi fa punto. A fine partita viene salvata automaticamente nelle Statistiche (modificabile o eliminabile da lì).</p>
-        <p><strong>2. Telecomando Bluetooth</strong> — in Impostazioni → Bluetooth puoi associare telecomandi o tag per segnare i punti senza toccare lo schermo.</p>
-        <p><strong>3. Community</strong> — aggiungi amici con un codice (puoi anche condividerlo su WhatsApp), crea gruppi con chat condivisa, e organizza eventi.</p>
-        <p><strong>4. Premi</strong> — una vetrina di novità scelta di volta in volta, sempre visibile dal Profilo.</p>
-        <button class="btn primary block mt" id="tutorial-done">Ho capito</button>
+        <h2><span>${t('tutorialTitle')}</span><button class="icon-btn" id="tutorial-close" aria-label="Chiudi">✕</button></h2>
+        <p>${t('tutorial1')}</p>
+        <p>${t('tutorial2')}</p>
+        <p>${t('tutorial3')}</p>
+        <p>${t('tutorial4')}</p>
+        <button class="btn primary block mt" id="tutorial-done">${t('tutorialDone')}</button>
       </div>
     </div>
   `;

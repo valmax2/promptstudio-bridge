@@ -23,6 +23,7 @@ import { renderChat } from './screens/chat.js';
 import { renderGroupChat } from './screens/group-chat.js';
 import { renderWelcome } from './screens/welcome.js';
 import { renderAdmin } from './screens/admin.js';
+import { renderRemoteBoard } from './screens/remote-board.js';
 import { LITE_MODE } from './lite-mode.js';
 import { NAV_ICONS } from './nav-icons.js';
 
@@ -86,6 +87,7 @@ registerRoute('chat', renderChat);
 registerRoute('group-chat', renderGroupChat);
 registerRoute('welcome', renderWelcome);
 registerRoute('admin', renderAdmin);
+registerRoute('remote-board', renderRemoteBoard);
 
 navEl.addEventListener('click', (e) => {
   const btn = e.target.closest('.nav-btn');

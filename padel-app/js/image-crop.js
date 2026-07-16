@@ -6,7 +6,9 @@
 // own re-renders while open.
 const OUTPUT_SIZE = 512;
 
-export function openImageCropper(file, { shape = 'square' } = {}) {
+// aspect = larghezza/altezza del riquadro di ritaglio e dell'immagine finale
+// (1 = quadrato/cerchio come prima, 16/9 = rettangolare panoramico).
+export function openImageCropper(file, { shape = 'square', aspect = 1 } = {}) {
   return new Promise((resolve) => {
     const url = URL.createObjectURL(file);
     const img = new Image();
@@ -18,7 +20,7 @@ export function openImageCropper(file, { shape = 'square' } = {}) {
         <div class="modal-card crop-modal">
           <h2>Ritaglia immagine <button class="btn ghost small" id="crop-close">✕</button></h2>
           <p class="small">Trascina per spostare, usa il cursore per ingrandire. Quello che vedi nel riquadro è quello che verrà usato.</p>
-          <div class="crop-viewport ${shape === 'circle' ? 'crop-circle' : ''}" id="crop-viewport">
+          <div class="crop-viewport ${shape === 'circle' ? 'crop-circle' : ''}" id="crop-viewport" style="aspect-ratio:${aspect};">
             <img id="crop-img" src="${url}" draggable="false" alt="">
           </div>
           <input type="range" id="crop-zoom" min="1" max="3" step="0.01" value="1" class="mt">
@@ -43,16 +45,16 @@ export function openImageCropper(file, { shape = 'square' } = {}) {
       let startTx = 0;
       let startTy = 0;
 
-      const vpSize = () => viewport.clientWidth;
+      const vpSize = () => ({ w: viewport.clientWidth, h: viewport.clientHeight });
       const scale = () => baseScale * parseFloat(zoomEl.value);
 
       function clamp() {
-        const vs = vpSize();
+        const { w, h } = vpSize();
         const s = scale();
         const dw = img.naturalWidth * s;
         const dh = img.naturalHeight * s;
-        tx = Math.min(0, Math.max(vs - dw, tx));
-        ty = Math.min(0, Math.max(vs - dh, ty));
+        tx = Math.min(0, Math.max(w - dw, tx));
+        ty = Math.min(0, Math.max(h - dh, ty));
       }
 
       function render() {
@@ -64,10 +66,10 @@ export function openImageCropper(file, { shape = 'square' } = {}) {
       }
 
       function reset() {
-        const vs = vpSize();
-        baseScale = Math.max(vs / img.naturalWidth, vs / img.naturalHeight);
-        tx = (vs - img.naturalWidth * baseScale) / 2;
-        ty = (vs - img.naturalHeight * baseScale) / 2;
+        const { w, h } = vpSize();
+        baseScale = Math.max(w / img.naturalWidth, h / img.naturalHeight);
+        tx = (w - img.naturalWidth * baseScale) / 2;
+        ty = (h - img.naturalHeight * baseScale) / 2;
         render();
       }
 
@@ -104,14 +106,17 @@ export function openImageCropper(file, { shape = 'square' } = {}) {
 
       backdrop.querySelector('#crop-confirm').addEventListener('click', () => {
         const s = scale();
-        const vs = vpSize();
+        const { w, h } = vpSize();
         const sourceX = -tx / s;
         const sourceY = -ty / s;
-        const sourceSize = vs / s;
+        const sourceW = w / s;
+        const sourceH = h / s;
+        const outW = aspect >= 1 ? OUTPUT_SIZE : Math.round(OUTPUT_SIZE * aspect);
+        const outH = aspect >= 1 ? Math.round(OUTPUT_SIZE / aspect) : OUTPUT_SIZE;
         const canvas = document.createElement('canvas');
-        canvas.width = OUTPUT_SIZE;
-        canvas.height = OUTPUT_SIZE;
-        canvas.getContext('2d').drawImage(img, sourceX, sourceY, sourceSize, sourceSize, 0, 0, OUTPUT_SIZE, OUTPUT_SIZE);
+        canvas.width = outW;
+        canvas.height = outH;
+        canvas.getContext('2d').drawImage(img, sourceX, sourceY, sourceW, sourceH, 0, 0, outW, outH);
         canvas.toBlob((blob) => finish(blob), 'image/png');
       });
     };

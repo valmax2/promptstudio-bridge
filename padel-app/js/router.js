@@ -10,7 +10,7 @@ let cleanupFn = null;
 // scoreboard - a single choke point here means no button anywhere (even
 // ones inside a screen we didn't specifically audit) can ever leak into
 // the full app (community, events, login, settings, ...).
-const LITE_ALLOWED_ROUTES = ['scoreboard', 'bluetooth-setup'];
+const LITE_ALLOWED_ROUTES = ['scoreboard', 'bluetooth-setup', 'remote-board'];
 
 export function registerRoute(name, renderFn) {
   routes.set(name, renderFn);

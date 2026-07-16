@@ -1,8 +1,7 @@
-import { getState, setState, updateSettings } from '../store.js';
+import { getState, updateSettings } from '../store.js';
 import { navigate } from '../router.js';
-import { isCloudReady, listenCompatibleRemotes } from '../cloud.js';
+import { isCloudReady } from '../cloud.js';
 import { pushProfile } from '../cloud.js';
-import { firebaseAvailable } from '../firebase.js';
 import { toast } from '../app.js';
 import {
   KEY_LABELS, ACTION_LABELS, PATTERN_LABELS, remoteSupported, captureNextPress,
@@ -11,7 +10,6 @@ import {
 } from '../ble-remote.js';
 import { escapeHtml, uid as genId, BACK_ICON } from '../utils.js';
 import { LITE_MODE } from '../lite-mode.js';
-import { isAdmin } from '../admin.js';
 
 let bleScanResults = [];
 let bleScanning = false;
@@ -39,7 +37,6 @@ let wizardCapturing = false;
 // at all, before worrying about which action it's bound to.
 let liveLog = [];
 let stopLiveFeed = null;
-let stopCompatibleRemotesFeed = null;
 
 export async function renderBluetoothSetup(el) {
   bleScanResults = [];
@@ -66,20 +63,11 @@ export async function renderBluetoothSetup(el) {
     renderLiveLog(el);
   });
 
-  if (firebaseAvailable()) {
-    stopCompatibleRemotesFeed = listenCompatibleRemotes((list) => {
-      setState({ compatibleRemotes: list }, { silent: true });
-      paint(el);
-    });
-  }
-
   paint(el);
 
   return () => {
     stopLiveFeed?.();
     stopLiveFeed = null;
-    stopCompatibleRemotesFeed?.();
-    stopCompatibleRemotesFeed = null;
     if (remoteSupported()) disableRemote();
   };
 }
@@ -115,7 +103,11 @@ function paint(el) {
     </div>
     `}
 
-    ${compatibleRemotesCard(getState().compatibleRemotes)}
+    <div class="card">
+      <h2>📡 Telecomandi compatibili</h2>
+      <p class="small">Una lista di telecomandi consigliati con link diretto.</p>
+      <button class="btn secondary block" id="bt-open-remote-board">Vedi la lista</button>
+    </div>
 
     <div class="modal-backdrop hidden" id="bt-help-modal">
       <div class="modal-card">
@@ -192,31 +184,6 @@ function wizardCard() {
   `;
 }
 
-// Bacheca admin-curata di telecomandi noti compatibili, con link (possono
-// essere di affiliazione) - solo lettura qui, gestita da js/screens/admin.js.
-function compatibleRemotesCard(compatibleRemotes) {
-  const list = [...(compatibleRemotes || [])].sort((a, b) => (a.order ?? 9999) - (b.order ?? 9999));
-  if (!list.length && !isAdmin()) return '';
-  return `
-    <div class="card">
-      <h2>📡 Telecomandi compatibili</h2>
-      ${list.length ? `
-      <div class="mt">
-        ${list.map((r) => `
-          <div class="list-item">
-            <div class="avatar">🎮</div>
-            <div class="meta"><strong>${escapeHtml(r.label || '')}</strong></div>
-            <a class="btn secondary small" href="${escapeHtml(r.link || '#')}" target="_blank" rel="noopener noreferrer">Vedi</a>
-          </div>
-        `).join('')}
-      </div>
-      <p class="small mb0" style="opacity:0.7;margin-top:8px;">Link sponsorizzato/affiliato.</p>
-      ` : '<p class="small mb0">Nessuno ancora.</p>'}
-      ${isAdmin() ? `<button class="btn ghost small mt" id="bt-manage-remotes">🛠️ Gestisci bacheca</button>` : ''}
-    </div>
-  `;
-}
-
 // ---- Overview shown once at least one device is already configured ----
 function overviewCard(settings) {
   return `
@@ -269,7 +236,7 @@ function wireEvents(el) {
   el.querySelector('#bt-help-done').addEventListener('click', () => helpModal.classList.add('hidden'));
   helpModal.addEventListener('click', (e) => { if (e.target === helpModal) helpModal.classList.add('hidden'); });
 
-  el.querySelector('#bt-manage-remotes')?.addEventListener('click', () => navigate('admin'));
+  el.querySelector('#bt-open-remote-board')?.addEventListener('click', () => navigate('remote-board'));
 
   el.querySelector('#open-android-bt')?.addEventListener('click', async () => {
     const opened = await openBluetoothSettings();

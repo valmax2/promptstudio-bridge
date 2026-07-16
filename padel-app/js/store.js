@@ -3,6 +3,10 @@ const KEY = 'padel-app-state-v1';
 const DEFAULT_STATE = {
   settings: {
     theme: 'dark',
+    // Lingua dei testi dell'interfaccia (vedi js/i18n.js) - separata dalla
+    // lingua della sintesi vocale (ttsVoiceLang) qui sotto, anche se di
+    // solito si cambiano insieme.
+    appLanguage: 'it',
     uiAccent: 'default',
     fontFamily: "'Segoe UI', Roboto, system-ui, -apple-system, sans-serif",
     fontScale: 1,

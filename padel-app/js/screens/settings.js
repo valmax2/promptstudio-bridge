@@ -44,6 +44,14 @@ export async function renderSettings(el) {
 
     ${activeCategory === 'aspetto' ? `
     <div class="card">
+      <h2>🌐 Lingua app</h2>
+      <p class="small">Traduce i testi dell'app (per ora la schermata iniziale; le altre schermate seguiranno).</p>
+      <div class="segmented">
+        <button data-app-lang="it" class="${(settings.appLanguage || 'it') === 'it' ? 'active' : ''}">🇮🇹 Italiano</button>
+        <button data-app-lang="en" class="${settings.appLanguage === 'en' ? 'active' : ''}">🇬🇧 English</button>
+      </div>
+    </div>
+    <div class="card">
       <h2>🎨 Aspetto</h2>
       <div class="segmented">
         <button data-theme="dark" class="${settings.theme === 'dark' ? 'active' : ''}">🌙 Scuro</button>
@@ -203,6 +211,12 @@ export async function renderSettings(el) {
   el.querySelectorAll('[data-category]').forEach((btn) => btn.addEventListener('click', () => {
     activeCategory = btn.dataset.category;
     renderSettings(el);
+  }));
+
+  el.querySelectorAll('[data-app-lang]').forEach((btn) => btn.addEventListener('click', () => {
+    updateSettings({ appLanguage: btn.dataset.appLang });
+    renderSettings(el);
+    syncSettings();
   }));
 
   el.querySelectorAll('[data-theme]').forEach((btn) => btn.addEventListener('click', () => {

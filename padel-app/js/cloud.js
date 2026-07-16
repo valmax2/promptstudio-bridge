@@ -283,13 +283,15 @@ export async function deleteCustomCatalogItem(kind, itemId) {
   await fs.deleteDoc(fs.doc(db(), `${collectionFor(kind)}/${itemId}`));
 }
 
-// ---- Admin: bacheca "Telecomandi compatibili" (nome + link, niente
-// immagine) - stesso concetto della vetrina Premi ma senza upload, visibile
-// nella schermata Bluetooth. ----
-export async function addCompatibleRemote(label, link, order = 9999) {
+// ---- Admin: bacheca "Telecomandi compatibili" (nome + link + immagine
+// opzionale) - stesso concetto della vetrina Premi, mostrata in una pagina
+// dedicata (js/screens/remote-board.js) raggiungibile dalla schermata
+// Bluetooth. ----
+export async function addCompatibleRemote(label, link, blob, order = 9999) {
   if (!isCloudReady()) return;
   const itemId = genId();
-  await fsSet(`compatibleRemotes/${itemId}`, { label, link, order, createdAt: Date.now() });
+  const imageUrl = blob ? await uploadCatalogImage(`admin-compatibleRemotes/${itemId}`, blob) : null;
+  await fsSet(`compatibleRemotes/${itemId}`, { label, link, imageUrl, order, createdAt: Date.now() });
 }
 
 export async function updateCompatibleRemoteOrder(itemId, order) {

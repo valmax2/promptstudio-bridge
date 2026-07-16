@@ -13,6 +13,7 @@ import { isAdmin } from '../admin.js';
 import { openImageCropper } from '../image-crop.js';
 
 const MAX_PRIZES = 5;
+const MAX_COMPATIBLE_REMOTES = 4;
 
 export async function renderAdmin(el) {
   if (!isAdmin()) {
@@ -26,6 +27,7 @@ export async function renderAdmin(el) {
   let unsubWelcomeImage = null;
   let uploading = false;
   let uploadingWelcomeImage = false;
+  let pickedRemoteImage = null;
 
   paint();
 
@@ -34,6 +36,7 @@ export async function renderAdmin(el) {
     const prizes = [...getState().prizes].sort((a, b) => (a.order ?? 9999) - (b.order ?? 9999));
     const prizesFull = prizes.length >= MAX_PRIZES;
     const compatibleRemotes = [...getState().compatibleRemotes].sort((a, b) => (a.order ?? 9999) - (b.order ?? 9999));
+    const remotesFull = compatibleRemotes.length >= MAX_COMPATIBLE_REMOTES;
     const welcomeImageUrl = getState().welcomeImageUrl;
 
     el.innerHTML = `
@@ -106,17 +109,18 @@ export async function renderAdmin(el) {
 
       <div class="card">
         <h2>🖼️ Immagine schermata iniziale</h2>
-        <p class="small">Il cerchio mostrato in alto nella prima pagina dell'app. Finché non ne carichi una, si vede l'icona di default.</p>
+        <p class="small">L'immagine rettangolare (16:9) mostrata in alto nella prima pagina dell'app. Finché non ne carichi una, si vede l'icona di default.</p>
         <div class="row" style="gap:14px;align-items:center;">
-          <img src="${welcomeImageUrl || './icon.svg'}" alt="" style="width:72px;height:72px;border-radius:50%;object-fit:cover;flex-shrink:0;">
+          <img src="${welcomeImageUrl || './icon.svg'}" alt="" style="width:128px;aspect-ratio:16/9;border-radius:10px;object-fit:cover;flex-shrink:0;">
           <input type="file" accept="image/*" id="new-welcome-image-file" class="hidden" style="display:none">
           <button class="btn secondary" id="pick-welcome-image-file" ${uploadingWelcomeImage ? 'disabled' : ''}>${uploadingWelcomeImage ? 'Caricamento...' : '📷 Cambia immagine'}</button>
         </div>
       </div>
 
       <div class="card">
-        <h2>📡 Telecomandi compatibili (${compatibleRemotes.length})</h2>
-        <p class="small">Bacheca visibile nella schermata Bluetooth: nome del telecomando + link (es. affiliazione Amazon). Compare con dicitura "link sponsorizzato".</p>
+        <h2>📡 Telecomandi compatibili (${compatibleRemotes.length}/${MAX_COMPATIBLE_REMOTES})</h2>
+        <p class="small">Pagina dedicata raggiungibile dalla schermata Bluetooth: nome + link (es. affiliazione Amazon) + immagine opzionale. Al massimo ${MAX_COMPATIBLE_REMOTES}. Compare con dicitura "link sponsorizzato".</p>
+        ${remotesFull ? `<p class="small mb0" style="color:var(--danger,#e5484d);">⚠️ Hai già ${MAX_COMPATIBLE_REMOTES} telecomandi. Eliminane uno per poterne aggiungere un altro.</p>` : `
         <div class="field">
           <label>Nome telecomando</label>
           <input id="new-remote-label" placeholder="es. Telecomando scatto foto Bluetooth" maxlength="60">
@@ -129,11 +133,16 @@ export async function renderAdmin(el) {
           <label>Posizione (opzionale)</label>
           <input id="new-remote-order" type="number" placeholder="es. 1 per metterlo primo">
         </div>
-        <button class="btn secondary block" id="add-remote">➕ Aggiungi alla bacheca</button>
+        <div class="row" style="gap:10px;align-items:center;">
+          <input type="file" accept="image/*" id="new-remote-file" class="hidden" style="display:none">
+          <button class="btn secondary" id="pick-remote-file" type="button">${pickedRemoteImage ? '✓ Immagine scelta' : '📷 Immagine (opzionale)'}</button>
+        </div>
+        <button class="btn secondary block mt" id="add-remote">➕ Aggiungi alla bacheca</button>
+        `}
         <div class="mt">
           ${compatibleRemotes.map((r) => `
             <div class="list-item">
-              <div class="avatar">🎮</div>
+              <div class="avatar">${r.imageUrl ? `<img src="${r.imageUrl}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">` : '🎮'}</div>
               <div class="meta"><strong>${escapeHtml(r.label || '')}</strong><span>${escapeHtml(r.link || '')}</span></div>
               <input type="number" class="small" data-order-remote="${r.id}" value="${r.order ?? 9999}" style="width:56px;text-align:center;">
               <button class="btn ghost small" data-save-order-remote="${r.id}">✓</button>
@@ -179,7 +188,7 @@ export async function renderAdmin(el) {
       const file = e.target.files[0];
       e.target.value = '';
       if (!file) return;
-      const blob = await openImageCropper(file, { shape: 'circle' });
+      const blob = await openImageCropper(file, { shape: 'square', aspect: 16 / 9 });
       if (!blob) return;
       uploadingWelcomeImage = true;
       paint();
@@ -194,12 +203,27 @@ export async function renderAdmin(el) {
       }
     });
 
-    el.querySelector('#add-remote').addEventListener('click', async () => {
+    el.querySelector('#pick-remote-file')?.addEventListener('click', () => el.querySelector('#new-remote-file').click());
+    el.querySelector('#new-remote-file')?.addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      e.target.value = '';
+      if (!file) return;
+      const blob = await openImageCropper(file, { shape: 'circle' });
+      if (!blob) return;
+      pickedRemoteImage = blob;
+      paint();
+    });
+    el.querySelector('#add-remote')?.addEventListener('click', async () => {
+      if (getState().compatibleRemotes.length >= MAX_COMPATIBLE_REMOTES) {
+        toast(`Massimo ${MAX_COMPATIBLE_REMOTES} - eliminane uno prima`);
+        return;
+      }
       const label = el.querySelector('#new-remote-label').value.trim().slice(0, 60);
       const link = el.querySelector('#new-remote-link').value.trim();
       if (!label || !link) { toast('Inserisci nome e link'); return; }
       const orderVal = parseInt(el.querySelector('#new-remote-order').value, 10);
-      await addCompatibleRemote(label, link, isNaN(orderVal) ? 9999 : orderVal);
+      await addCompatibleRemote(label, link, pickedRemoteImage, isNaN(orderVal) ? 9999 : orderVal);
+      pickedRemoteImage = null;
       toast('Aggiunto alla bacheca!');
     });
     el.querySelectorAll('[data-del-remote]').forEach((btn) => btn.addEventListener('click', async () => {

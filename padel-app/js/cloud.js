@@ -4,7 +4,7 @@
 // device is offline, so screens can call these unconditionally.
 import {
   firebaseAvailable, db, mods, currentUser,
-  fsGet, fsSet, fsAdd, fsQueryWhere, fsListenCollection, uploadAvatar, uploadCatalogImage,
+  fsGet, fsSet, fsAdd, fsQueryWhere, fsListenCollection, fsListen, uploadAvatar, uploadCatalogImage,
 } from './firebase.js';
 import { uid as genId } from './utils.js';
 
@@ -281,4 +281,41 @@ export async function deleteCustomCatalogItem(kind, itemId) {
   if (!isCloudReady()) return;
   const { fs } = mods();
   await fs.deleteDoc(fs.doc(db(), `${collectionFor(kind)}/${itemId}`));
+}
+
+// ---- Admin: bacheca "Telecomandi compatibili" (nome + link, niente
+// immagine) - stesso concetto della vetrina Premi ma senza upload, visibile
+// nella schermata Bluetooth. ----
+export async function addCompatibleRemote(label, link, order = 9999) {
+  if (!isCloudReady()) return;
+  const itemId = genId();
+  await fsSet(`compatibleRemotes/${itemId}`, { label, link, order, createdAt: Date.now() });
+}
+
+export async function updateCompatibleRemoteOrder(itemId, order) {
+  if (!isCloudReady()) return;
+  await fsSet(`compatibleRemotes/${itemId}`, { order });
+}
+
+export function listenCompatibleRemotes(cb) {
+  if (!firebaseAvailable()) return () => {};
+  return fsListenCollection('compatibleRemotes', cb);
+}
+
+export async function deleteCompatibleRemote(itemId) {
+  if (!isCloudReady()) return;
+  const { fs } = mods();
+  await fs.deleteDoc(fs.doc(db(), `compatibleRemotes/${itemId}`));
+}
+
+// ---- Admin: immagine circolare della schermata iniziale ----
+export async function uploadWelcomeImage(blob) {
+  if (!isCloudReady()) return;
+  const imageUrl = await uploadCatalogImage('admin-config/welcomeImage', blob);
+  await fsSet('config/welcomeImage', { imageUrl, updatedAt: Date.now() });
+}
+
+export function listenWelcomeImage(cb) {
+  if (!firebaseAvailable()) return () => {};
+  return fsListen('config/welcomeImage', (data) => cb(data?.imageUrl || null));
 }

@@ -208,6 +208,15 @@ label { font-size: 0.85em; color: var(--text-dim); display: block; margin-bottom
 .badge.accent { background: var(--accent); color: var(--accent-contrast); }
 .badge.warn { background: var(--warning); color: #241800; }
 
+.rsvp-status-chip {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 30px; height: 30px; border-radius: 50%; font-size: 1.15em;
+  background: var(--surface-2);
+}
+.rsvp-status-chip.yes { background: color-mix(in srgb, var(--accent) 22%, transparent); }
+.rsvp-status-chip.no { background: color-mix(in srgb, var(--danger) 22%, transparent); }
+.rsvp-status-chip.pending { background: color-mix(in srgb, var(--warning) 22%, transparent); }
+
 .avatar {
   width: 54px; height: 54px; border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
@@ -543,7 +552,7 @@ a { color: var(--accent-2); }
   min-height: 100vh; display: flex; flex-direction: column; align-items: center;
   padding: 40px 24px calc(24px + var(--safe-bottom)); text-align: center;
 }
-.welcome-icon { width: 128px; height: 128px; border-radius: 28px; margin-bottom: 18px; box-shadow: 0 8px 30px rgba(0,0,0,0.35); }
+.welcome-icon { width: 156px; height: 156px; border-radius: 50%; object-fit: cover; margin-bottom: 18px; box-shadow: 0 8px 30px rgba(0,0,0,0.35); }
 .welcome-title { font-size: 2em; margin: 0 0 4px; }
 .welcome-tagline { color: var(--accent); font-weight: 700; margin: 0 0 18px; }
 .welcome-desc { color: var(--text-dim); line-height: 1.5; margin-bottom: 26px; }

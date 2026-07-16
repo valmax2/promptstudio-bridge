@@ -28,5 +28,13 @@ service firebase.storage {
         && request.resource.size < 5 * 1024 * 1024
         && request.resource.contentType.matches('image/.*');
     }
+    // Immagine circolare della schermata iniziale, sostituibile solo
+    // dall'admin (vedi js/screens/admin.js e js/screens/welcome.js).
+    match /admin-config/{fileName} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == 'CAvv7ICUfYYpqcCRjA7s3ZhsoGo2'
+        && request.resource.size < 5 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+    }
   }
 }

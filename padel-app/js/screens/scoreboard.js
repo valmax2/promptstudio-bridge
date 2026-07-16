@@ -1,7 +1,7 @@
 import { getState, addMatch, updateSettings } from '../store.js';
 import { pushMatch } from '../cloud.js';
 import { say, stopSpeech } from '../speech.js';
-import { escapeHtml, BACK_ICON } from '../utils.js';
+import { escapeHtml, BACK_ICON, uid as genId } from '../utils.js';
 import {
   createMatch, addPoint, matchPointDisplay, teamName, isGamePoint, resetCurrentGame, endTimeMatch,
 } from '../scoring.js';
@@ -31,10 +31,12 @@ let setupFormat = 'classic';
 let setupTimeMinutes = 45;
 let timeInterval = null;
 let stopHwKeys = () => {};
+let victoryModalOpen = false;
 
 export async function renderScoreboard(el) {
   const { settings } = getState();
   ttsEnabled = settings.ttsEnabled;
+  victoryModalOpen = false;
 
   document.getElementById('bottom-nav').classList.add('hidden');
   setKeepScreenOn(true);
@@ -106,7 +108,7 @@ function startLive(el) {
       if (Date.now() >= match.matchEndsAt) {
         clearInterval(timeInterval);
         match = endTimeMatch(match);
-        const winner = match.matchWinner ? `Vince ${teamName(match, match.matchWinner)}!` : 'Pareggio!';
+        const winner = customVictoryAnnouncement(match) || (match.matchWinner ? `Vince ${teamName(match, match.matchWinner)}!` : 'Pareggio!');
         if (ttsEnabled) say(`Tempo scaduto! ${winner}`);
         toast(winner);
         if (match.matchOver && !matchAutoSaved) {
@@ -117,6 +119,56 @@ function startLive(el) {
       paint(document.querySelector('.screen'));
     }, 1000);
   }
+}
+
+// ===== Frase di fine partita personalizzata =====
+// Sostituisce l'annuncio predefinito ("Partita vinta da...") quando l'utente
+// ne ha scelta una attiva. {vincitore}/{avversario} nel testo diventano i
+// nomi reali delle squadre solo a fine partita (qui restano segnaposto).
+function currentVictoryPhraseLabel(settings) {
+  const active = settings.victoryPhrases.find((p) => p.id === settings.activeVictoryPhraseId);
+  return active ? `Attiva: "${escapeHtml(active.text)}"` : 'Predefinita ("Partita vinta da...")';
+}
+
+function customVictoryAnnouncement(m) {
+  const { settings } = getState();
+  const phrase = settings.victoryPhrases.find((p) => p.id === settings.activeVictoryPhraseId);
+  if (!phrase || !m.matchWinner) return null;
+  const winner = teamName(m, m.matchWinner);
+  const loser = teamName(m, m.matchWinner === 'A' ? 'B' : 'A');
+  return phrase.text.replaceAll('{vincitore}', winner).replaceAll('{avversario}', loser);
+}
+
+function victoryPhraseModal(settings) {
+  return `
+    <div class="modal-backdrop" id="victory-modal">
+      <div class="modal-card">
+        <h2><span>🏆 Frase di fine partita</span><button class="icon-btn" id="victory-modal-close" aria-label="Chiudi">✕</button></h2>
+        <p class="small">Usa <strong>{vincitore}</strong> e <strong>{avversario}</strong> nel testo: a fine partita vengono sostituiti con i nomi reali delle squadre.</p>
+        <div class="mt">
+          <label class="row" style="gap:8px;">
+            <input type="radio" name="victory-phrase" value="" ${!settings.activeVictoryPhraseId ? 'checked' : ''}>
+            <span class="small">Predefinita ("Partita vinta da...")</span>
+          </label>
+          ${settings.victoryPhrases.map((p) => `
+            <div class="row between" style="gap:8px;">
+              <label class="row" style="gap:8px;flex:1;">
+                <input type="radio" name="victory-phrase" value="${p.id}" ${settings.activeVictoryPhraseId === p.id ? 'checked' : ''}>
+                <span class="small">${escapeHtml(p.text)}</span>
+              </label>
+              <button class="btn ghost small" data-del-victory-phrase="${p.id}">✕</button>
+            </div>
+          `).join('')}
+        </div>
+        <div class="field mt">
+          <label>Nuova frase</label>
+          <input id="new-victory-phrase" placeholder="es. la squadra {vincitore} ha fatto il culo alla squadra {avversario}" maxlength="140">
+        </div>
+        <button class="btn secondary block" id="add-victory-phrase">+ Aggiungi e attiva</button>
+        <button class="btn primary block mt" id="victory-modal-done">Fatto</button>
+      </div>
+    </div>
+  `;
 }
 
 // ===== New match setup =====
@@ -216,10 +268,17 @@ function paintSetup(el) {
             </div>
           </div>
         </div>
+        <div class="card">
+          <label>🏆 Frase di fine partita</label>
+          <p class="small mb0">${currentVictoryPhraseLabel(settings)}</p>
+          <button class="btn secondary block mt" id="setup-victory-phrase">Personalizza</button>
+        </div>
         ${LITE_MODE ? '<button class="btn secondary block mt" id="setup-bluetooth">🔵 Configura Bluetooth</button>' : ''}
         <button class="btn primary block mt" id="start-match">Inizia partita</button>
       </div>
     </div>
+
+    ${victoryModalOpen ? victoryPhraseModal(settings) : ''}
   `;
 
   el.querySelector('#sb-back').addEventListener('click', () => navigate('home'));
@@ -245,6 +304,32 @@ function paintSetup(el) {
     paintSetup(el);
   }));
   el.querySelector('#setup-bluetooth')?.addEventListener('click', () => navigate('bluetooth-setup'));
+  el.querySelector('#setup-victory-phrase')?.addEventListener('click', () => { victoryModalOpen = true; paintSetup(el); });
+  el.querySelector('#victory-modal-close')?.addEventListener('click', () => { victoryModalOpen = false; paintSetup(el); });
+  el.querySelector('#victory-modal-done')?.addEventListener('click', () => { victoryModalOpen = false; paintSetup(el); });
+  el.querySelector('#victory-modal')?.addEventListener('click', (e) => {
+    if (e.target.id === 'victory-modal') { victoryModalOpen = false; paintSetup(el); }
+  });
+  el.querySelectorAll('[name="victory-phrase"]').forEach((input) => input.addEventListener('change', (e) => {
+    updateSettings({ activeVictoryPhraseId: e.target.value || null });
+  }));
+  el.querySelector('#add-victory-phrase')?.addEventListener('click', () => {
+    const input = el.querySelector('#new-victory-phrase');
+    const text = input.value.trim().slice(0, 140);
+    if (!text) return;
+    const phrase = { id: genId(), text };
+    const { settings } = getState();
+    updateSettings({ victoryPhrases: [...settings.victoryPhrases, phrase], activeVictoryPhraseId: phrase.id });
+    input.value = '';
+    paintSetup(el);
+  });
+  el.querySelectorAll('[data-del-victory-phrase]').forEach((btn) => btn.addEventListener('click', () => {
+    const { settings } = getState();
+    const id = btn.dataset.delVictoryPhrase;
+    const nextActive = settings.activeVictoryPhraseId === id ? null : settings.activeVictoryPhraseId;
+    updateSettings({ victoryPhrases: settings.victoryPhrases.filter((p) => p.id !== id), activeVictoryPhraseId: nextActive });
+    paintSetup(el);
+  }));
   el.querySelectorAll('[data-format]').forEach((btn) => btn.addEventListener('click', () => {
     setupFormat = btn.dataset.format;
     paintSetup(el);
@@ -444,8 +529,9 @@ function onPoint(team) {
   history.push(structuredClone(match));
   const { match: next, announcement, events } = addPoint(match, team);
   match = next;
-  if (ttsEnabled) say(announcement);
-  if (events.matchWon) toast(announcement);
+  const finalAnnouncement = events.matchWon ? (customVictoryAnnouncement(match) || announcement) : announcement;
+  if (ttsEnabled) say(finalAnnouncement);
+  if (events.matchWon) toast(finalAnnouncement);
   if (match.matchOver && !matchAutoSaved) {
     matchAutoSaved = true;
     saveMatchRecord(match);

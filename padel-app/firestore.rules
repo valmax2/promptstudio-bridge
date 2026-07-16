@@ -79,6 +79,18 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // Bacheca "Telecomandi compatibili" (nome + link affiliato) e immagine
+    // circolare della schermata iniziale - stesso schema di sopra: lettura
+    // per chiunque autenticato, scrittura solo admin.
+    match /compatibleRemotes/{itemId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+    match /config/{docId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
     // Le partite sono private a chi le ha registrate.
     match /matches/{matchId} {
       allow read: if isSignedIn() && resource.data.createdBy == request.auth.uid;

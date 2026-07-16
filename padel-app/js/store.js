@@ -44,6 +44,11 @@ const DEFAULT_STATE = {
     // 0 = disattivato; altrimenti annuncia a voce l'ora corrente ogni tot
     // partite salvate, così chi gioca sa se c'è ancora tempo per un'altra.
     announceTimeEveryMatches: 0,
+    // Frasi personalizzate per l'annuncio vocale di fine partita: {id, text}
+    // con {vincitore}/{avversario} come segnaposto per i nomi squadra.
+    // activeVictoryPhraseId null = usa l'annuncio predefinito.
+    victoryPhrases: [],
+    activeVictoryPhraseId: null,
   },
   profile: {
     uid: null,
@@ -79,6 +84,13 @@ const DEFAULT_STATE = {
   // (niente XP/livelli/sblocchi - solo un annuncio/vetrina che chiunque
   // vede ma solo lei può cambiare). {id, label, imageUrl, order, createdAt}.
   prizes: [],
+  // Bacheca "Telecomandi compatibili" gestita solo dall'admin: nome +
+  // link (affiliazione Amazon o altro negozio). {id, label, link, order, createdAt}.
+  compatibleRemotes: [],
+  // Immagine circolare mostrata nella schermata iniziale, sostituibile
+  // dall'admin in qualsiasi momento (vedi js/screens/admin.js). null finché
+  // l'admin non ne carica una: si usa icon.svg come immagine provvisoria.
+  welcomeImageUrl: null,
 };
 
 function loadState() {

@@ -209,7 +209,8 @@ function participantRow(uid, event, me, participants, friends, myProfile) {
   const name = participantName(uid, event, me, friends, myProfile);
   const status = participants[uid];
   const icon = status === 'yes' ? '✅' : status === 'no' ? '❌' : '⏳';
-  return `<div class="row between" style="padding:3px 0;"><span class="small">${escapeHtml(name)}</span><span>${icon}</span></div>`;
+  const cls = status === 'yes' ? 'yes' : status === 'no' ? 'no' : 'pending';
+  return `<div class="row between" style="padding:3px 0;"><span class="small">${escapeHtml(name)}</span><span class="rsvp-status-chip ${cls}">${icon}</span></div>`;
 }
 
 function participantName(uid, event, me, friends, myProfile) {

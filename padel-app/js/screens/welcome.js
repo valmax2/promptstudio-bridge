@@ -1,5 +1,7 @@
 import { getState, setState } from '../store.js';
 import { navigate } from '../router.js';
+import { firebaseAvailable } from '../firebase.js';
+import { listenWelcomeImage } from '../cloud.js';
 
 // TODO: sostituisci con la tua email reale di supporto.
 const SUPPORT_EMAIL = 'supporto@padelapp.app';
@@ -11,9 +13,25 @@ const BOOK_ICON = `<svg class="btn-icon-svg" viewBox="0 0 24 24" fill="none" str
 const MAIL_ICON = `<svg class="btn-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 6-10 7L2 6"/></svg>`;
 
 export async function renderWelcome(el) {
+  paint(el);
+
+  let unsubWelcomeImage = null;
+  if (firebaseAvailable()) {
+    unsubWelcomeImage = listenWelcomeImage((url) => {
+      setState({ welcomeImageUrl: url }, { silent: true });
+      const img = el.querySelector('.welcome-icon');
+      if (img) img.src = url || './icon.svg';
+    });
+  }
+
+  return () => { unsubWelcomeImage?.(); };
+}
+
+function paint(el) {
+  const welcomeImageUrl = getState().welcomeImageUrl;
   el.innerHTML = `
     <div class="welcome-screen">
-      <img class="welcome-icon" src="./icon.svg" alt="Padel App">
+      <img class="welcome-icon" src="${welcomeImageUrl || './icon.svg'}" alt="Padel App">
       <h1 class="welcome-title">Padel App</h1>
       <p class="welcome-tagline">Il tuo segnapunti &amp; assistente intelligente</p>
       <p class="welcome-desc">

@@ -21,7 +21,7 @@ export async function renderWelcome(el) {
         <button class="btn secondary" id="welcome-tutorial" style="flex:1;">📖 Tutorial</button>
         <button class="btn secondary" id="welcome-support" style="flex:1;">✉️ Supporto</button>
       </div>
-      <p class="welcome-footer small">Privacy</p>
+      <p class="welcome-footer small">di VStudioApps · Privacy</p>
     </div>
 
     <div class="modal-backdrop hidden" id="tutorial-modal">
@@ -30,7 +30,7 @@ export async function renderWelcome(el) {
         <p><strong>1. Nuova partita</strong> — dalla Home scegli Doppio/Singolo, Americano o Killer, imposta chi serve e il formato, poi gioca toccando il lato di chi fa punto.</p>
         <p><strong>2. Telecomando Bluetooth</strong> — in Impostazioni → Bluetooth puoi associare telecomandi o tag per segnare i punti senza toccare lo schermo.</p>
         <p><strong>3. Community</strong> — aggiungi amici con un codice, crea gruppi con chat condivisa, e organizza eventi.</p>
-        <p><strong>4. Premi</strong> — guadagni XP giocando: sblocchi avatar e cornici profilo salendo di livello.</p>
+        <p><strong>4. Premi</strong> — una vetrina di novità scelta di volta in volta, sempre visibile dal Profilo.</p>
         <button class="btn primary block mt" id="tutorial-done">Ho capito</button>
       </div>
     </div>

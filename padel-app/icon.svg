@@ -1,64 +1,86 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
   <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#0B1220"/>
-      <stop offset="1" stop-color="#123A4A"/>
-    </linearGradient>
-    <linearGradient id="paddle" x1="0" y1="0" x2="0.3" y2="1">
-      <stop offset="0" stop-color="#9CFF8D"/>
-      <stop offset="1" stop-color="#1FBE96"/>
-    </linearGradient>
-    <radialGradient id="ballGrad" cx="35%" cy="32%" r="75%">
-      <stop offset="0" stop-color="#FFF6B8"/>
-      <stop offset="1" stop-color="#FFC93C"/>
+    <radialGradient id="bg" cx="50%" cy="42%" r="75%">
+      <stop offset="0" stop-color="#132018"/>
+      <stop offset="60%" stop-color="#0A1410"/>
+      <stop offset="1" stop-color="#050807"/>
     </radialGradient>
-    <mask id="holes">
-      <rect x="-160" y="-268" width="320" height="360" rx="140" fill="#fff"/>
-      <g fill="#000">
-        <circle cx="-88" cy="-210" r="13"/>
-        <circle cx="-30" cy="-222" r="13"/>
-        <circle cx="30" cy="-222" r="13"/>
-        <circle cx="88" cy="-210" r="13"/>
-        <circle cx="-110" cy="-160" r="13"/>
-        <circle cx="-55" cy="-168" r="13"/>
-        <circle cx="0" cy="-172" r="13"/>
-        <circle cx="55" cy="-168" r="13"/>
-        <circle cx="110" cy="-160" r="13"/>
-        <circle cx="-120" cy="-105" r="13"/>
-        <circle cx="-65" cy="-112" r="13"/>
-        <circle cx="-8" cy="-116" r="13"/>
-        <circle cx="50" cy="-112" r="13"/>
-        <circle cx="120" cy="-105" r="13"/>
-        <circle cx="-118" cy="-48" r="13"/>
-        <circle cx="-62" cy="-54" r="13"/>
-        <circle cx="-5" cy="-58" r="13"/>
-        <circle cx="52" cy="-54" r="13"/>
-        <circle cx="118" cy="-48" r="13"/>
-        <circle cx="-100" cy="8" r="13"/>
-        <circle cx="-45" cy="2" r="13"/>
-        <circle cx="15" cy="0" r="13"/>
-        <circle cx="75" cy="4" r="13"/>
-        <circle cx="-70" cy="58" r="13"/>
-        <circle cx="-10" cy="55" r="13"/>
-        <circle cx="50" cy="58" r="13"/>
-      </g>
-    </mask>
+    <linearGradient id="neon" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#CBFF6B"/>
+      <stop offset="1" stop-color="#4CE0A0"/>
+    </linearGradient>
+    <radialGradient id="ballGrad" cx="35%" cy="30%" r="75%">
+      <stop offset="0" stop-color="#FFFCE0"/>
+      <stop offset="1" stop-color="#DFF564"/>
+    </radialGradient>
+    <filter id="glow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="18" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="softGlow" x="-100%" y="-100%" width="300%" height="300%">
+      <feGaussianBlur stdDeviation="10"/>
+    </filter>
   </defs>
 
   <rect width="1024" height="1024" rx="220" fill="url(#bg)"/>
 
-  <g transform="translate(512,460)">
-    <ellipse cx="14" cy="36" rx="175" ry="225" fill="#000" opacity="0.22"/>
+  <!-- neon border ring -->
+  <rect x="34" y="34" width="956" height="956" rx="196" fill="none" stroke="url(#neon)" stroke-width="10" opacity="0.5" filter="url(#softGlow)"/>
+  <rect x="34" y="34" width="956" height="956" rx="196" fill="none" stroke="url(#neon)" stroke-width="7"/>
 
-    <rect x="-160" y="-268" width="320" height="360" rx="140" fill="url(#paddle)" mask="url(#holes)"/>
-    <rect x="-160" y="-268" width="320" height="360" rx="140" fill="none" stroke="#0B1220" stroke-width="8" opacity="0.14"/>
+  <!-- scattered sparkle dots -->
+  <g fill="#8FE6C8">
+    <circle cx="160" cy="220" r="6" opacity="0.7"/>
+    <circle cx="210" cy="330" r="4" opacity="0.5"/>
+    <circle cx="140" cy="420" r="7" opacity="0.6"/>
+    <circle cx="820" cy="260" r="6" opacity="0.6"/>
+    <circle cx="870" cy="380" r="5" opacity="0.5"/>
+    <circle cx="780" cy="470" r="4" opacity="0.45"/>
+    <circle cx="200" cy="700" r="5" opacity="0.5"/>
+    <circle cx="120" cy="600" r="4" opacity="0.4"/>
+    <circle cx="850" cy="700" r="6" opacity="0.55"/>
+    <circle cx="900" cy="600" r="4" opacity="0.4"/>
+  </g>
+  <g fill="#DFF564">
+    <circle cx="300" cy="180" r="5" opacity="0.55"/>
+    <circle cx="700" cy="200" r="5" opacity="0.5"/>
+    <circle cx="260" cy="820" r="5" opacity="0.45"/>
+    <circle cx="740" cy="800" r="6" opacity="0.5"/>
+  </g>
 
-    <rect x="-38" y="90" width="76" height="205" rx="34" fill="url(#paddle)"/>
-    <rect x="-38" y="88" width="76" height="30" rx="14" fill="#0B1220" opacity="0.12"/>
-    <rect x="-30" y="255" width="60" height="34" rx="16" fill="#0B1220" opacity="0.4"/>
+  <g transform="translate(512,470)" filter="url(#glow)">
+    <ellipse cx="18" cy="40" rx="170" ry="220" fill="#000" opacity="0.35"/>
 
-    <circle cx="222" cy="255" r="82" fill="url(#ballGrad)"/>
-    <path d="M 222 174 Q 262 255 222 336" stroke="#0B1220" stroke-width="7" fill="none" opacity="0.25"/>
-    <path d="M 222 174 Q 182 255 222 336" stroke="#0B1220" stroke-width="7" fill="none" opacity="0.25"/>
+    <!-- racket head: neon outline, glassy fill -->
+    <rect x="-158" y="-266" width="316" height="356" rx="140" fill="#9CFF8D" opacity="0.06"/>
+    <rect x="-158" y="-266" width="316" height="356" rx="140" fill="none" stroke="url(#neon)" stroke-width="15"/>
+
+    <!-- sparse perforation dots -->
+    <g fill="url(#neon)" opacity="0.85">
+      <circle cx="-90" cy="-205" r="10"/>
+      <circle cx="0" cy="-225" r="10"/>
+      <circle cx="90" cy="-205" r="10"/>
+      <circle cx="-115" cy="-120" r="10"/>
+      <circle cx="0" cy="-140" r="10"/>
+      <circle cx="115" cy="-120" r="10"/>
+      <circle cx="-95" cy="-25" r="10"/>
+      <circle cx="0" cy="-45" r="10"/>
+      <circle cx="95" cy="-25" r="10"/>
+      <circle cx="-60" cy="65" r="10"/>
+      <circle cx="60" cy="65" r="10"/>
+    </g>
+
+    <!-- handle -->
+    <rect x="-36" y="88" width="72" height="200" rx="32" fill="none" stroke="url(#neon)" stroke-width="15"/>
+    <rect x="-28" y="252" width="56" height="30" rx="14" fill="url(#neon)" opacity="0.7"/>
+
+    <!-- ball -->
+    <circle cx="228" cy="248" r="80" fill="url(#ballGrad)"/>
+    <circle cx="228" cy="248" r="80" fill="none" stroke="#0A1410" stroke-width="4" opacity="0.25"/>
+    <path d="M 228 170 Q 266 248 228 326" stroke="#0A1410" stroke-width="6" fill="none" opacity="0.3"/>
+    <path d="M 228 170 Q 190 248 228 326" stroke="#0A1410" stroke-width="6" fill="none" opacity="0.3"/>
   </g>
 </svg>

@@ -57,6 +57,12 @@ mkdir -p assets
 cp icon.svg assets/icon-only.svg 2>/dev/null || true
 npx capacitor-assets generate --android || echo "⚠ Generazione icone saltata (opzionale): aggiungi asset in assets/ e rilancia."
 
+# Rimuovo l'icona adattiva di default di Capacitor (mipmap-anydpi-v26), che
+# su Android 8+ avrebbe priorità sulle mipmap-*/ic_launcher.png appena
+# rigenerate e mostrerebbe l'icona sbagliata/rotta.
+rm -f android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml \
+      android/app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml
+
 echo "▶ Sincronizzo"
 npx cap sync android
 

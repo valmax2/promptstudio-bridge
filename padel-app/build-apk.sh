@@ -95,6 +95,15 @@ mkdir -p assets
 cp "$HERE"/icon.svg assets/icon-only.svg
 npx capacitor-assets generate --android || echo "⚠ Generazione icona saltata (l'APK userà l'icona precedente)."
 
+# Il progetto Android di "cap add android" include di serie un'icona adattiva
+# (mipmap-anydpi-v26) che punta ai drawable segnaposto blu di Capacitor: su
+# Android 8+ questa ha priorità sulle mipmap-*/ic_launcher.png rigenerate
+# sopra, quindi il launcher mostrerebbe l'icona sbagliata (o rotta dopo un
+# aggiornamento) finché non la rimuoviamo, lasciando che il sistema usi le
+# nostre PNG piatte.
+rm -f android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml \
+      android/app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml
+
 npx cap sync android
 
 echo "▶ Correggo un conflitto Gradle noto (classi Kotlin duplicate: kotlin-stdlib"

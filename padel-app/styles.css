@@ -11,9 +11,9 @@
   --border: #2A3854;
   --text: #F2F5FA;
   --text-dim: #9AA7C2;
-  --accent: #7CFF6B;
-  --accent-2: #2FD3A6;
-  --accent-contrast: #06210F;
+  --accent: #4DD9FF;
+  --accent-2: #8CFF5C;
+  --accent-contrast: #041A14;
   --danger: #FF6B6B;
   --warning: #FFC15E;
   --shadow: 0 10px 30px rgba(0,0,0,0.35);
@@ -31,8 +31,8 @@
   --border: #D6DDEA;
   --text: #10141F;
   --text-dim: #454E60;
-  --accent: #0E9F5C;
-  --accent-2: #067A6D;
+  --accent: #0B8FBF;
+  --accent-2: #0E9F5C;
   --accent-contrast: #FFFFFF;
   --danger: #C62828;
   --warning: #A85B00;
@@ -117,7 +117,7 @@ button { font-family: inherit; }
   transition: transform .08s ease, filter .15s ease;
 }
 .btn:active { transform: scale(0.96); }
-.btn.primary { background: var(--accent); color: var(--accent-contrast); }
+.btn.primary { background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: var(--accent-contrast); }
 .btn.secondary { background: var(--surface-2); color: var(--text); border: 1px solid var(--border); }
 .btn.danger { background: var(--danger); color: #fff; }
 .btn.ghost { background: transparent; border: 1px solid var(--border); }

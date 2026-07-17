@@ -1,17 +1,17 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
   <defs>
     <radialGradient id="bg" cx="50%" cy="42%" r="75%">
-      <stop offset="0" stop-color="#132018"/>
-      <stop offset="60%" stop-color="#0A1410"/>
-      <stop offset="1" stop-color="#050807"/>
+      <stop offset="0" stop-color="#0F1E22"/>
+      <stop offset="60%" stop-color="#0A1416"/>
+      <stop offset="1" stop-color="#05080A"/>
     </radialGradient>
     <linearGradient id="neon" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#CBFF6B"/>
-      <stop offset="1" stop-color="#4CE0A0"/>
+      <stop offset="0" stop-color="#4DD9FF"/>
+      <stop offset="1" stop-color="#8CFF5C"/>
     </linearGradient>
     <radialGradient id="ballGrad" cx="35%" cy="30%" r="75%">
-      <stop offset="0" stop-color="#FFFCE0"/>
-      <stop offset="1" stop-color="#DFF564"/>
+      <stop offset="0" stop-color="#FFFFE8"/>
+      <stop offset="1" stop-color="#A6FF5C"/>
     </radialGradient>
     <filter id="glow" x="-60%" y="-60%" width="220%" height="220%">
       <feGaussianBlur stdDeviation="18" result="blur"/>
@@ -32,7 +32,7 @@
   <rect x="34" y="34" width="956" height="956" rx="196" fill="none" stroke="url(#neon)" stroke-width="7"/>
 
   <!-- scattered sparkle dots -->
-  <g fill="#8FE6C8">
+  <g fill="#4DD9FF">
     <circle cx="160" cy="220" r="6" opacity="0.7"/>
     <circle cx="210" cy="330" r="4" opacity="0.5"/>
     <circle cx="140" cy="420" r="7" opacity="0.6"/>
@@ -44,7 +44,7 @@
     <circle cx="850" cy="700" r="6" opacity="0.55"/>
     <circle cx="900" cy="600" r="4" opacity="0.4"/>
   </g>
-  <g fill="#DFF564">
+  <g fill="#8CFF5C">
     <circle cx="300" cy="180" r="5" opacity="0.55"/>
     <circle cx="700" cy="200" r="5" opacity="0.5"/>
     <circle cx="260" cy="820" r="5" opacity="0.45"/>
@@ -55,7 +55,7 @@
     <ellipse cx="18" cy="40" rx="170" ry="220" fill="#000" opacity="0.35"/>
 
     <!-- racket head: neon outline, glassy fill -->
-    <rect x="-158" y="-266" width="316" height="356" rx="140" fill="#9CFF8D" opacity="0.06"/>
+    <rect x="-158" y="-266" width="316" height="356" rx="140" fill="#6BE0FF" opacity="0.06"/>
     <rect x="-158" y="-266" width="316" height="356" rx="140" fill="none" stroke="url(#neon)" stroke-width="15"/>
 
     <!-- sparse perforation dots -->

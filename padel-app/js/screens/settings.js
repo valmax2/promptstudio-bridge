@@ -2,6 +2,7 @@ import { getState, updateSettings } from '../store.js';
 import { navigate } from '../router.js';
 import { pushProfile } from '../cloud.js';
 import { isCloudReady } from '../cloud.js';
+import { redeemProCode } from '../cloud.js';
 import { firebaseAvailable, currentUser } from '../firebase.js';
 import { say, speechSupported } from '../speech.js';
 import { toast } from '../app.js';
@@ -10,7 +11,7 @@ import { UI_ACCENT_PRESETS, applyUiAccent } from '../ui-accents.js';
 import { remoteSupported, bleTagSupported, disconnectBleTag } from '../ble-remote.js';
 import { BACK_ICON, BLUETOOTH_ICON } from '../utils.js';
 import { APP_VERSION } from '../version.js';
-import { billingSupported, purchasePro, verifyProOnLaunch } from '../billing.js';
+import { billingSupported, purchasePro, verifyProOnLaunch, isPro } from '../billing.js';
 
 let activeCategory = 'bluetooth';
 
@@ -225,12 +226,20 @@ function paint(el) {
     ${activeCategory === 'pro' ? `
     <div class="card">
       <h2>⭐ Padel Score Master Pro</h2>
-      ${getState().pro ? `
-      <p class="small">✅ Hai già sbloccato Pro su questo account. Grazie per il supporto!</p>
+      ${isPro() ? `
+      <p class="small">✅ ${getState().profile.proGranted ? 'Sbloccato con codice amico.' : 'Hai già sbloccato Pro su questo account.'} Grazie per il supporto!</p>
       ` : `
       <p class="small">Acquisto unico, per sempre. Sostieni lo sviluppo dell'app: i contenuti esclusivi Pro arriveranno nei prossimi aggiornamenti.</p>
       <button class="btn primary block mt" id="buy-pro" ${billingSupported() ? '' : 'disabled'}>⭐ Sblocca Pro</button>
       ${billingSupported() ? '' : '<p class="small">Richiede l\'app installata da Google Play (non funziona nell\'anteprima da browser).</p>'}
+      <div class="field mt">
+        <label>Hai un codice amico?</label>
+        <div class="row">
+          <input type="text" id="pro-code-input" placeholder="CODICE" style="text-transform:uppercase;" ${firebaseAvailable() ? '' : 'disabled'}>
+          <button class="btn secondary" id="redeem-pro-code" ${firebaseAvailable() ? '' : 'disabled'}>Riscatta</button>
+        </div>
+        ${firebaseAvailable() ? '' : '<p class="small">Richiede di aver effettuato l\'accesso.</p>'}
+      </div>
       `}
     </div>
     ` : ''}
@@ -347,6 +356,21 @@ function paint(el) {
     const started = await purchasePro();
     if (!started) { toast('Acquisto non disponibile ora'); return; }
     setTimeout(async () => { await verifyProOnLaunch(); paint(el); }, 1500);
+  });
+
+  el.querySelector('#redeem-pro-code')?.addEventListener('click', async () => {
+    const input = el.querySelector('#pro-code-input');
+    const code = input?.value || '';
+    if (!code.trim()) { toast('Inserisci un codice'); return; }
+    const result = await redeemProCode(code);
+    if (result.ok) {
+      toast('Pro sbloccato!');
+      paint(el);
+    } else if (result.reason === 'offline') {
+      toast('Devi aver effettuato l\'accesso');
+    } else {
+      toast('Codice non valido o già esaurito');
+    }
   });
 }
 

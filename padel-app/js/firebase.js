@@ -111,6 +111,15 @@ export async function fsSet(path, data, merge = true) {
   await fs.setDoc(ref, data, { merge });
 }
 
+// Decremento atomico lato server (fs.increment): evita la race condition di
+// due persone che riscattano lo stesso codice monouso nello stesso istante -
+// le regole di sicurezza impongono comunque che il valore non scenda sotto 0.
+export async function fsIncrement(path, field, delta) {
+  const { fs } = _mods;
+  const ref = fs.doc(_db, path);
+  await fs.updateDoc(ref, { [field]: fs.increment(delta) });
+}
+
 export async function fsAdd(collectionPath, data) {
   const { fs } = _mods;
   const ref = fs.collection(_db, collectionPath);

@@ -66,6 +66,10 @@ const DEFAULT_STATE = {
     // js/avatars.js.
     avatarEmoji: 'm-cap',
     avatarUrl: null,
+    // true se sbloccato tramite codice amico (js/cloud.js:redeemProCode) -
+    // percorso separato dall'acquisto Play Billing, ma isPro() in
+    // js/billing.js considera entrambi validi allo stesso modo.
+    proGranted: false,
   },
   // ids of friends/events already surfaced as a notification, so the same
   // one doesn't toast/badge again on every app open - see js/notifications.js.

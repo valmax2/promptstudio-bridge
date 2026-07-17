@@ -91,6 +91,23 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // Codici amico per sbloccare Pro (js/cloud.js:redeemProCode). L'admin
+    // crea/gestisce i documenti { remainingUses } a mano dalla console
+    // Firebase; un utente qualsiasi può solo leggerli (per verificarli) e
+    // decrementarne di esattamente 1 il conteggio rimasto, mai sotto zero -
+    // così due riscatti dello stesso codice monouso nello stesso istante non
+    // possono farlo scendere sotto zero.
+    match /promoCodes/{code} {
+      allow read: if isSignedIn();
+      allow update: if isAdmin() || (
+        isSignedIn() &&
+        resource.data.remainingUses > 0 &&
+        request.resource.data.remainingUses == resource.data.remainingUses - 1 &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['remainingUses'])
+      );
+      allow create, delete: if isAdmin();
+    }
+
     // Le partite sono private a chi le ha registrate.
     match /matches/{matchId} {
       allow read: if isSignedIn() && resource.data.createdBy == request.auth.uid;

@@ -4,7 +4,7 @@
 // device is offline, so screens can call these unconditionally.
 import {
   firebaseAvailable, db, mods, currentUser,
-  fsGet, fsSet, fsAdd, fsQueryWhere, fsListenCollection, fsListen, uploadAvatar, uploadCatalogImage,
+  fsGet, fsSet, fsAdd, fsIncrement, fsQueryWhere, fsListenCollection, fsListen, uploadAvatar, uploadCatalogImage,
 } from './firebase.js';
 import { uid as genId } from './utils.js';
 
@@ -34,6 +34,28 @@ export async function uploadAvatarBlob(blob) {
   const id = uid();
   if (!isCloudReady() || !id) return null;
   return uploadAvatar(id, blob);
+}
+
+// ---- Codice amico "Pro" ----
+// Documenti in promoCodes/{CODICE} con { remainingUses: number }, creati a
+// mano dall'admin in console Firebase. Il decremento è atomico lato server
+// (fs.increment) e le regole di sicurezza bloccano l'update se il codice è
+// già esaurito, quindi due riscatti simultanei dello stesso codice monouso
+// non possono farlo scendere sotto zero.
+export async function redeemProCode(code) {
+  const id = uid();
+  if (!isCloudReady() || !id) return { ok: false, reason: 'offline' };
+  const normalized = code.trim().toUpperCase();
+  if (!normalized) return { ok: false, reason: 'empty' };
+  const entry = await fsGet(`promoCodes/${normalized}`);
+  if (!entry || (entry.remainingUses ?? 0) <= 0) return { ok: false, reason: 'invalid' };
+  try {
+    await fsIncrement(`promoCodes/${normalized}`, 'remainingUses', -1);
+  } catch {
+    return { ok: false, reason: 'invalid' };
+  }
+  await fsSet(`users/${id}`, { proGranted: true, proGrantedByCode: normalized, updatedAt: Date.now() });
+  return { ok: true };
 }
 
 // ---- Friends ----

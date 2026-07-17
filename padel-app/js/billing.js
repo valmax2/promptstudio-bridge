@@ -42,5 +42,6 @@ export async function purchasePro() {
 }
 
 export function isPro() {
-  return !!getState().pro;
+  const state = getState();
+  return !!(state.pro || state.profile.proGranted);
 }

@@ -83,7 +83,7 @@ cp "$HERE"/native-android/com/padelapp/app/*.java "$JAVA_PKG_DIR/"
 
 echo "▶ Aggiungo i permessi Bluetooth e Billing (acquisti in-app)"
 MANIFEST="android/app/src/main/AndroidManifest.xml"
-sed -i 's#</manifest>#    <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />\n    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" android:maxSdkVersion="30" />\n    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" android:maxSdkVersion="30" />\n    <uses-permission android:name="android.permission.BLUETOOTH_SCAN" android:usesPermissionFlags="neverForLocation" />\n    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />\n    <uses-permission android:name="com.android.vending.BILLING" />\n</manifest>#' "$MANIFEST"
+sed -i 's#</manifest>#    <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />\n    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" android:maxSdkVersion="30" />\n    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" android:maxSdkVersion="30" />\n    <uses-permission android:name="android.permission.BLUETOOTH_SCAN" android:usesPermissionFlags="neverForLocation" />\n    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />\n</manifest>#' "$MANIFEST"
 
 echo "▶ Compilo l'AAB firmato (bundleRelease)"
 cd android

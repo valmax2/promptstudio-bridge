@@ -10,6 +10,7 @@ import {
 } from '../ble-remote.js';
 import { escapeHtml, uid as genId, BACK_ICON } from '../utils.js';
 import { LITE_MODE } from '../lite-mode.js';
+import { canUseRemote } from '../gate-config.js';
 
 let bleScanResults = [];
 let bleScanning = false;
@@ -236,6 +237,12 @@ function wireEvents(el) {
   });
 
   el.querySelector('#ble-enabled')?.addEventListener('change', (e) => {
+    if (e.target.checked && !canUseRemote()) {
+      e.target.checked = false;
+      toast('Il telecomando è una funzione Pro');
+      navigate('settings');
+      return;
+    }
     updateSettings({ bleRemoteEnabled: e.target.checked });
     paint(el);
     syncSettings();

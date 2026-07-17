@@ -9,6 +9,7 @@ import { navigate } from '../router.js';
 import { toast } from '../app.js';
 import { nearestColorName } from '../color-presets.js';
 import { LITE_MODE } from '../lite-mode.js';
+import { canUseRemote } from '../gate-config.js';
 import {
   enableRemote, disableRemote, listenBindings,
   setKeepScreenOn,
@@ -429,7 +430,12 @@ function paint(el) {
     paint(el);
   });
   el.querySelector('#sb-remote-toggle').addEventListener('click', () => {
-    updateSettings({ bleRemoteEnabled: !getState().settings.bleRemoteEnabled });
+    const turningOn = !getState().settings.bleRemoteEnabled;
+    if (turningOn && !canUseRemote()) {
+      toast('Il telecomando è una funzione Pro');
+      return;
+    }
+    updateSettings({ bleRemoteEnabled: turningOn });
     setupRemoteListening(el);
     paint(el);
   });

@@ -6,6 +6,8 @@ import { applyColorsToDom } from './color-presets.js';
 import { applyUiAccent } from './ui-accents.js';
 import { initNotifications, stopNotifications } from './notifications.js';
 import { bleTagSupported, connectBleTag, disconnectBleTag } from './ble-remote.js';
+import { initAds } from './ads.js';
+import { verifyProOnLaunch } from './billing.js';
 
 import { renderLogin } from './screens/login.js';
 import { renderHome } from './screens/home.js';
@@ -119,6 +121,9 @@ applyTheme();
 
 subscribe(reconcileBleTags);
 reconcileBleTags();
+
+initAds();
+verifyProOnLaunch();
 
 initRouter(appEl, navEl);
 

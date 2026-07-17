@@ -1,4 +1,9 @@
 import { LITE_MODE } from './lite-mode.js';
+import { showBanner, hideBanner } from './ads.js';
+
+// Il banner AdMob resta nascosto durante il punteggio dal vivo, mai durante
+// una partita in corso - solo sulle altre schermate.
+const LIVE_MATCH_ROUTES = ['scoreboard', 'americano', 'killer'];
 
 const routes = new Map();
 let currentRoute = null;
@@ -53,6 +58,7 @@ export async function navigate(name, { replace = false, params = {} } = {}) {
   if (typeof result === 'function') cleanupFn = result;
   updateNavActive(name);
   window.scrollTo(0, 0);
+  if (LIVE_MATCH_ROUTES.includes(name)) hideBanner(); else showBanner();
 }
 
 function updateNavActive(name) {

@@ -95,6 +95,11 @@ const DEFAULT_STATE = {
   // dall'admin in qualsiasi momento (vedi js/screens/admin.js). null finché
   // l'admin non ne carica una: si usa icon.svg come immagine provvisoria.
   welcomeImageUrl: null,
+  // Stato dell'acquisto "Pro" - va trattato come sola lettura lato UI:
+  // l'unico modo corretto per cambiarlo è js/billing.js:verifyProOnLaunch(),
+  // che lo riverifica sempre contro Play Billing (mai un valore che si
+  // "autoconferma" in locale).
+  pro: false,
 };
 
 function loadState() {

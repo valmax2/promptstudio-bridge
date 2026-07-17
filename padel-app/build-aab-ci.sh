@@ -76,14 +76,26 @@ allprojects {
 }
 EOF
 
-echo "▶ Installo il plugin nativo del telecomando Bluetooth"
+echo "▶ Installo i plugin nativi (telecomando Bluetooth, banner AdMob, acquisti Pro)"
 JAVA_PKG_DIR="android/app/src/main/java/com/padelapp/app"
 mkdir -p "$JAVA_PKG_DIR"
 cp "$HERE"/native-android/com/padelapp/app/*.java "$JAVA_PKG_DIR/"
 
 echo "▶ Aggiungo i permessi Bluetooth e Billing (acquisti in-app)"
 MANIFEST="android/app/src/main/AndroidManifest.xml"
-sed -i 's#</manifest>#    <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />\n    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" android:maxSdkVersion="30" />\n    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" android:maxSdkVersion="30" />\n    <uses-permission android:name="android.permission.BLUETOOTH_SCAN" android:usesPermissionFlags="neverForLocation" />\n    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />\n</manifest>#' "$MANIFEST"
+sed -i 's#</manifest>#    <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />\n    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" android:maxSdkVersion="30" />\n    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" android:maxSdkVersion="30" />\n    <uses-permission android:name="android.permission.BLUETOOTH_SCAN" android:usesPermissionFlags="neverForLocation" />\n    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />\n    <uses-permission android:name="com.android.vending.BILLING" />\n</manifest>#' "$MANIFEST"
+
+echo "▶ Aggiungo l'App ID AdMob al manifest"
+sed -i 's#</application>#    <meta-data android:name="com.google.android.gms.ads.APPLICATION_ID" android:value="ca-app-pub-2590590501208291~5366473322"/>\n</application>#' "$MANIFEST"
+
+echo "▶ Aggiungo le dipendenze Gradle per AdMob e Play Billing"
+cat >> android/app/build.gradle <<'EOF'
+
+dependencies {
+    implementation 'com.google.android.gms:play-services-ads:23.6.0'
+    implementation 'com.android.billingclient:billing:7.1.1'
+}
+EOF
 
 echo "▶ Compilo l'AAB firmato (bundleRelease)"
 cd android

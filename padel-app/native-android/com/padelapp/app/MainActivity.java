@@ -28,6 +28,8 @@ public class MainActivity extends BridgeActivity {
     public void onCreate(Bundle savedInstanceState) {
         registerPlugin(RemoteControlPlugin.class);
         registerPlugin(BleTagPlugin.class);
+        registerPlugin(AdsPlugin.class);
+        registerPlugin(BillingPlugin.class);
         super.onCreate(savedInstanceState);
     }
 

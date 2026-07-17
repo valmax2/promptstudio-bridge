@@ -10,6 +10,7 @@ import { UI_ACCENT_PRESETS, applyUiAccent } from '../ui-accents.js';
 import { remoteSupported, bleTagSupported, disconnectBleTag } from '../ble-remote.js';
 import { BACK_ICON, BLUETOOTH_ICON } from '../utils.js';
 import { APP_VERSION } from '../version.js';
+import { billingSupported, purchasePro, verifyProOnLaunch } from '../billing.js';
 
 let activeCategory = 'bluetooth';
 
@@ -20,6 +21,7 @@ const CATEGORIES = [
   { id: 'colori', icon: '🖌️', label: 'Colori' },
   { id: 'bluetooth', icon: BLUETOOTH_ICON, label: 'Bluetooth' },
   { id: 'cloud', icon: '☁️', label: 'Cloud' },
+  { id: 'pro', icon: '⭐', label: 'Pro' },
 ];
 
 const FONTS = [
@@ -220,6 +222,19 @@ function paint(el) {
     </div>
     ` : ''}
 
+    ${activeCategory === 'pro' ? `
+    <div class="card">
+      <h2>⭐ Padel Score Master Pro</h2>
+      ${getState().pro ? `
+      <p class="small">✅ Hai già sbloccato Pro su questo account. Grazie per il supporto!</p>
+      ` : `
+      <p class="small">Acquisto unico, per sempre. Sostieni lo sviluppo dell'app: i contenuti esclusivi Pro arriveranno nei prossimi aggiornamenti.</p>
+      <button class="btn primary block mt" id="buy-pro" ${billingSupported() ? '' : 'disabled'}>⭐ Sblocca Pro</button>
+      ${billingSupported() ? '' : '<p class="small">Richiede l\'app installata da Google Play (non funziona nell\'anteprima da browser).</p>'}
+      `}
+    </div>
+    ` : ''}
+
     <button class="btn ghost block mt" id="open-welcome">ⓘ Guida e informazioni sull'app</button>
     <p class="small center mt mb0" style="opacity:0.6;">Padel App ${APP_VERSION}</p>
   `;
@@ -326,6 +341,12 @@ function paint(el) {
   el.querySelector('#sync-now')?.addEventListener('click', async () => {
     await syncSettings();
     toast('Sincronizzato con il cloud');
+  });
+
+  el.querySelector('#buy-pro')?.addEventListener('click', async () => {
+    const started = await purchasePro();
+    if (!started) { toast('Acquisto non disponibile ora'); return; }
+    setTimeout(async () => { await verifyProOnLaunch(); paint(el); }, 1500);
   });
 }
 

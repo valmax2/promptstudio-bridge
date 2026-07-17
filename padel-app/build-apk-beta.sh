@@ -43,7 +43,7 @@ echo "▶ Inizializzo il progetto npm e installo Capacitor"
 cat > package.json <<'EOF'
 { "name": "padel-app-beta-capacitor-build", "version": "1.0.0", "private": true }
 EOF
-npm install @capacitor/core @capacitor/cli @capacitor/android @capacitor-community/text-to-speech >/dev/null
+npm install @capacitor/core @capacitor/cli @capacitor/android @capacitor-community/text-to-speech @capacitor/share @capacitor/filesystem >/dev/null
 npm install --save-dev @capacitor/assets >/dev/null
 
 echo "▶ Inizializzo Capacitor ($APP_ID)"

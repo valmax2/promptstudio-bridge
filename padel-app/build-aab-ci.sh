@@ -36,7 +36,7 @@ cd "$BUILD"
 cat > package.json <<'EOF'
 { "name": "padel-app-capacitor-release", "version": "1.0.0", "private": true }
 EOF
-npm install @capacitor/core @capacitor/cli @capacitor/android @capacitor-community/text-to-speech >/dev/null
+npm install @capacitor/core @capacitor/cli @capacitor/android @capacitor-community/text-to-speech @capacitor/share @capacitor/filesystem >/dev/null
 npm install --save-dev @capacitor/assets >/dev/null
 
 cp "$HERE"/capacitor.config.json .

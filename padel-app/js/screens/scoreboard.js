@@ -10,6 +10,7 @@ import { toast } from '../app.js';
 import { nearestColorName } from '../color-presets.js';
 import { LITE_MODE } from '../lite-mode.js';
 import { canUseRemote } from '../gate-config.js';
+import { matchShareSupported, shareMatch } from '../match-share.js';
 import {
   enableRemote, disableRemote, listenBindings,
   setKeepScreenOn,
@@ -445,6 +446,7 @@ function paint(el) {
   });
   el.querySelector('#sb-undo').addEventListener('click', onUndo);
   el.querySelector('#sb-newmatch').addEventListener('click', onReset);
+  el.querySelector('#sb-share')?.addEventListener('click', onShareMatch);
 
   if (!match.matchOver) {
     el.querySelector('#half-a').addEventListener('click', () => onPoint('A'));
@@ -532,8 +534,22 @@ function matchOverOverlay() {
       <h2>${title}</h2>
       <p>${detail}</p>
       <p class="small">✅ Salvata automaticamente nelle statistiche</p>
+      ${matchShareSupported() ? '<button class="btn secondary mt" id="sb-share">📤 Condividi risultato</button>' : ''}
     </div>
   `;
+}
+
+async function onShareMatch() {
+  const record = {
+    date: new Date().toISOString(),
+    teamAName: match.teamAName,
+    teamBName: match.teamBName,
+    mode: match.mode,
+    sets: match.sets,
+    winner: match.matchWinner,
+  };
+  const ok = await shareMatch(record);
+  if (!ok) toast('Condivisione non riuscita');
 }
 
 function onPoint(team) {

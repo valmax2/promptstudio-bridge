@@ -17,7 +17,7 @@ cp "$HERE/native-android/keystore/debug.keystore" "$HOME/.android/debug.keystore
 
 echo "▶ Installo Capacitor + strumenti"
 [ -f package.json ] || npm init -y >/dev/null
-npm install @capacitor/core @capacitor/cli @capacitor/android @capacitor-community/text-to-speech
+npm install @capacitor/core @capacitor/cli @capacitor/android @capacitor-community/text-to-speech @capacitor/share @capacitor/filesystem
 npm install --save-dev @capacitor/assets
 
 echo "▶ Copio i file web in www/"

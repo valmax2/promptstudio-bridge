@@ -18,7 +18,7 @@ on:
         default: '1.0.0'
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build:
@@ -65,6 +65,22 @@ jobs:
           name: sudoku-release-aab-${{ inputs.version_code }}
           path: sudoku/.capacitor-build-release/android/app/build/outputs/bundle/release/app-release.aab
           retention-days: 30
+
+      # Il download degli artifact passa da uno storage esterno (Azure blob) che
+      # alcune reti bloccano; questo branch dedicato rende l'AAB scaricabile
+      # anche via semplice git.
+      - name: Pubblico l'AAB anche sul branch sudoku-aab-download
+        run: |
+          AAB="$GITHUB_WORKSPACE/sudoku/.capacitor-build-release/android/app/build/outputs/bundle/release/app-release.aab"
+          TMP="$(mktemp -d)"
+          cd "$TMP"
+          git init -q -b sudoku-aab-download
+          cp "$AAB" "app-release-${{ inputs.version_name }}-code${{ inputs.version_code }}.aab"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .
+          git commit -q -m "AAB firmato v${{ inputs.version_name }} (versionCode ${{ inputs.version_code }})"
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" HEAD:sudoku-aab-download
 
       - name: Rimuovo il keystore decodificato dal runner
         if: always()

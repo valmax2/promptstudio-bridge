@@ -1,0 +1,9 @@
+{
+  "appId": "com.padelapp.app",
+  "appName": "Padel App",
+  "webDir": "www",
+  "backgroundColor": "#0B1220FF",
+  "android": {
+    "backgroundColor": "#0B1220FF"
+  }
+}

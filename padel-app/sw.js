@@ -1,0 +1,42 @@
+const CACHE = 'padel-app-v2';
+const CORE = [
+  './',
+  './index.html',
+  './styles.css',
+  './manifest.webmanifest',
+  './icon.svg',
+];
+
+self.addEventListener('install', (event) => {
+  event.waitUntil(caches.open(CACHE).then((c) => c.addAll(CORE)));
+  self.skipWaiting();
+});
+
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    caches.keys().then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
+  );
+  self.clients.claim();
+});
+
+self.addEventListener('fetch', (event) => {
+  if (event.request.method !== 'GET') return;
+  const url = new URL(event.request.url);
+  if (url.origin !== self.location.origin) return; // let Firebase/network calls pass through
+  // Network-first: always try to load the latest bundled file first, and
+  // only fall back to the cache when offline. The previous cache-first
+  // strategy served stale JS/HTML from a prior app install even after
+  // updating to a newer APK, since the cached copy was returned instantly
+  // and only refreshed in the background for the *next* load.
+  event.respondWith(
+    fetch(event.request)
+      .then((res) => {
+        if (res && res.status === 200) {
+          const clone = res.clone();
+          caches.open(CACHE).then((c) => c.put(event.request, clone));
+        }
+        return res;
+      })
+      .catch(() => caches.match(event.request))
+  );
+});

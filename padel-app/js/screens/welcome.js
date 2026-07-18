@@ -51,6 +51,8 @@ function paint(el) {
         <p>${t('tutorial2')}</p>
         <p>${t('tutorial3')}</p>
         <p>${t('tutorial4')}</p>
+        <p>${t('tutorial5')}</p>
+        <p>${t('tutorial6')}</p>
         <button class="btn primary block mt" id="tutorial-done">${t('tutorialDone')}</button>
       </div>
     </div>

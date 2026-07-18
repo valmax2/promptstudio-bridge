@@ -1,10 +1,13 @@
-import { getState, replaceCollection } from '../store.js';
+import { getState, setState, replaceCollection } from '../store.js';
 import { escapeHtml, SHARE_ICON, EDIT_ICON, DELETE_ICON, TROPHY_ICON, LOSS_ICON } from '../utils.js';
 import { toast } from '../app.js';
 import { matchShareSupported, shareMatch } from '../match-share.js';
+import { listenShareCardBackground } from '../cloud.js';
 
 export async function renderStats(el) {
   await paint(el);
+  const unsub = listenShareCardBackground((url) => setState({ shareCardBackgroundUrl: url }, { silent: true }));
+  return () => unsub();
 }
 
 async function paint(el) {
@@ -67,10 +70,10 @@ function matchRow(m) {
 }
 
 async function onShareMatch(id) {
-  const { matches } = getState();
+  const { matches, shareCardBackgroundUrl } = getState();
   const m = matches.find((x) => x.id === id);
   if (!m) return;
-  const ok = await shareMatch(m);
+  const ok = await shareMatch(m, shareCardBackgroundUrl);
   if (!ok) toast('Condivisione non riuscita');
 }
 

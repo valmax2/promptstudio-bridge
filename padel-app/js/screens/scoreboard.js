@@ -8,7 +8,7 @@ import {
 import { navigate } from '../router.js';
 import { toast } from '../app.js';
 import { nearestColorName } from '../color-presets.js';
-import { LITE_MODE } from '../lite-mode.js';
+import { isLiteMode, canExitLiteMode } from '../lite-mode.js';
 import { canUseRemote } from '../gate-config.js';
 import {
   enableRemote, disableRemote, listenBindings,
@@ -36,6 +36,13 @@ let victoryModalOpen = false;
 let serverPickerOpen = false;
 let quickSummaryOpen = false;
 
+// In Modalità Light la barra di navigazione non deve MAI ricomparire (né a
+// fine partita né tornando al setup): passare sempre da qui invece che da
+// classList.remove diretto.
+function showNav() {
+  if (!isLiteMode()) document.getElementById('bottom-nav').classList.remove('hidden');
+}
+
 export async function renderScoreboard(el) {
   const { settings } = getState();
   ttsEnabled = settings.ttsEnabled;
@@ -43,10 +50,17 @@ export async function renderScoreboard(el) {
   serverPickerOpen = false;
   quickSummaryOpen = false;
 
-  document.getElementById('bottom-nav').classList.add('hidden');
   setKeepScreenOn(true);
-  if (match) startLive(el);
-  else paintSetup(el);
+  if (match) {
+    startLive(el);
+  } else {
+    // La barra di navigazione resta visibile qui (configurazione partita) e
+    // a fine partita - viene nascosta solo durante il punteggio attivo (in
+    // startLive), per lasciare comunque raggiungibili Community/Bluetooth/
+    // Impostazioni senza dover tornare indietro con la freccetta.
+    showNav();
+    paintSetup(el);
+  }
 
   return () => {
     stopSpeech();
@@ -54,7 +68,7 @@ export async function renderScoreboard(el) {
     disableRemote();
     setKeepScreenOn(false);
     clearInterval(timeInterval);
-    document.getElementById('bottom-nav').classList.remove('hidden');
+    showNav();
   };
 }
 
@@ -102,6 +116,8 @@ function handleRemoteAction(action, el) {
 }
 
 function startLive(el) {
+  if (match.matchOver) showNav();
+  else document.getElementById('bottom-nav').classList.add('hidden');
   paint(el);
   setupRemoteListening(el);
 
@@ -277,7 +293,8 @@ function paintSetup(el) {
           <p class="small mb0">${currentVictoryPhraseLabel(settings)}</p>
           <button class="btn secondary block mt" id="setup-victory-phrase">Personalizza</button>
         </div>
-        ${LITE_MODE ? '<button class="btn secondary block mt" id="setup-bluetooth">🔵 Configura Bluetooth</button>' : ''}
+        ${isLiteMode() ? '<button class="btn secondary block mt" id="setup-bluetooth">🔵 Configura Bluetooth</button>' : ''}
+        ${canExitLiteMode() ? '<button class="btn ghost block mt" id="setup-exit-lite">↩️ Esci da Modalità Light</button>' : ''}
         <button class="btn primary block mt" id="start-match">Inizia partita</button>
       </div>
     </div>
@@ -308,6 +325,10 @@ function paintSetup(el) {
     paintSetup(el);
   }));
   el.querySelector('#setup-bluetooth')?.addEventListener('click', () => navigate('bluetooth-setup'));
+  el.querySelector('#setup-exit-lite')?.addEventListener('click', () => {
+    updateSettings({ liteModeUser: false });
+    navigate('home');
+  });
   el.querySelector('#setup-victory-phrase')?.addEventListener('click', () => { victoryModalOpen = true; paintSetup(el); });
   el.querySelector('#victory-modal-close')?.addEventListener('click', () => { victoryModalOpen = false; paintSetup(el); });
   el.querySelector('#victory-modal-done')?.addEventListener('click', () => { victoryModalOpen = false; paintSetup(el); });
@@ -416,7 +437,7 @@ function paint(el) {
       </div>
       <div class="sb-controls">
         <button id="sb-undo" ${history.length ? '' : 'disabled'}>↩️ Annulla</button>
-        <button id="sb-settings">${LITE_MODE ? '🔵 Bluetooth' : '📋 Riepilogo'}</button>
+        <button id="sb-settings">${isLiteMode() ? '🔵 Bluetooth' : '📋 Riepilogo'}</button>
         <button id="sb-newmatch">🔄 Nuova partita</button>
       </div>
       ${serverPickerOpen ? serverPickerModal() : ''}
@@ -426,7 +447,7 @@ function paint(el) {
 
   el.querySelector('#sb-back').addEventListener('click', () => navigate('home'));
   el.querySelector('#sb-settings').addEventListener('click', () => {
-    if (LITE_MODE) { navigate('bluetooth-setup'); return; }
+    if (isLiteMode()) { navigate('bluetooth-setup'); return; }
     quickSummaryOpen = true;
     paint(el);
   });
@@ -506,7 +527,49 @@ function paint(el) {
       paint(el);
     });
   });
+  el.querySelectorAll('[data-rename-player]').forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const [team, idxStr] = btn.dataset.renamePlayer.split(':');
+      const idx = Number(idxStr);
+      const players = team === 'A' ? match.teamAPlayers : match.teamBPlayers;
+      const current = players[idx] || '';
+      const next = prompt('Nome giocatore', current);
+      if (next === null) return;
+      const trimmed = next.trim().slice(0, 24);
+      if (!trimmed) return;
+      players[idx] = trimmed;
+      // In singolo il nome squadra coincide col nome giocatore (vedi setup);
+      // in doppio il nome squadra resta un campo indipendente e personalizzabile.
+      if (match.mode === 'singles') {
+        if (team === 'A') match.teamAName = players[0];
+        else match.teamBName = players[0];
+      }
+      paint(el);
+    });
+  });
 
+  el.querySelector('#quick-open-server-picker')?.addEventListener('click', () => {
+    quickSummaryOpen = false;
+    serverPickerOpen = true;
+    paint(el);
+  });
+  el.querySelector('#quick-mode-singles')?.addEventListener('click', () => {
+    match.mode = 'singles';
+    match.teamAPlayers = match.teamAPlayers.slice(0, 1);
+    match.teamBPlayers = match.teamBPlayers.slice(0, 1);
+    match.teamAName = match.teamAPlayers[0];
+    match.teamBName = match.teamBPlayers[0];
+    match.serverPlayerA = 0;
+    match.serverPlayerB = 0;
+    paint(el);
+  });
+  el.querySelector('#quick-mode-doubles')?.addEventListener('click', () => {
+    match.mode = 'doubles';
+    if (match.teamAPlayers.length < 2) match.teamAPlayers.push('Compagno A2');
+    if (match.teamBPlayers.length < 2) match.teamBPlayers.push('Compagno B2');
+    paint(el);
+  });
   el.querySelector('#quick-summary-close')?.addEventListener('click', () => { quickSummaryOpen = false; paint(el); });
   el.querySelector('#quick-summary-done')?.addEventListener('click', () => { quickSummaryOpen = false; paint(el); });
   el.querySelector('#quick-summary-modal')?.addEventListener('click', (e) => {
@@ -514,6 +577,13 @@ function paint(el) {
   });
   el.querySelector('#quick-golden')?.addEventListener('change', (e) => { match.goldenPoint = e.target.checked; });
   el.querySelector('#quick-supertb')?.addEventListener('change', (e) => { match.superTiebreak3rdSet = e.target.checked; });
+  el.querySelectorAll('[data-quick-time-announce]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      settings.announceTimeEveryMatches = parseInt(btn.dataset.quickTimeAnnounce, 10);
+      updateSettings({ announceTimeEveryMatches: settings.announceTimeEveryMatches });
+      paint(el);
+    });
+  });
 }
 
 function teamHalf(team) {
@@ -564,6 +634,14 @@ function quickSummaryModal(settings) {
         <h2><span>📋 Riepilogo partita</span><button class="icon-btn" id="quick-summary-close" aria-label="Chiudi">✕</button></h2>
         <p class="small">${escapeHtml(match.teamAName)} vs ${escapeHtml(match.teamBName)} · ${match.mode === 'singles' ? 'Singolo' : 'Doppio'}</p>
         <p class="small">Set: ${setsLine}</p>
+        <button class="btn secondary block mt" id="quick-open-server-picker">🎾 Chi batte? / Rinomina giocatori</button>
+        <div class="field mt mb0">
+          <label>Modalità partita</label>
+          <div class="segmented">
+            <button id="quick-mode-singles" class="${match.mode === 'singles' ? 'active' : ''}">Singolo</button>
+            <button id="quick-mode-doubles" class="${match.mode === 'doubles' ? 'active' : ''}">Doppio</button>
+          </div>
+        </div>
         <div class="toggle-row mt">
           <div><strong>Punto d'oro</strong><p class="mb0 small">A 40 pari, il punto successivo decide il gioco</p></div>
           <label class="switch"><input type="checkbox" id="quick-golden" ${match.goldenPoint ? 'checked' : ''}><span class="slider"></span></label>
@@ -571,6 +649,12 @@ function quickSummaryModal(settings) {
         <div class="toggle-row mt">
           <div><strong>Super tie-break al 3° set</strong><p class="mb0 small">Set decisivo fino a 10 punti invece di un set intero</p></div>
           <label class="switch"><input type="checkbox" id="quick-supertb" ${match.superTiebreak3rdSet ? 'checked' : ''}><span class="slider"></span></label>
+        </div>
+        <div class="field mt mb0">
+          <label>🕐 Annuncia l'ora ogni tot partite</label>
+          <div class="segmented">
+            ${[0, 1, 2, 3, 5].map((n) => `<button data-quick-time-announce="${n}" class="${settings.announceTimeEveryMatches === n ? 'active' : ''}">${n === 0 ? 'Mai' : n === 1 ? 'Ogni partita' : `Ogni ${n}`}</button>`).join('')}
+          </div>
         </div>
         <button class="btn primary block mt" id="quick-summary-done">✅ Fatto, riprendi</button>
       </div>
@@ -592,7 +676,10 @@ function serverPickerModal() {
         <button class="btn primary block mt" id="pick-random-server" style="font-size:1.15em;padding:16px;">🎲 Battitore casuale</button>
         <div class="mt">
           ${options.map((o) => `
-            <button class="btn ${match.server === o.team && (o.idx === ((o.team === 'A' ? match.serverPlayerA : match.serverPlayerB) || 0)) ? 'primary' : 'secondary'} block mt" data-pick-live-server="${o.team}:${o.idx}">${escapeHtml(o.name)}</button>
+            <div class="row mt" style="gap:8px;">
+              <button class="btn ${match.server === o.team && (o.idx === ((o.team === 'A' ? match.serverPlayerA : match.serverPlayerB) || 0)) ? 'primary' : 'secondary'} block" style="flex:1;" data-pick-live-server="${o.team}:${o.idx}">${escapeHtml(o.name)}</button>
+              <button class="btn ghost small" data-rename-player="${o.team}:${o.idx}" aria-label="Rinomina giocatore">✏️</button>
+            </div>
           `).join('')}
         </div>
       </div>
@@ -633,7 +720,7 @@ function matchOverOverlay() {
   `;
 }
 
-function onPoint(team) {
+async function onPoint(team) {
   if (!match || match.matchOver) return;
   history.push(structuredClone(match));
   const { match: next, announcement, events } = addPoint(match, team);
@@ -641,6 +728,7 @@ function onPoint(team) {
   const finalAnnouncement = events.matchWon ? (customVictoryAnnouncement(match) || announcement) : announcement;
   if (ttsEnabled) say(finalAnnouncement);
   if (events.matchWon) toast(finalAnnouncement);
+  const el = document.querySelector('.screen');
   if (match.matchOver && !matchAutoSaved) {
     matchAutoSaved = true;
     saveMatchRecord(match);
@@ -648,9 +736,13 @@ function onPoint(team) {
     // solo durante il punteggio attivo, per l'immersione a schermo intero -
     // una volta finita la partita tornano visibili, così si può navigare
     // subito altrove senza restare "intrappolati" nel riepilogo.
-    document.getElementById('bottom-nav').classList.remove('hidden');
+    showNav();
+    // L'avviso dell'orario esce SUBITO alla fine della partita, prima della
+    // schermata "partita salvata" - non più quando si preme "Nuova partita"
+    // (troppo tardi, capitava a partita già dimenticata).
+    await maybeAnnounceTime(el);
   }
-  paint(document.querySelector('.screen'));
+  paint(el);
 }
 
 function onUndo() {
@@ -668,8 +760,6 @@ async function onReset() {
   const el = document.querySelector('.screen');
   if (match && !match.matchOver) {
     if (!confirm('Iniziare una nuova partita? Il punteggio attuale andrà perso.')) return;
-  } else if (match && match.matchOver) {
-    await maybeAnnounceTime(el);
   }
   match = null;
   history = [];
@@ -677,7 +767,7 @@ async function onReset() {
   stopSpeech();
   stopHwKeys();
   disableRemote();
-  document.getElementById('bottom-nav').classList.add('hidden');
+  showNav();
   paintSetup(el);
 }
 
@@ -716,12 +806,14 @@ function maybeAnnounceTime(el) {
   const n = settings.announceTimeEveryMatches;
   if (!n || matches.length % n !== 0) return Promise.resolve();
   const now = new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
-  if (settings.ttsEnabled) say(`Sono le ${now}. Avete tempo per un'altra partita?`);
+  const template = settings.timeAnnouncePhrase || "Sono le {orario}. Avete tempo per un'altra partita?";
+  const phrase = template.replaceAll('{orario}', now);
+  if (settings.ttsEnabled) say(phrase);
   el.innerHTML = `
     <div class="sb-root">
       <div class="sb-time-announce">
         <div class="sb-time-announce-clock">${now}</div>
-        <p>Avete tempo per un'altra partita?</p>
+        <p>${escapeHtml(phrase)}</p>
       </div>
     </div>
   `;

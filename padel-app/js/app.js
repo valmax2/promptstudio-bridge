@@ -27,7 +27,7 @@ import { renderGroupChat } from './screens/group-chat.js';
 import { renderWelcome } from './screens/welcome.js';
 import { renderAdmin } from './screens/admin.js';
 import { renderRemoteBoard } from './screens/remote-board.js';
-import { LITE_MODE } from './lite-mode.js';
+import { LITE_MODE, isLiteMode } from './lite-mode.js';
 import { NAV_ICONS } from './nav-icons.js';
 
 const appEl = document.getElementById('app');
@@ -54,7 +54,9 @@ function applyTheme() {
 
 function updateBanner() {
   const authed = !!getState().profile.uid;
-  if (!firebaseAvailable()) {
+  if (isLiteMode()) {
+    bannerEl.classList.add('hidden');
+  } else if (!firebaseAvailable()) {
     bannerEl.textContent = 'Modalità locale: configura Firebase per abilitare login, community e sync cloud (vedi README).';
     bannerEl.classList.remove('hidden');
   } else if (!authed) {
@@ -127,18 +129,23 @@ verifyProOnLaunch();
 
 initRouter(appEl, navEl);
 
-if (LITE_MODE) {
-  // Beta-test build: skip community/events/login/welcome entirely and open
-  // straight on the match setup screen - just enough to test remotes/tags,
-  // nothing else of the full app visible. Bluetooth setup is still one tap
-  // away via "Impostazioni" from there.
+if (isLiteMode()) {
+  // Interfaccia Light (build beta O attivata dall'utente dalla Home): salta
+  // community/eventi/login/welcome e apre direttamente sul setup partita -
+  // solo l'essenziale per giocare. Il Bluetooth resta a un tocco di distanza
+  // dal tabellone.
   navEl.classList.add('hidden');
   bannerEl.classList.add('hidden');
   startRouter('scoreboard');
 } else {
   navEl.classList.remove('hidden');
   startRouter(getState().hasSeenWelcome ? 'home' : 'welcome');
+}
 
+// Firebase parte comunque quando la Light è solo quella runtime: uscendone
+// (senza riavvio) l'utente ritrova login/community/sync già funzionanti.
+// Solo la build beta (LITE_MODE statico) salta davvero tutto.
+if (!LITE_MODE) {
   initFirebase().then((ok) => {
     updateBanner();
     if (ok) {
@@ -151,5 +158,16 @@ if (LITE_MODE) {
   });
   updateBanner();
 }
+
+// Reagisce al toggle runtime della Light Mode: mostra/nasconde la barra di
+// navigazione senza bisogno di riavviare l'app.
+let lastLite = isLiteMode();
+subscribe(() => {
+  const lite = isLiteMode();
+  if (lite === lastLite) return;
+  lastLite = lite;
+  navEl.classList.toggle('hidden', lite);
+  updateBanner();
+});
 
 window.addEventListener('padel:navigate', (e) => navigate(e.detail));

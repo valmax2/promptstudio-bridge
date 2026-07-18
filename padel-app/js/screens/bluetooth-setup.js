@@ -9,7 +9,7 @@ import {
   bleTagSupported, scanBleTags, connectBleTag,
 } from '../ble-remote.js';
 import { escapeHtml, uid as genId, BACK_ICON } from '../utils.js';
-import { LITE_MODE } from '../lite-mode.js';
+import { isLiteMode } from '../lite-mode.js';
 import { canUseRemote } from '../gate-config.js';
 
 let bleScanResults = [];
@@ -83,7 +83,7 @@ function paint(el) {
 
     <div class="card" id="bt-live-card">
       <h2>📡 Test dal vivo</h2>
-      ${LITE_MODE ? '' : `<p class="small">Premi un pulsante sul dispositivo appena collegato: se il telefono lo riceve, lo vedrai comparire qui sotto <strong>subito</strong>.</p>`}
+      ${isLiteMode() ? '' : `<p class="small">Premi un pulsante sul dispositivo appena collegato: se il telefono lo riceve, lo vedrai comparire qui sotto <strong>subito</strong>.</p>`}
       <div id="bt-live-log"></div>
     </div>
 
@@ -97,7 +97,7 @@ function paint(el) {
 
     ${wizardStep ? wizardCard() : overviewCard(settings)}
 
-    ${LITE_MODE ? '' : `
+    ${isLiteMode() ? '' : `
     <div class="card">
       <h2>🔵 Uscita audio</h2>
       <p class="small">L'annuncio vocale segue automaticamente l'uscita audio attiva del telefono: se una cassa o cuffia Bluetooth è già collegata (dalle Impostazioni Bluetooth di Android), l'audio esce da lì senza bisogno di scegliere nulla qui.</p>

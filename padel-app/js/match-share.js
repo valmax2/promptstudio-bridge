@@ -5,79 +5,171 @@ export function matchShareSupported() {
   return !!(Share() && Filesystem());
 }
 
-// Disegna una card riassuntiva della partita (stessa palette blu-verde
-// neon dell'icona/tema app) e la converte in PNG - condivisa così com'è,
-// funge anche da piccola promozione dell'app.
-function drawMatchCard(record) {
+function loadImage(url) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+    img.src = url;
+  });
+}
+
+// Disegna il fondo: sfondo personalizzato dall'admin (Impostazioni ->
+// sezione admin) se presente e caricabile, altrimenti la sfumatura blu-
+// verde di default. Un velo scuro sopra l'immagine mantiene il testo
+// leggibile qualunque sia la foto scelta.
+async function drawBackground(ctx, W, H, backgroundUrl) {
+  if (backgroundUrl) {
+    try {
+      const img = await loadImage(backgroundUrl);
+      const scale = Math.max(W / img.width, H / img.height);
+      const w = img.width * scale;
+      const h = img.height * scale;
+      ctx.drawImage(img, (W - w) / 2, (H - h) / 2, w, h);
+      ctx.fillStyle = 'rgba(5,8,10,0.6)';
+      ctx.fillRect(0, 0, W, H);
+      return;
+    } catch {
+      // Caduta silenziosa sulla sfumatura di default se l'immagine non
+      // carica (link scaduto, offline, ecc.)
+    }
+  }
+  const bg = ctx.createLinearGradient(0, 0, W, H);
+  bg.addColorStop(0, '#0F1E22');
+  bg.addColorStop(1, '#05080A');
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, W, H);
+}
+
+// Cornice decorativa: doppio bordo (neon esterno + sottile interno) più
+// piccoli accenti agli angoli, per un risultato più curato/da poter
+// mandare in giro con orgoglio invece di un semplice screenshot.
+function drawFrame(ctx, W, H, neon) {
+  ctx.strokeStyle = neon;
+  ctx.lineWidth = 8;
+  ctx.strokeRect(20, 20, W - 40, H - 40);
+  ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(38, 38, W - 76, H - 76);
+
+  const corner = 46;
+  ctx.strokeStyle = neon;
+  ctx.lineWidth = 5;
+  [[20, 20, 1, 1], [W - 20, 20, -1, 1], [20, H - 20, 1, -1], [W - 20, H - 20, -1, -1]].forEach(([x, y, dx, dy]) => {
+    ctx.beginPath();
+    ctx.moveTo(x, y + corner * dy);
+    ctx.lineTo(x, y);
+    ctx.lineTo(x + corner * dx, y);
+    ctx.stroke();
+  });
+}
+
+async function drawMatchCard(record, backgroundUrl) {
   const canvas = document.createElement('canvas');
   const W = 1080, H = 1350;
   canvas.width = W;
   canvas.height = H;
   const ctx = canvas.getContext('2d');
 
-  const bg = ctx.createLinearGradient(0, 0, W, H);
-  bg.addColorStop(0, '#0F1E22');
-  bg.addColorStop(1, '#05080A');
-  ctx.fillStyle = bg;
-  ctx.fillRect(0, 0, W, H);
+  await drawBackground(ctx, W, H, backgroundUrl);
 
   const neon = ctx.createLinearGradient(0, 0, W, 0);
   neon.addColorStop(0, '#4DD9FF');
   neon.addColorStop(1, '#8CFF5C');
 
-  ctx.strokeStyle = neon;
-  ctx.lineWidth = 6;
-  ctx.strokeRect(24, 24, W - 48, H - 48);
+  drawFrame(ctx, W, H, neon);
 
   ctx.textAlign = 'center';
   ctx.fillStyle = neon;
   ctx.font = 'bold 54px sans-serif';
-  ctx.fillText('🎾 Padel Score Master', W / 2, 150);
+  ctx.fillText('🎾 Padel Score Master', W / 2, 140);
 
-  ctx.fillStyle = '#9AA7C2';
-  ctx.font = '32px sans-serif';
+  ctx.fillStyle = '#E5EAF2';
+  ctx.font = '30px sans-serif';
   const dateLabel = new Date(record.date).toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric' });
-  ctx.fillText(dateLabel, W / 2, 200);
+  ctx.fillText(dateLabel, W / 2, 188);
 
   const winnerA = record.winner === 'A';
   const winnerB = record.winner === 'B';
 
-  ctx.font = 'bold 62px sans-serif';
-  ctx.fillStyle = winnerA ? '#8CFF5C' : '#F2F5FA';
-  ctx.fillText(`${winnerA ? '🏆 ' : ''}${record.teamAName}`, W / 2, 340);
-  ctx.font = '38px sans-serif';
-  ctx.fillStyle = '#9AA7C2';
-  ctx.fillText('vs', W / 2, 400);
-  ctx.font = 'bold 62px sans-serif';
-  ctx.fillStyle = winnerB ? '#8CFF5C' : '#F2F5FA';
-  ctx.fillText(`${winnerB ? '🏆 ' : ''}${record.teamBName}`, W / 2, 460);
+  ctx.font = 'bold 58px sans-serif';
+  ctx.fillStyle = winnerA ? '#8CFF5C' : '#E5EAF2';
+  ctx.fillText(record.teamAName, W / 2, 300);
+  ctx.font = '34px sans-serif';
+  ctx.fillStyle = '#B9C2D6';
+  ctx.fillText('vs', W / 2, 350);
+  ctx.font = 'bold 58px sans-serif';
+  ctx.fillStyle = winnerB ? '#8CFF5C' : '#E5EAF2';
+  ctx.fillText(record.teamBName, W / 2, 410);
 
-  let y = 580;
-  ctx.font = 'bold 90px sans-serif';
+  // Banner esplicito del vincitore a testo pieno: il solo colore/trofeo sul
+  // nome sopra non bastava a farlo capire a colpo d'occhio nell'immagine
+  // condivisa.
+  const winnerName = winnerA ? record.teamAName : winnerB ? record.teamBName : null;
+  if (winnerName) {
+    const bannerY = 470;
+    ctx.font = 'bold 46px sans-serif';
+    const label = `🏆 ${winnerName} VINCE!`;
+    const textWidth = ctx.measureText(label).width;
+    const padX = 36, padY = 22;
+    const boxW = textWidth + padX * 2;
+    const boxH = 46 + padY;
+    ctx.fillStyle = 'rgba(140,255,92,0.16)';
+    ctx.strokeStyle = '#8CFF5C';
+    ctx.lineWidth = 3;
+    const bx = (W - boxW) / 2, by = bannerY - boxH / 2 + 10;
+    ctx.beginPath();
+    ctx.roundRect ? ctx.roundRect(bx, by, boxW, boxH, 16) : ctx.rect(bx, by, boxW, boxH);
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = '#8CFF5C';
+    ctx.fillText(label, W / 2, bannerY + 16);
+  } else {
+    ctx.font = 'bold 40px sans-serif';
+    ctx.fillStyle = '#E5EAF2';
+    ctx.fillText('🤝 Pareggio', W / 2, 480);
+  }
+
+  ctx.font = '30px sans-serif';
+  ctx.fillStyle = '#B9C2D6';
+  ctx.fillText('Storico set', W / 2, 570);
+
+  let y = 660;
   if (record.sets && record.sets.length) {
-    record.sets.forEach((s) => {
-      ctx.fillStyle = s.a > s.b ? '#4DD9FF' : '#F2F5FA';
+    record.sets.forEach((s, i) => {
+      ctx.font = '30px sans-serif';
+      ctx.fillStyle = '#8B95AC';
+      ctx.textAlign = 'center';
+      ctx.fillText(`SET ${i + 1}`, W / 2, y - 60);
+      ctx.font = 'bold 88px sans-serif';
+      ctx.fillStyle = s.a > s.b ? '#4DD9FF' : '#E5EAF2';
       ctx.textAlign = 'right';
       ctx.fillText(String(s.a), W / 2 - 40, y);
-      ctx.fillStyle = s.b > s.a ? '#4DD9FF' : '#F2F5FA';
+      ctx.fillStyle = s.b > s.a ? '#4DD9FF' : '#E5EAF2';
       ctx.textAlign = 'left';
       ctx.fillText(String(s.b), W / 2 + 40, y);
-      y += 130;
+      y += 150;
     });
+  } else {
+    ctx.font = '32px sans-serif';
+    ctx.fillStyle = '#B9C2D6';
+    ctx.textAlign = 'center';
+    ctx.fillText('Nessun set concluso', W / 2, y);
   }
 
   ctx.textAlign = 'center';
   ctx.fillStyle = '#9AA7C2';
   ctx.font = '28px sans-serif';
-  ctx.fillText('Segnapunti padel con telecomandi Bluetooth', W / 2, H - 80);
+  ctx.fillText('Segnapunti padel con telecomandi Bluetooth', W / 2, H - 60);
 
   return canvas.toDataURL('image/png').split(',')[1];
 }
 
-export async function shareMatch(record) {
+export async function shareMatch(record, backgroundUrl) {
   if (!matchShareSupported()) return false;
   try {
-    const base64 = drawMatchCard(record);
+    const base64 = await drawMatchCard(record, backgroundUrl);
     const fileName = `padel-match-${Date.now()}.png`;
     const { uri } = await Filesystem().writeFile({ path: fileName, data: base64, directory: 'CACHE' });
     await Share().share({

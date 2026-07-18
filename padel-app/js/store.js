@@ -48,11 +48,19 @@ const DEFAULT_STATE = {
     // 0 = disattivato; altrimenti annuncia a voce l'ora corrente ogni tot
     // partite salvate, così chi gioca sa se c'è ancora tempo per un'altra.
     announceTimeEveryMatches: 0,
+    // Frase personalizzata per l'annuncio orario a fine partita, con
+    // {orario} come segnaposto - null = usa la frase predefinita di sistema.
+    timeAnnouncePhrase: null,
     // Frasi personalizzate per l'annuncio vocale di fine partita: {id, text}
     // con {vincitore}/{avversario} come segnaposto per i nomi squadra.
     // activeVictoryPhraseId null = usa l'annuncio predefinito.
     victoryPhrases: [],
     activeVictoryPhraseId: null,
+    // Attiva la Modalità Interfaccia Light da dentro l'app (vedi
+    // js/lite-mode.js:isLiteMode()) - riduce l'app a solo Nuova partita +
+    // Bluetooth, reversibile in qualsiasi momento dall'utente. Separata dal
+    // flag LITE_MODE di build (sempre permanente, usato solo per l'APK beta).
+    liteModeUser: false,
   },
   profile: {
     uid: null,
@@ -99,6 +107,10 @@ const DEFAULT_STATE = {
   // dall'admin in qualsiasi momento (vedi js/screens/admin.js). null finché
   // l'admin non ne carica una: si usa icon.svg come immagine provvisoria.
   welcomeImageUrl: null,
+  // Sfondo/cornice personalizzabile della card immagine condivisa a fine
+  // partita (js/match-share.js) - sostituibile dall'admin quando vuole,
+  // null = sfumatura blu-verde di default.
+  shareCardBackgroundUrl: null,
   // Stato dell'acquisto "Pro" - va trattato come sola lettura lato UI:
   // l'unico modo corretto per cambiarlo è js/billing.js:verifyProOnLaunch(),
   // che lo riverifica sempre contro Play Billing (mai un valore che si

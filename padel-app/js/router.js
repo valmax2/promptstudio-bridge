@@ -1,4 +1,4 @@
-import { LITE_MODE } from './lite-mode.js';
+import { isLiteMode } from './lite-mode.js';
 import { showBanner, hideBanner } from './ads.js';
 
 // Il banner AdMob resta nascosto durante il punteggio dal vivo, mai durante
@@ -42,7 +42,7 @@ export function startRouter(defaultRoute = 'home') {
 
 export async function navigate(name, { replace = false, params = {} } = {}) {
   if (!routes.has(name)) name = 'home';
-  if (LITE_MODE && !LITE_ALLOWED_ROUTES.includes(name)) name = 'scoreboard';
+  if (isLiteMode() && !LITE_ALLOWED_ROUTES.includes(name)) name = 'scoreboard';
   if (location.hash !== `#/${name}`) {
     if (replace) history.replaceState(null, '', `#/${name}`);
     else location.hash = `#/${name}`;

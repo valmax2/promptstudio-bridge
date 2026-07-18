@@ -47,14 +47,27 @@ export async function redeemProCode(code) {
   if (!isCloudReady() || !id) return { ok: false, reason: 'offline' };
   const normalized = code.trim().toUpperCase();
   if (!normalized) return { ok: false, reason: 'empty' };
-  const entry = await fsGet(`promoCodes/${normalized}`);
+  // Ogni chiamata Firestore qui sotto può rifiutarsi silenziosamente
+  // (regole di sicurezza non ancora pubblicate, rete assente, ecc.): senza
+  // il try/catch l'eccezione restava non gestita e all'utente non appariva
+  // alcun avviso, sembrando che il tasto "Riscatta" non facesse nulla.
+  let entry;
+  try {
+    entry = await fsGet(`promoCodes/${normalized}`);
+  } catch {
+    return { ok: false, reason: 'error' };
+  }
   if (!entry || (entry.remainingUses ?? 0) <= 0) return { ok: false, reason: 'invalid' };
   try {
     await fsIncrement(`promoCodes/${normalized}`, 'remainingUses', -1);
   } catch {
     return { ok: false, reason: 'invalid' };
   }
-  await fsSet(`users/${id}`, { proGranted: true, proGrantedByCode: normalized, updatedAt: Date.now() });
+  try {
+    await fsSet(`users/${id}`, { proGranted: true, proGrantedByCode: normalized, updatedAt: Date.now() });
+  } catch {
+    return { ok: false, reason: 'error' };
+  }
   return { ok: true };
 }
 
@@ -358,4 +371,16 @@ export async function uploadWelcomeImage(blob) {
 export function listenWelcomeImage(cb) {
   if (!firebaseAvailable()) return () => {};
   return fsListen('config/welcomeImage', (data) => cb(data?.imageUrl || null));
+}
+
+// ---- Admin: sfondo/cornice della card immagine di condivisione partita ----
+export async function uploadShareCardBackground(blob) {
+  if (!isCloudReady()) return;
+  const imageUrl = await uploadCatalogImage('admin-config/shareCardBackground', blob);
+  await fsSet('config/shareCardBackground', { imageUrl, updatedAt: Date.now() });
+}
+
+export function listenShareCardBackground(cb) {
+  if (!firebaseAvailable()) return () => {};
+  return fsListen('config/shareCardBackground', (data) => cb(data?.imageUrl || null));
 }

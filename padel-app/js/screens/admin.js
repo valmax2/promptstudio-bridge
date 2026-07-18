@@ -5,6 +5,7 @@ import {
   listenCompatibleRemotes, addCompatibleRemote, updateCompatibleRemoteOrder, deleteCompatibleRemote,
   updateCompatibleRemoteImage,
   listenWelcomeImage, uploadWelcomeImage,
+  listenShareCardBackground, uploadShareCardBackground,
 } from '../cloud.js';
 import { firebaseAvailable } from '../firebase.js';
 import { navigate } from '../router.js';
@@ -26,8 +27,10 @@ export async function renderAdmin(el) {
   let unsubPrizes = null;
   let unsubRemotes = null;
   let unsubWelcomeImage = null;
+  let unsubShareBg = null;
   let uploading = false;
   let uploadingWelcomeImage = false;
+  let uploadingShareBg = false;
   let pickedRemoteImage = null;
   // { kind: 'avatar'|'prize'|'remote', id, shape } dell'elemento la cui foto
   // stiamo per sostituire cliccando sulla sua anteprima già esistente -
@@ -43,6 +46,7 @@ export async function renderAdmin(el) {
     const compatibleRemotes = [...getState().compatibleRemotes].sort((a, b) => (a.order ?? 9999) - (b.order ?? 9999));
     const remotesFull = compatibleRemotes.length >= MAX_COMPATIBLE_REMOTES;
     const welcomeImageUrl = getState().welcomeImageUrl;
+    const shareCardBackgroundUrl = getState().shareCardBackgroundUrl;
 
     el.innerHTML = `
       <div class="topbar"><h1>🛠️ Amministratore</h1></div>
@@ -119,6 +123,16 @@ export async function renderAdmin(el) {
           <img src="${welcomeImageUrl || './icon.svg'}" alt="" style="width:128px;aspect-ratio:16/9;border-radius:10px;object-fit:cover;flex-shrink:0;">
           <input type="file" accept="image/*" id="new-welcome-image-file" class="hidden" style="display:none">
           <button class="btn secondary" id="pick-welcome-image-file" ${uploadingWelcomeImage ? 'disabled' : ''}>${uploadingWelcomeImage ? 'Caricamento...' : '📷 Cambia immagine'}</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>🖼️ Cornice/sfondo condivisione partita</h2>
+        <p class="small">Sfondo usato nell'immagine che gli utenti condividono a fine partita (WhatsApp, Telegram, ecc.). Finché non ne carichi uno, si usa la sfumatura blu-verde di default - cambialo ogni tanto per rinnovare la sorpresa.</p>
+        <div class="row" style="gap:14px;align-items:center;">
+          <img src="${shareCardBackgroundUrl || './icon.svg'}" alt="" style="width:96px;aspect-ratio:4/5;border-radius:10px;object-fit:cover;flex-shrink:0;">
+          <input type="file" accept="image/*" id="new-share-bg-file" class="hidden" style="display:none">
+          <button class="btn secondary" id="pick-share-bg-file" ${uploadingShareBg ? 'disabled' : ''}>${uploadingShareBg ? 'Caricamento...' : '📷 Cambia sfondo'}</button>
         </div>
       </div>
 
@@ -206,6 +220,26 @@ export async function renderAdmin(el) {
         toast('Errore: ' + err.message);
       } finally {
         uploadingWelcomeImage = false;
+        paint();
+      }
+    });
+
+    el.querySelector('#pick-share-bg-file').addEventListener('click', () => el.querySelector('#new-share-bg-file').click());
+    el.querySelector('#new-share-bg-file').addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      e.target.value = '';
+      if (!file) return;
+      const blob = await openImageCropper(file, { shape: 'square', aspect: 4 / 5 });
+      if (!blob) return;
+      uploadingShareBg = true;
+      paint();
+      try {
+        await uploadShareCardBackground(blob);
+        toast('Sfondo aggiornato!');
+      } catch (err) {
+        toast('Errore: ' + err.message);
+      } finally {
+        uploadingShareBg = false;
         paint();
       }
     });
@@ -305,7 +339,8 @@ export async function renderAdmin(el) {
     unsubPrizes = listenPrizes((list) => { setState({ prizes: list }, { silent: true }); if (!uploading) paint(); });
     unsubRemotes = listenCompatibleRemotes((list) => { setState({ compatibleRemotes: list }, { silent: true }); paint(); });
     unsubWelcomeImage = listenWelcomeImage((url) => { setState({ welcomeImageUrl: url }, { silent: true }); if (!uploadingWelcomeImage) paint(); });
+    unsubShareBg = listenShareCardBackground((url) => { setState({ shareCardBackgroundUrl: url }, { silent: true }); if (!uploadingShareBg) paint(); });
   }
 
-  return () => { unsubAvatars?.(); unsubPrizes?.(); unsubRemotes?.(); unsubWelcomeImage?.(); };
+  return () => { unsubAvatars?.(); unsubPrizes?.(); unsubRemotes?.(); unsubWelcomeImage?.(); unsubShareBg?.(); };
 }

@@ -1,4 +1,4 @@
-import { getState } from '../store.js';
+import { getState, updateSettings } from '../store.js';
 import { navigate } from '../router.js';
 import { firebaseAvailable } from '../firebase.js';
 import { escapeHtml } from '../utils.js';
@@ -43,6 +43,14 @@ export async function renderHome(el) {
       </div>
     </div>
 
+    <button class="lite-mode-btn" id="go-lite-mode">
+      <span class="lite-mode-btn-icon">⚡</span>
+      <span>
+        <strong>Modalità Interfaccia Light</strong>
+        <small>Solo partita e Bluetooth, senza Community ed Eventi</small>
+      </span>
+    </button>
+
     <div class="card">
       <div class="row between">
         <h2>Prossimi eventi</h2>
@@ -71,6 +79,18 @@ export async function renderHome(el) {
   el.querySelector('#go-login')?.addEventListener('click', () => navigate('login'));
   el.querySelector('#go-gamemodes').addEventListener('click', () => navigate('gamemodes'));
   el.querySelector('#go-scoreboard').addEventListener('click', () => navigate('scoreboard'));
+  el.querySelector('#go-lite-mode').addEventListener('click', () => {
+    const ok = confirm(
+      "Attivare la Modalità Interfaccia Light?\n\n"
+      + "L'app si riduce al minimo indispensabile: solo Nuova partita e configurazione Bluetooth "
+      + "(telecomandi e casse). Community, Eventi, Statistiche e le altre sezioni vengono nascoste.\n\n"
+      + "Potrai tornare all'interfaccia completa in qualsiasi momento con il pulsante "
+      + "\"Esci da Modalità Light\".",
+    );
+    if (!ok) return;
+    updateSettings({ liteModeUser: true });
+    navigate('scoreboard');
+  });
   el.querySelector('#go-americano').addEventListener('click', () => navigate('americano'));
   el.querySelector('#go-killer').addEventListener('click', () => navigate('killer'));
   el.querySelector('#go-events').addEventListener('click', () => navigate('events'));

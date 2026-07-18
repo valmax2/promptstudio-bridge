@@ -9,11 +9,42 @@ import { toast } from '../app.js';
 import { COLOR_PRESETS } from '../color-presets.js';
 import { UI_ACCENT_PRESETS, applyUiAccent } from '../ui-accents.js';
 import { remoteSupported, bleTagSupported, disconnectBleTag } from '../ble-remote.js';
-import { BACK_ICON, BLUETOOTH_ICON } from '../utils.js';
+import { BACK_ICON, BLUETOOTH_ICON, escapeHtml } from '../utils.js';
 import { APP_VERSION } from '../version.js';
 import { billingSupported, purchasePro, verifyProOnLaunch, isPro } from '../billing.js';
 
 let activeCategory = 'bluetooth';
+
+// Blocco anti-tentativi per il riscatto codice amico: 3 tentativi sbagliati
+// mettono in pausa il modulo per 10 minuti. Salvato in localStorage (non
+// nello store sincronizzato) perché è una protezione locale al dispositivo,
+// non un dato utente da portarsi dietro tra account/dispositivi.
+const PROMO_LOCK_KEY = 'padel-promo-code-lock';
+const PROMO_LOCK_MS = 10 * 60 * 1000;
+
+function promoCodeLockRemaining() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(PROMO_LOCK_KEY) || 'null');
+    if (!raw?.lockedUntil) return 0;
+    return Math.max(0, raw.lockedUntil - Date.now());
+  } catch { return 0; }
+}
+
+function registerPromoCodeFailure() {
+  let data;
+  try { data = JSON.parse(localStorage.getItem(PROMO_LOCK_KEY) || 'null') || {}; } catch { data = {}; }
+  const count = (data.count || 0) + 1;
+  if (count >= 3) {
+    localStorage.setItem(PROMO_LOCK_KEY, JSON.stringify({ count: 0, lockedUntil: Date.now() + PROMO_LOCK_MS }));
+  } else {
+    localStorage.setItem(PROMO_LOCK_KEY, JSON.stringify({ count, lockedUntil: null }));
+  }
+  return count;
+}
+
+function resetPromoCodeAttempts() {
+  localStorage.removeItem(PROMO_LOCK_KEY);
+}
 
 const CATEGORIES = [
   { id: 'aspetto', icon: '🎨', label: 'Aspetto' },
@@ -48,6 +79,12 @@ function paint(el) {
   el.innerHTML = `
     <div class="topbar"><div class="row"><button class="icon-btn" id="settings-back" aria-label="Torna alla home">${BACK_ICON}</button><h1>Impostazioni</h1></div></div>
 
+    <div class="settings-lang-flags">
+      <button data-app-lang="it" class="settings-flag-btn ${(settings.appLanguage || 'it') === 'it' ? 'active' : ''}" aria-label="Italiano" title="Italiano">🇮🇹</button>
+      <button data-app-lang="en" class="settings-flag-btn ${settings.appLanguage === 'en' ? 'active' : ''}" aria-label="English" title="English">🇬🇧</button>
+      <button data-app-lang="fr" class="settings-flag-btn ${settings.appLanguage === 'fr' ? 'active' : ''}" aria-label="Français" title="Français">🇫🇷</button>
+    </div>
+
     <div class="settings-categories">
       ${CATEGORIES.map((c) => `
         <button class="settings-cat-btn ${activeCategory === c.id ? 'active' : ''}" data-category="${c.id}">
@@ -63,6 +100,7 @@ function paint(el) {
       <div class="segmented">
         <button data-app-lang="it" class="${(settings.appLanguage || 'it') === 'it' ? 'active' : ''}">🇮🇹 Italiano</button>
         <button data-app-lang="en" class="${settings.appLanguage === 'en' ? 'active' : ''}">🇬🇧 English</button>
+        <button data-app-lang="fr" class="${settings.appLanguage === 'fr' ? 'active' : ''}">🇫🇷 Français</button>
       </div>
     </div>
     <div class="card">
@@ -119,6 +157,7 @@ function paint(el) {
         <div class="segmented">
           <button data-voice-lang="it-IT" class="${settings.ttsVoiceLang === 'it-IT' ? 'active' : ''}">🇮🇹 Italiano</button>
           <button data-voice-lang="en-US" class="${settings.ttsVoiceLang === 'en-US' ? 'active' : ''}">🇬🇧 Inglese</button>
+          <button data-voice-lang="fr-FR" class="${settings.ttsVoiceLang === 'fr-FR' ? 'active' : ''}">🇫🇷 Francese</button>
         </div>
       </div>
       <button class="btn secondary small mt" id="test-voice">🔊 Prova voce</button>
@@ -142,6 +181,15 @@ function paint(el) {
         <p class="small">Utile per sapere se c'è ancora tempo per un'altra partita prima di lasciare il campo.</p>
         <div class="segmented">
           ${[0, 1, 2, 3, 5].map((n) => `<button data-time-announce="${n}" class="${settings.announceTimeEveryMatches === n ? 'active' : ''}">${n === 0 ? 'Mai' : n === 1 ? 'Ogni partita' : `Ogni ${n}`}</button>`).join('')}
+        </div>
+      </div>
+      <div class="field mt mb0">
+        <label>🗣️ Frase dell'annuncio orario</label>
+        <p class="small">Usa <strong>{orario}</strong> nel testo: viene sostituito con l'ora reale. Lascia vuoto per usare la frase predefinita.</p>
+        <input id="time-announce-phrase" placeholder="Sono le {orario}. Avete tempo per un'altra partita?" maxlength="140" value="${escapeHtml(settings.timeAnnouncePhrase || '')}">
+        <div class="row mt" style="gap:8px;">
+          <button class="btn secondary small block" id="save-time-announce-phrase">💾 Salva frase</button>
+          <button class="btn ghost small block" id="reset-time-announce-phrase">↺ Predefinita</button>
         </div>
       </div>
       <button class="btn ghost small block mt" id="go-gamemodes">📖 Tutte le modalità di gioco</button>
@@ -234,11 +282,15 @@ function paint(el) {
       ${billingSupported() ? '' : '<p class="small">Richiede l\'app installata da Google Play (non funziona nell\'anteprima da browser).</p>'}
       <div class="field mt">
         <label>Hai un codice amico?</label>
+        ${promoCodeLockRemaining() > 0 ? `
+        <p class="small">🔒 Troppi tentativi sbagliati: riprova tra ${Math.ceil(promoCodeLockRemaining() / 60000)} minuti.</p>
+        ` : `
         <div class="row">
           <input type="text" id="pro-code-input" placeholder="CODICE" style="text-transform:uppercase;" ${firebaseAvailable() ? '' : 'disabled'}>
           <button class="btn secondary" id="redeem-pro-code" ${firebaseAvailable() ? '' : 'disabled'}>Riscatta</button>
         </div>
         ${firebaseAvailable() ? '' : '<p class="small">Richiede di aver effettuato l\'accesso.</p>'}
+        `}
       </div>
       `}
     </div>
@@ -293,6 +345,17 @@ function paint(el) {
     paint(el);
     syncSettings();
   }));
+  el.querySelector('#save-time-announce-phrase')?.addEventListener('click', () => {
+    const text = el.querySelector('#time-announce-phrase').value.trim().slice(0, 140);
+    updateSettings({ timeAnnouncePhrase: text || null });
+    toast('Frase salvata');
+    syncSettings();
+  });
+  el.querySelector('#reset-time-announce-phrase')?.addEventListener('click', () => {
+    updateSettings({ timeAnnouncePhrase: null });
+    paint(el);
+    syncSettings();
+  });
   el.querySelector('#test-voice')?.addEventListener('click', () => say('40 pari, punto d\'oro'));
   el.querySelector('#go-gamemodes')?.addEventListener('click', () => navigate('gamemodes'));
 
@@ -359,17 +422,30 @@ function paint(el) {
   });
 
   el.querySelector('#redeem-pro-code')?.addEventListener('click', async () => {
+    const lockedFor = promoCodeLockRemaining();
+    if (lockedFor > 0) {
+      toast(`Troppi tentativi sbagliati: riprova tra ${Math.ceil(lockedFor / 60000)} min`);
+      return;
+    }
     const input = el.querySelector('#pro-code-input');
     const code = input?.value || '';
     if (!code.trim()) { toast('Inserisci un codice'); return; }
     const result = await redeemProCode(code);
     if (result.ok) {
+      resetPromoCodeAttempts();
       toast('Pro sbloccato!');
       paint(el);
     } else if (result.reason === 'offline') {
       toast('Devi aver effettuato l\'accesso');
+    } else if (result.reason === 'error') {
+      toast('Errore di connessione, riprova');
     } else {
-      toast('Codice non valido o già esaurito');
+      const strikes = registerPromoCodeFailure();
+      if (strikes >= 3) {
+        toast('3 codici sbagliati: riprova tra 10 minuti');
+      } else {
+        toast(`Codice non valido o già esaurito (${strikes}/3)`);
+      }
     }
   });
 }

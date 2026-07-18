@@ -93,16 +93,23 @@ echo "▶ Genero l'icona nativa dell'app Android da icon.png"
 # rigenerata esplicitamente nelle risorse native (android/app/src/main/res).
 mkdir -p assets
 cp "$HERE"/icon.png assets/icon-only.png
-npx capacitor-assets generate --android || echo "⚠ Generazione icona saltata (l'APK userà l'icona precedente)."
-
-# Il progetto Android di "cap add android" include di serie un'icona adattiva
-# (mipmap-anydpi-v26) che punta ai drawable segnaposto blu di Capacitor: su
-# Android 8+ questa ha priorità sulle mipmap-*/ic_launcher.png rigenerate
-# sopra, quindi il launcher mostrerebbe l'icona sbagliata (o rotta dopo un
-# aggiornamento) finché non la rimuoviamo, lasciando che il sistema usi le
-# nostre PNG piatte.
-rm -f android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml \
-      android/app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml
+if npx capacitor-assets generate --android; then
+  # capacitor-assets rigenera anche l'icona ADATTIVA (mipmap-anydpi-v26) usando
+  # icon.png come sfondo a piena tela: VA TENUTA. Cancellarla (come si faceva
+  # prima) fa ricadere il launcher sulla sola mipmap/ic_launcher.png "legacy",
+  # che launcher come Samsung/OneUI riducono e inseriscono in una cornice
+  # bianca per adattarla al proprio stile - da lì l'icona che sembra "piccola
+  # dentro un quadrato bianco" invece di riempire tutta la forma.
+  echo "  → Icona adattiva generata: la mantengo per evitare il bordo bianco su Samsung/OneUI e simili."
+else
+  echo "⚠ Generazione icona saltata (l'APK userà l'icona precedente)."
+  # Solo se la generazione fallisce davvero rimuoviamo l'icona adattiva di
+  # default di Capacitor (punta ai suoi drawable segnaposto blu, non alla
+  # nostra): meglio far ripiegare il launcher sulle mipmap-*/ic_launcher.png
+  # piatte del progetto base piuttosto che mostrare il blu di Capacitor.
+  rm -f android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml \
+        android/app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml
+fi
 
 npx cap sync android
 

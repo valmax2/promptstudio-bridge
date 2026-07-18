@@ -45,6 +45,7 @@ let stopLiveFeed = null;
 // di dover usare un'app esterna come nRF Connect per capire cosa espone un
 // tracker non compatibile.
 let lastConnectDiagnostics = null;
+let lastConnectSubscribed = 0;
 let diagnosticsOpen = false;
 
 export async function renderBluetoothSetup(el) {
@@ -57,6 +58,7 @@ export async function renderBluetoothSetup(el) {
   addBindingHint = null;
   liveLog = [];
   lastConnectDiagnostics = null;
+  lastConnectSubscribed = 0;
   diagnosticsOpen = false;
 
   const { settings } = getState();
@@ -139,11 +141,20 @@ function paint(el) {
 // Connect (usata per diagnosticare tracker come iTag e Nutale Mate).
 function diagnosticsModal() {
   const services = lastConnectDiagnostics || [];
+  const anyNotifyCapable = services.some((s) => (s.characteristics || []).some((c) => c.notify));
+  let explanation;
+  if (!anyNotifyCapable) {
+    explanation = 'Nessuna caratteristica <strong>NOTIFY</strong> trovata: è per questo che il bottone fisico non può arrivare come evento all\'app, qualunque azione tu ci abbia associato. Se conosci il produttore, questo elenco aiuta a capire se il dispositivo supporta un profilo diverso (es. serve un\'app dedicata del produttore).';
+  } else if (lastConnectSubscribed === 0) {
+    explanation = 'Ci sono caratteristiche <strong>NOTIFY</strong> (segnate qui sotto), ma il telefono non è riuscito ad attivarne nessuna durante il collegamento - prova a disconnetterti e ricollegarti dal dispositivo qui sotto.';
+  } else {
+    explanation = `Attivate <strong>${lastConnectSubscribed}</strong> caratteristiche notificabili su ${services.reduce((n, s) => n + (s.characteristics || []).filter((c) => c.notify).length, 0)} trovate. Se il bottone comunque non arriva in "Test dal vivo", probabile che nessuna di queste corrisponda davvero al bottone fisico (es. sono solo batteria/stato sistema) - il dispositivo potrebbe non essere compatibile.`;
+  }
   return `
     <div class="modal-backdrop" id="bt-diagnostics-modal">
       <div class="modal-card">
         <h2><span>🔍 Servizi rilevati</span><button class="icon-btn" id="bt-diagnostics-close" aria-label="Chiudi">✕</button></h2>
-        <p class="small">Nessuna caratteristica <strong>NOTIFY</strong> trovata: è per questo che il bottone fisico non arriva come evento all'app, qualunque azione tu ci abbia associato. Se conosci il produttore, questo elenco aiuta a capire se il dispositivo supporta un profilo diverso (es. serve un'app dedicata del produttore).</p>
+        <p class="small">${explanation}</p>
         ${services.length ? services.map((s) => `
           <div class="mt">
             <strong class="small">Servizio ${escapeHtml(s.uuid)}</strong>
@@ -386,6 +397,7 @@ function wireEvents(el) {
         // disponibile per controllare in ogni caso, non solo quando non si
         // trova NESSUNA caratteristica notificabile.
         lastConnectDiagnostics = services;
+        lastConnectSubscribed = subscribed;
         if (subscribed === 0) {
           toast('Connesso, ma nessun pulsante rilevato su questo dispositivo: potrebbe non essere compatibile. Tocca "Diagnostica" qui sopra per i dettagli.', 6000);
         } else if (wizardStep === 'pairTag') {

@@ -67,13 +67,17 @@ echo "  → versionCode impostato a $VERSION_CODE"
 echo "▶ Genero l'icona nativa dell'app Android da icon.png"
 mkdir -p assets
 cp "$HERE"/icon.png assets/icon-only.png
-npx capacitor-assets generate --android || echo "⚠ Generazione icona saltata (l'APK userà l'icona precedente)."
-
-# Rimuovo l'icona adattiva di default di Capacitor (mipmap-anydpi-v26), che
-# su Android 8+ avrebbe priorità sulle mipmap-*/ic_launcher.png appena
-# rigenerate e mostrerebbe l'icona sbagliata/rotta.
-rm -f android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml \
-      android/app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml
+if npx capacitor-assets generate --android; then
+  # Tengo l'icona adattiva generata (usa icon.png come sfondo a piena tela):
+  # cancellarla farebbe ricadere il launcher sulla mipmap "legacy", che
+  # Samsung/OneUI e simili riducono con una cornice bianca invece di
+  # mostrarla a piena forma.
+  echo "  → Icona adattiva generata: la mantengo."
+else
+  echo "⚠ Generazione icona saltata (l'APK userà l'icona precedente)."
+  rm -f android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml \
+        android/app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml
+fi
 
 npx cap sync android
 

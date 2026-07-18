@@ -26,7 +26,9 @@ import com.getcapacitor.annotation.CapacitorPlugin;
 import com.getcapacitor.annotation.Permission;
 import com.getcapacitor.annotation.PermissionCallback;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.Map;
+import java.util.Queue;
 import java.util.UUID;
 
 // Generic Bluetooth Low Energy "tag" support: cheap anti-lost keyrings /
@@ -66,6 +68,21 @@ public class BleTagPlugin extends Plugin {
     // (e.g. one per team) can stay connected at the same time.
     private final Map<String, BluetoothGatt> gattByAddress = new HashMap<>();
     private final Map<String, BluetoothDevice> foundDevices = new HashMap<>();
+
+    // Android BLE requires GATT operations to be strictly serialized: issuing
+    // a second writeDescriptor() before the previous one's onDescriptorWrite
+    // callback has fired silently drops it (no error, it just never happens).
+    // A device with more than one NOTIFY/INDICATE characteristic - like the
+    // Nutale Mate (Service Changed + a vendor-specific one + Battery Level,
+    // all three notifiable) - was hitting exactly this: only the first
+    // subscription in the loop actually took effect, so whichever
+    // characteristic is the physical button silently never got subscribed
+    // if it wasn't first. These per-address queues make the writes happen
+    // one at a time, waiting for each real completion before the next.
+    private final Map<String, Queue<BluetoothGattDescriptor>> pendingDescriptorQueue = new HashMap<>();
+    private final Map<BluetoothGattDescriptor, byte[]> descriptorEnableValue = new HashMap<>();
+    private final Map<String, Integer> subscribedCountByAddress = new HashMap<>();
+    private final Map<String, JSArray> servicesInfoByAddress = new HashMap<>();
 
     private String scanPermissionAlias() {
         return Build.VERSION.SDK_INT >= 31 ? "ble" : "location";
@@ -222,6 +239,9 @@ public class BleTagPlugin extends Plugin {
             } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
                 String address = addressOf(g);
                 gattByAddress.remove(address);
+                pendingDescriptorQueue.remove(address);
+                subscribedCountByAddress.remove(address);
+                servicesInfoByAddress.remove(address);
                 JSObject data = new JSObject();
                 data.put("address", address);
                 notifyListeners("disconnected", data);
@@ -230,14 +250,13 @@ public class BleTagPlugin extends Plugin {
 
         @Override
         public void onServicesDiscovered(BluetoothGatt g, int status) {
-            int subscribed = 0;
+            String address = addressOf(g);
             // Elenco dei servizi/caratteristiche scoperti, incluso su OGNI
-            // connessione (non solo per debug): se "subscribed" risulta 0 il
-            // tracker non ha nessuna caratteristica NOTIFY/INDICATE su cui
-            // agganciarsi (il bottone fisico non può quindi arrivare come
-            // evento BLE) e questo elenco è ciò che serve per capire perché,
-            // senza dover ricorrere a un'app esterna come nRF Connect.
+            // connessione (non solo per debug): questo elenco è ciò che
+            // serve per capire perché un bottone non arriva, senza dover
+            // ricorrere a un'app esterna come nRF Connect.
             JSArray services = new JSArray();
+            Queue<BluetoothGattDescriptor> toWrite = new LinkedList<>();
             for (BluetoothGattService service : g.getServices()) {
                 JSObject svcInfo = new JSObject();
                 svcInfo.put("uuid", service.getUuid().toString());
@@ -258,24 +277,58 @@ public class BleTagPlugin extends Plugin {
                             byte[] value = notify
                                 ? BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
                                 : BluetoothGattDescriptor.ENABLE_INDICATION_VALUE;
-                            if (Build.VERSION.SDK_INT >= 33) {
-                                g.writeDescriptor(descriptor, value);
-                            } else {
-                                descriptor.setValue(value);
-                                g.writeDescriptor(descriptor);
-                            }
+                            descriptorEnableValue.put(descriptor, value);
+                            toWrite.add(descriptor);
                         }
-                        subscribed++;
                     } catch (SecurityException ignored) {}
                 }
                 svcInfo.put("characteristics", chars);
                 services.put(svcInfo);
             }
-            JSObject data = new JSObject();
-            data.put("address", addressOf(g));
-            data.put("subscribed", subscribed);
-            data.put("services", services);
-            notifyListeners("connected", data);
+            pendingDescriptorQueue.put(address, toWrite);
+            servicesInfoByAddress.put(address, services);
+            subscribedCountByAddress.put(address, 0);
+            writeNextDescriptor(g, address);
+        }
+
+        // Scrive un descrittore CCCD alla volta e aspetta onDescriptorWrite
+        // prima del successivo - vedi il commento sulle mappe pendingDescriptorQueue
+        // qui sopra per il perché è necessario. Quando la coda si svuota,
+        // "connected" parte con il conteggio reale delle sottoscrizioni
+        // andate davvero a buon fine, non solo di quelle tentate.
+        private void writeNextDescriptor(BluetoothGatt g, String address) {
+            Queue<BluetoothGattDescriptor> queue = pendingDescriptorQueue.get(address);
+            if (queue == null || queue.isEmpty()) {
+                JSObject data = new JSObject();
+                data.put("address", address);
+                data.put("subscribed", subscribedCountByAddress.getOrDefault(address, 0));
+                data.put("services", servicesInfoByAddress.get(address));
+                notifyListeners("connected", data);
+                return;
+            }
+            BluetoothGattDescriptor descriptor = queue.poll();
+            byte[] value = descriptorEnableValue.get(descriptor);
+            try {
+                boolean started;
+                if (Build.VERSION.SDK_INT >= 33) {
+                    started = g.writeDescriptor(descriptor, value) == 0; // BluetoothStatusCodes.SUCCESS
+                } else {
+                    descriptor.setValue(value);
+                    started = g.writeDescriptor(descriptor);
+                }
+                if (!started) writeNextDescriptor(g, address);
+            } catch (SecurityException e) {
+                writeNextDescriptor(g, address);
+            }
+        }
+
+        @Override
+        public void onDescriptorWrite(BluetoothGatt g, BluetoothGattDescriptor descriptor, int status) {
+            String address = addressOf(g);
+            if (status == BluetoothGatt.GATT_SUCCESS) {
+                subscribedCountByAddress.merge(address, 1, Integer::sum);
+            }
+            writeNextDescriptor(g, address);
         }
 
         @Override

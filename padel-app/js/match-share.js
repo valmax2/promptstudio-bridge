@@ -5,13 +5,38 @@ export function matchShareSupported() {
   return !!(Share() && Filesystem());
 }
 
-function loadImage(url) {
+// Firebase Storage non ha (e non c'è motivo di configurare) intestazioni
+// CORS per l'origine dell'app: un <img crossOrigin="anonymous"> caricato
+// direttamente dal browser fallisce quindi in silenzio (onerror, catturato
+// più sotto) ogni volta che si prova a disegnare uno sfondo/cornice
+// personalizzati sul canvas, ricadendo sempre sul default senza nessun
+// errore visibile - da qui "carico l'immagine ma non la mette mai".
+// CapacitorHttp gira lato nativo Android, non passa dal motore CORS del
+// browser: quando disponibile, scarica i byte così ed espone l'immagine
+// come data: URL (già "stessa origine", nessun crossOrigin necessario).
+async function resolveImageSrc(url) {
+  const httpPlugin = window.Capacitor?.Plugins?.CapacitorHttp;
+  if (!httpPlugin) return url;
+  try {
+    const res = await httpPlugin.get({ url, responseType: 'blob' });
+    const contentType = res.headers?.['Content-Type'] || res.headers?.['content-type'] || 'image/png';
+    return `data:${contentType};base64,${res.data}`;
+  } catch {
+    return url;
+  }
+}
+
+async function loadImage(url) {
+  const src = await resolveImageSrc(url);
   return new Promise((resolve, reject) => {
     const img = new Image();
-    img.crossOrigin = 'anonymous';
+    // Serve solo se siamo ricaduti sull'URL remoto originale (plugin nativo
+    // non disponibile, es. anteprima da browser in sviluppo) - un data: URL
+    // è già locale e non ne ha bisogno.
+    if (src === url) img.crossOrigin = 'anonymous';
     img.onload = () => resolve(img);
     img.onerror = reject;
-    img.src = url;
+    img.src = src;
   });
 }
 

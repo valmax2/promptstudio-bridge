@@ -53,7 +53,7 @@ function paint(el) {
         <span class="welcome-choice-title">🏟️ Apri modalità Full</span>
         <span class="welcome-choice-desc">App completa: partite, community, eventi, statistiche</span>
       </button>
-      <button class="btn secondary block welcome-cta" id="welcome-open-lite" style="margin-top:10px;">
+      <button class="btn lite-highlight block welcome-cta" id="welcome-open-lite" style="margin-top:10px;">
         <span class="welcome-choice-title">⚡ Apri modalità Light</span>
         <span class="welcome-choice-desc">Solo partita e Bluetooth: semplice e immediata</span>
       </button>

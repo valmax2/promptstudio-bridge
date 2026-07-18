@@ -127,6 +127,13 @@ button { font-family: inherit; }
 .btn:active { transform: scale(0.96); }
 .btn.primary { background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: var(--accent-contrast); }
 .btn.secondary { background: var(--surface-2); color: var(--text); border: 1px solid var(--border); }
+/* Pulsanti legati alla Modalità Light (entrare/uscire): pieni e col bordo
+   nero come richiesto, non solo un bordino sottile - devono saltare
+   all'occhio, il colore segue comunque la palette scelta (--accent-2). */
+.btn.lite-highlight {
+  background: var(--accent-2); color: #041400;
+  border: 2px solid #000; font-weight: 800;
+}
 .btn.danger { background: var(--danger); color: #fff; }
 .btn.ghost { background: transparent; border: 1px solid var(--border); }
 .btn.block { width: 100%; }
@@ -470,9 +477,10 @@ label { font-size: 0.85em; color: var(--text-dim); display: block; margin-bottom
      riga con GAME/SET sotto (3fr su 7.8fr totali, vedi grid-template-rows
      sopra), quindi non può crescere quanto in modalità "solo punteggio"
      senza intaccarli - il min-height:0/overflow qui sopra impedisce la
-     rottura del layout, questo tetto più basso fa sì che il numero resti
-     comunque leggibile e ben proporzionato invece di venire tagliato. */
-  font-size: min(calc(24vw * var(--number-size-scale, 1)), calc(13vh * var(--number-size-scale, 1)));
+     rottura del layout. Con la barra comandi a scomparsa (chiusa di
+     default in partita) c'è più aria: il tetto vh può essere più generoso
+     di prima e l'ingrandimento si vede davvero. */
+  font-size: min(calc(24vw * var(--number-size-scale, 1)), calc(15vh * var(--number-size-scale, 1)));
   font-weight: 800;
   line-height: 1;
   background: rgba(0,0,0,0.08);
@@ -481,14 +489,16 @@ label { font-size: 0.85em; color: var(--text-dim); display: block; margin-bottom
   paint-order: stroke fill;
 }
 .sb-cap {
-  font-size: clamp(0.7rem, 2vw, 1.1rem);
+  /* Scala col ➕ insieme al punteggio, così l'ingrandimento vale per tutto
+     il tabellone (punteggio + GAME + SET), non solo per il numero grande. */
+  font-size: calc(clamp(0.7rem, 2vw, 1.1rem) * var(--number-size-scale, 1));
   font-weight: 700;
   letter-spacing: 0.12em;
   opacity: 0.85;
   background: rgba(0,0,0,0.22);
 }
 .sb-mid {
-  font-size: min(14vw, 15vh);
+  font-size: min(calc(14vw * var(--number-size-scale, 1)), 15vh);
   font-weight: 800;
   line-height: 1;
   background: rgba(0,0,0,0.14);
@@ -508,6 +518,46 @@ label { font-size: 0.85em; color: var(--text-dim); display: block; margin-bottom
   font-weight: 700;
   white-space: nowrap;
 }
+
+/* Maniglia della barra comandi a scomparsa: striscia sottile sempre
+   visibile col triangolino centrato - tocca per aprire/chiudere la barra. */
+.sb-controls-toggle {
+  flex: 0 0 auto;
+  width: 100%;
+  background: #111;
+  border: none;
+  color: rgba(255,255,255,0.75);
+  font-size: 0.8rem;
+  line-height: 1;
+  padding: 5px 0 4px;
+}
+.sb-controls-toggle:active { background: rgba(255,255,255,0.12); }
+
+/* Cerchietto "i" per riaprire la guida ai comandi: angolo in basso a
+   sinistra, discreto ma visibile. */
+.sb-help-btn {
+  position: absolute;
+  left: 10px;
+  bottom: 10px;
+  z-index: 6;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 2px solid rgba(255,255,255,0.8);
+  background: rgba(0,0,0,0.45);
+  color: #fff;
+  font-weight: 800;
+  font-style: italic;
+  font-family: Georgia, serif;
+  font-size: 0.95rem;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sb-help-row { display: flex; gap: 10px; align-items: flex-start; margin-top: 10px; }
+.sb-help-row .sb-help-icon { flex: 0 0 auto; width: 2.4em; text-align: center; }
 
 .sb-controls {
   flex: 0 0 auto;
@@ -551,13 +601,15 @@ label { font-size: 0.85em; color: var(--text-dim); display: block; margin-bottom
    per non confonderlo con le card informative. */
 .lite-mode-btn {
   display: flex; align-items: center; gap: 14px; width: 100%;
-  background: var(--surface); border: 2px solid var(--accent);
+  /* Stesso trattamento "pieno + bordo nero" di .btn.lite-highlight, per
+     coerenza con gli altri pulsanti Light (entra/esci) in tutta l'app. */
+  background: var(--accent-2); border: 2px solid #000;
   border-radius: var(--radius); padding: 14px 16px; margin-bottom: 16px;
-  text-align: left; color: var(--text);
+  text-align: left; color: #041400;
 }
 .lite-mode-btn-icon { font-size: 1.9em; line-height: 1; }
 .lite-mode-btn strong { display: block; font-size: 1.05em; }
-.lite-mode-btn small { display: block; color: var(--text-dim); font-size: 0.85em; margin-top: 2px; }
+.lite-mode-btn small { display: block; color: #041400; opacity: 0.8; font-size: 0.85em; margin-top: 2px; }
 
 .settings-lang-flags {
   display: flex; gap: 10px; justify-content: center;

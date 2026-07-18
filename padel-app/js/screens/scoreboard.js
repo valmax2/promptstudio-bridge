@@ -1,4 +1,4 @@
-import { getState, addMatch, updateSettings } from '../store.js';
+import { getState, setState, addMatch, updateSettings } from '../store.js';
 import { pushMatch } from '../cloud.js';
 import { say, stopSpeech } from '../speech.js';
 import { escapeHtml, BACK_ICON, uid as genId } from '../utils.js';
@@ -35,6 +35,14 @@ let stopHwKeys = () => {};
 let victoryModalOpen = false;
 let serverPickerOpen = false;
 let quickSummaryOpen = false;
+// Barra comandi (Annulla/Riepilogo/.../Nuova partita) a scomparsa durante il
+// punteggio: nascosta di default per lasciare tutto lo spazio ai numeri, si
+// riapre col triangolino in basso. A partita finita si forza aperta (serve
+// "Nuova partita").
+let controlsOpen = false;
+// Finestra guida "dove toccare": esce da sola la prima volta in assoluto che
+// si entra nel punteggio dal vivo, poi resta richiamabile dal cerchietto ⓘ.
+let helpOpen = false;
 
 // In Modalità Light la barra di navigazione non deve MAI ricomparire (né a
 // fine partita né tornando al setup): passare sempre da qui invece che da
@@ -49,6 +57,8 @@ export async function renderScoreboard(el) {
   victoryModalOpen = false;
   serverPickerOpen = false;
   quickSummaryOpen = false;
+  controlsOpen = false;
+  helpOpen = false;
 
   setKeepScreenOn(true);
   if (match) {
@@ -118,6 +128,7 @@ function handleRemoteAction(action, el) {
 function startLive(el) {
   if (match.matchOver) showNav();
   else document.getElementById('bottom-nav').classList.add('hidden');
+  if (!getState().hasSeenScoreboardHelp && !match.matchOver) helpOpen = true;
   paint(el);
   setupRemoteListening(el);
 
@@ -294,7 +305,7 @@ function paintSetup(el) {
           <button class="btn secondary block mt" id="setup-victory-phrase">Personalizza</button>
         </div>
         ${isLiteMode() ? '<button class="btn secondary block mt" id="setup-bluetooth">🔵 Configura Bluetooth</button>' : ''}
-        ${canExitLiteMode() ? '<button class="btn ghost block mt" id="setup-exit-lite">↩️ Esci da Modalità Light</button>' : ''}
+        ${canExitLiteMode() ? '<button class="btn lite-highlight block mt" id="setup-exit-lite">↩️ Esci da Modalità Light</button>' : ''}
         <button class="btn primary block mt" id="start-match">Inizia partita</button>
       </div>
     </div>
@@ -417,6 +428,7 @@ function paint(el) {
     modeLabel = match.matchOver ? 'Partita conclusa' : match.inMatchTiebreak ? 'Super tie-break' : match.inTiebreak ? 'Tie-break' : `Set ${match.sets.length + 1}`;
   }
   const modeBadge = match.mode === 'singles' ? 'Singolo' : 'Doppio';
+  const controlsExpanded = controlsOpen || match.matchOver;
 
   el.innerHTML = `
     <div class="sb-root">
@@ -434,20 +446,45 @@ function paint(el) {
         ${teamHalf('A')}
         ${teamHalf('B')}
         ${match.matchOver ? matchOverOverlay() : ''}
+        <button class="sb-help-btn" id="sb-help" aria-label="Guida ai comandi">i</button>
       </div>
+      <button class="sb-controls-toggle" id="sb-controls-toggle" aria-label="${controlsExpanded ? 'Nascondi barra comandi' : 'Mostra barra comandi'}">${controlsExpanded ? '▼' : '▲'}</button>
+      ${controlsExpanded ? `
       <div class="sb-controls">
         <button id="sb-undo" ${history.length ? '' : 'disabled'}>↩️ Annulla</button>
         <button id="sb-settings">📋 Riepilogo</button>
         ${isLiteMode() ? '<button id="sb-bluetooth">🔵 Bluetooth</button>' : ''}
         <button id="sb-newmatch">🔄 Nuova partita</button>
-      </div>
+      </div>` : ''}
       ${serverPickerOpen ? serverPickerModal() : ''}
       ${quickSummaryOpen ? quickSummaryModal(settings) : ''}
+      ${helpOpen ? helpModal() : ''}
     </div>
   `;
 
   el.querySelector('#sb-back').addEventListener('click', () => navigate('home'));
-  el.querySelector('#sb-settings').addEventListener('click', () => {
+  el.querySelector('#sb-controls-toggle').addEventListener('click', () => {
+    controlsOpen = !controlsOpen;
+    paint(el);
+  });
+  el.querySelector('#sb-help').addEventListener('click', (e) => {
+    e.stopPropagation();
+    helpOpen = true;
+    paint(el);
+  });
+  el.querySelector('#sb-help-close')?.addEventListener('click', () => {
+    helpOpen = false;
+    if (!getState().hasSeenScoreboardHelp) setState({ hasSeenScoreboardHelp: true });
+    paint(el);
+  });
+  el.querySelector('#sb-help-modal')?.addEventListener('click', (e) => {
+    if (e.target.id === 'sb-help-modal') {
+      helpOpen = false;
+      if (!getState().hasSeenScoreboardHelp) setState({ hasSeenScoreboardHelp: true });
+      paint(el);
+    }
+  });
+  el.querySelector('#sb-settings')?.addEventListener('click', () => {
     quickSummaryOpen = true;
     paint(el);
   });
@@ -475,8 +512,8 @@ function paint(el) {
     const current = getState().settings.numberSizeStep || 0;
     updateSettings({ numberSizeStep: (current + 1) % 4 });
   });
-  el.querySelector('#sb-undo').addEventListener('click', onUndo);
-  el.querySelector('#sb-newmatch').addEventListener('click', onReset);
+  el.querySelector('#sb-undo')?.addEventListener('click', onUndo);
+  el.querySelector('#sb-newmatch')?.addEventListener('click', onReset);
 
   if (!match.matchOver) {
     el.querySelector('#half-a').addEventListener('click', () => onPoint('A'));
@@ -616,6 +653,30 @@ function teamHalf(team) {
       ${serving ? `<button class="sb-server-player" data-open-server-picker="${team}">🎾 ${isDoubles ? `Batte: ${escapeHtml(servingPlayerName)}` : 'Al servizio'}</button>` : ''}
       <div class="sb-stack ${pointsOnlyMode ? 'points-only' : ''}">${stackContent}</div>
       ${badge ? `<div class="sb-badge">${badge}</div>` : ''}
+    </div>
+  `;
+}
+
+// Guida rapida ai tocchi sul tabellone: esce da sola la prima volta in
+// assoluto che si entra nel punteggio dal vivo (poi mai più), e resta sempre
+// richiamabile dal cerchietto "i" nell'angolo in basso a sinistra.
+function helpModal() {
+  const row = (icon, txt) => `<div class="sb-help-row"><span class="sb-help-icon">${icon}</span><span>${txt}</span></div>`;
+  return `
+    <div class="modal-backdrop" id="sb-help-modal">
+      <div class="modal-card">
+        <h2><span>👆 Come si usa il tabellone</span></h2>
+        ${row('🟦🟨', 'Tocca la <strong>metà di una squadra</strong> per assegnarle un punto')}
+        ${row('✏️', 'Tocca il <strong>nome</strong> per cambiare nome a squadra/giocatore')}
+        ${row('🎾', 'Tocca <strong>"Batte:"</strong> per scegliere o cambiare chi serve (anche a caso)')}
+        ${row('➕', 'In alto: <strong>ingrandisci i numeri</strong> (tocca più volte per i 4 livelli)')}
+        ${row('🔢', 'In alto: passa a <strong>solo punteggio</strong> o vista completa con game e set')}
+        ${row('🎮 🔊', 'In alto: accendi/spegni <strong>telecomando</strong> e <strong>voce</strong>')}
+        ${row('▲', `Il <strong>triangolino in basso</strong> apre la barra con Annulla, Riepilogo${isLiteMode() ? ', Bluetooth' : ''} e Nuova partita`)}
+        ${row('📋', '<strong>Riepilogo</strong>: cambia regole, modalità, battitore e nomi senza uscire dalla partita')}
+        ${row('i', 'Rivedi questa guida quando vuoi dal <strong>cerchietto in basso a sinistra</strong>')}
+        <button class="btn primary block mt" id="sb-help-close">Ho capito, si gioca!</button>
+      </div>
     </div>
   `;
 }

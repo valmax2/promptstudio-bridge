@@ -89,6 +89,9 @@ const DEFAULT_STATE = {
   // Shows the welcome/onboarding screen once on first-ever launch; reachable
   // again afterwards via the "ⓘ Guida" entry in Impostazioni.
   hasSeenWelcome: false,
+  // La guida "dove toccare" del tabellone esce da sola solo alla primissima
+  // partita; dopo resta richiamabile dal cerchietto "i" sul tabellone.
+  hasSeenScoreboardHelp: false,
   friends: [],       // {id, name, phone}
   circles: [],        // {id, name, memberIds, memberNames}
   events: [],          // {id, title, dateTime, location, circleId, hostId, hostName, participants, maxPlayers}

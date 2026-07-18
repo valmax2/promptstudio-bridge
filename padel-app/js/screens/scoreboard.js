@@ -43,6 +43,10 @@ let controlsOpen = false;
 // Finestra guida "dove toccare": esce da sola la prima volta in assoluto che
 // si entra nel punteggio dal vivo, poi resta richiamabile dal cerchietto ⓘ.
 let helpOpen = false;
+// Annuncio vocale d'inizio partita rimandato a quando si chiude la guida,
+// se è appena uscita da sola: altrimenti la voce parte sopra la lettura
+// della finestra e nessuno la sente per davvero.
+let pendingStartAnnouncement = null;
 
 // In Modalità Light la barra di navigazione non deve MAI ricomparire (né a
 // fine partita né tornando al setup): passare sempre da qui invece che da
@@ -59,6 +63,7 @@ export async function renderScoreboard(el) {
   quickSummaryOpen = false;
   controlsOpen = false;
   helpOpen = false;
+  pendingStartAnnouncement = null;
 
   setKeepScreenOn(true);
   if (match) {
@@ -410,7 +415,12 @@ function paintSetup(el) {
       const servingPlayers = setupServer === 'A' ? match.teamAPlayers : match.teamBPlayers;
       const receivingPlayers = setupServer === 'A' ? match.teamBPlayers : match.teamAPlayers;
       const servingPlayerName = servingPlayers[setupServerPlayerIdx] || servingPlayers[0];
-      say(`Si comincia! Inizia a battere ${servingPlayerName}, riceve ${receivingPlayers.join(' e ')}`);
+      const announcement = `Si comincia! Inizia a battere ${servingPlayerName}, riceve ${receivingPlayers.join(' e ')}`;
+      // startLive() apre la guida ai comandi da sola alla primissima partita
+      // (helpOpen): se la voce parte insieme, viene coperta dalla lettura
+      // della finestra e non si sente - la rimandiamo a quando si chiude.
+      if (helpOpen) pendingStartAnnouncement = announcement;
+      else say(announcement);
     }
   });
 
@@ -472,17 +482,18 @@ function paint(el) {
     helpOpen = true;
     paint(el);
   });
-  el.querySelector('#sb-help-close')?.addEventListener('click', () => {
+  const closeHelp = () => {
     helpOpen = false;
     if (!getState().hasSeenScoreboardHelp) setState({ hasSeenScoreboardHelp: true });
-    paint(el);
-  });
-  el.querySelector('#sb-help-modal')?.addEventListener('click', (e) => {
-    if (e.target.id === 'sb-help-modal') {
-      helpOpen = false;
-      if (!getState().hasSeenScoreboardHelp) setState({ hasSeenScoreboardHelp: true });
-      paint(el);
+    if (pendingStartAnnouncement) {
+      if (ttsEnabled) say(pendingStartAnnouncement);
+      pendingStartAnnouncement = null;
     }
+    paint(el);
+  };
+  el.querySelector('#sb-help-close')?.addEventListener('click', closeHelp);
+  el.querySelector('#sb-help-modal')?.addEventListener('click', (e) => {
+    if (e.target.id === 'sb-help-modal') closeHelp();
   });
   el.querySelector('#sb-settings')?.addEventListener('click', () => {
     quickSummaryOpen = true;

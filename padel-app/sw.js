@@ -1,10 +1,10 @@
-const CACHE = 'padel-app-v2';
+const CACHE = 'padel-app-v3';
 const CORE = [
   './',
   './index.html',
   './styles.css',
   './manifest.webmanifest',
-  './icon.svg',
+  './icon.png',
 ];
 
 self.addEventListener('install', (event) => {

@@ -108,7 +108,7 @@ const DEFAULT_STATE = {
   compatibleRemotes: [],
   // Immagine circolare mostrata nella schermata iniziale, sostituibile
   // dall'admin in qualsiasi momento (vedi js/screens/admin.js). null finché
-  // l'admin non ne carica una: si usa icon.svg come immagine provvisoria.
+  // l'admin non ne carica una: si usa icon.png come immagine provvisoria.
   welcomeImageUrl: null,
   // Cataloghi admin per l'immagine di condivisione partita (js/match-share.js):
   // il giocatore sceglie sfondo e cornice tra questi nella finestra di

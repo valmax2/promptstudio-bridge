@@ -126,7 +126,7 @@ export async function renderAdmin(el) {
         <h2>🖼️ Immagine schermata iniziale</h2>
         <p class="small">L'immagine rettangolare (16:9) mostrata in alto nella prima pagina dell'app. Finché non ne carichi una, si vede l'icona di default.</p>
         <div class="row" style="gap:14px;align-items:center;">
-          <img src="${welcomeImageUrl || './icon.svg'}" alt="" style="width:128px;aspect-ratio:16/9;border-radius:10px;object-fit:cover;flex-shrink:0;">
+          <img src="${welcomeImageUrl || './icon.png'}" alt="" style="width:128px;aspect-ratio:16/9;border-radius:10px;object-fit:cover;flex-shrink:0;">
           <input type="file" accept="image/*" id="new-welcome-image-file" class="hidden" style="display:none">
           <button class="btn secondary" id="pick-welcome-image-file" ${uploadingWelcomeImage ? 'disabled' : ''}>${uploadingWelcomeImage ? 'Caricamento...' : '📷 Cambia immagine'}</button>
         </div>

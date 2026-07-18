@@ -28,7 +28,7 @@ rm -rf "$BUILD"
 mkdir -p "$BUILD/www"
 
 cp "$HERE"/index.html "$HERE"/styles.css "$HERE"/manifest.webmanifest \
-   "$HERE"/sw.js "$HERE"/icon.svg "$HERE"/firebase-config.js "$BUILD/www/"
+   "$HERE"/sw.js "$HERE"/icon.png "$HERE"/firebase-config.js "$BUILD/www/"
 cp -r "$HERE"/js "$BUILD/www/js"
 
 cd "$BUILD"
@@ -52,9 +52,9 @@ if ! grep -q "versionCode $VERSION_CODE" android/app/build.gradle; then
   exit 1
 fi
 
-echo "▶ Genero l'icona nativa dell'app Android da icon.svg"
+echo "▶ Genero l'icona nativa dell'app Android da icon.png"
 mkdir -p assets
-cp "$HERE"/icon.svg assets/icon-only.svg
+cp "$HERE"/icon.png assets/icon-only.png
 npx capacitor-assets generate --android || echo "⚠ Generazione icona saltata."
 
 # Rimuovo l'icona adattiva di default di Capacitor (mipmap-anydpi-v26), che

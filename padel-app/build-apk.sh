@@ -39,7 +39,7 @@ rm -rf "$BUILD"
 mkdir -p "$BUILD/www"
 
 cp "$HERE"/index.html "$HERE"/styles.css "$HERE"/manifest.webmanifest \
-   "$HERE"/sw.js "$HERE"/icon.svg "$HERE"/firebase-config.js "$BUILD/www/"
+   "$HERE"/sw.js "$HERE"/icon.png "$HERE"/firebase-config.js "$BUILD/www/"
 cp -r "$HERE"/js "$BUILD/www/js"
 
 cd "$BUILD"
@@ -86,13 +86,13 @@ if ! grep -q "versionCode $VERSION_CODE" android/app/build.gradle; then
 fi
 echo "  → versionCode impostato a $VERSION_CODE"
 
-echo "▶ Genero l'icona nativa dell'app Android da icon.svg"
+echo "▶ Genero l'icona nativa dell'app Android da icon.png"
 # Senza questo passaggio l'APK usa l'icona segnaposto generica di Capacitor
-# creata da "cap add android": icon.svg viene sì copiata in www/ (usata
+# creata da "cap add android": icon.png viene sì copiata in www/ (usata
 # solo come favicon dentro la WebView), ma l'icona vera del launcher va
 # rigenerata esplicitamente nelle risorse native (android/app/src/main/res).
 mkdir -p assets
-cp "$HERE"/icon.svg assets/icon-only.svg
+cp "$HERE"/icon.png assets/icon-only.png
 npx capacitor-assets generate --android || echo "⚠ Generazione icona saltata (l'APK userà l'icona precedente)."
 
 # Il progetto Android di "cap add android" include di serie un'icona adattiva

@@ -22,7 +22,7 @@ npm install --save-dev @capacitor/assets
 
 echo "▶ Copio i file web in www/"
 rm -rf www && mkdir -p www
-cp index.html styles.css manifest.webmanifest sw.js icon.svg firebase-config.js www/
+cp index.html styles.css manifest.webmanifest sw.js icon.png firebase-config.js www/
 cp -r js www/js
 
 echo "▶ Creo il progetto Android (usa capacitor.config.json)"
@@ -66,9 +66,9 @@ dependencies {
 EOF
 fi
 
-echo "▶ Genero icona e splash dal logo (icon.svg)"
+echo "▶ Genero icona e splash dal logo (icon.png)"
 mkdir -p assets
-cp icon.svg assets/icon-only.svg 2>/dev/null || true
+cp icon.png assets/icon-only.png 2>/dev/null || true
 npx capacitor-assets generate --android || echo "⚠ Generazione icone saltata (opzionale): aggiungi asset in assets/ e rilancia."
 
 # Rimuovo l'icona adattiva di default di Capacitor (mipmap-anydpi-v26), che

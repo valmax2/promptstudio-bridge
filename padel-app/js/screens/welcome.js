@@ -21,7 +21,7 @@ export async function renderWelcome(el) {
     unsubWelcomeImage = listenWelcomeImage((url) => {
       setState({ welcomeImageUrl: url }, { silent: true });
       const img = el.querySelector('.welcome-icon');
-      if (img) img.src = url || './icon.svg';
+      if (img) img.src = url || './icon.png';
     });
   }
 
@@ -44,7 +44,7 @@ function paint(el) {
   const welcomeImageUrl = getState().welcomeImageUrl;
   el.innerHTML = `
     <div class="welcome-screen">
-      <img class="welcome-icon" src="${welcomeImageUrl || './icon.svg'}" alt="Padel App">
+      <img class="welcome-icon" src="${welcomeImageUrl || './icon.png'}" alt="Padel App">
       <h1 class="welcome-title">Padel App</h1>
       <p class="welcome-tagline">${t('welcomeTagline')}</p>
       <p class="welcome-desc">${t('welcomeDesc')}</p>

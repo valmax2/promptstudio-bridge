@@ -13,6 +13,7 @@ import android.bluetooth.BluetoothProfile;
 import android.bluetooth.le.BluetoothLeScanner;
 import android.bluetooth.le.ScanCallback;
 import android.bluetooth.le.ScanResult;
+import android.bluetooth.le.ScanSettings;
 import android.content.Context;
 import android.os.Build;
 import com.getcapacitor.JSArray;
@@ -53,7 +54,13 @@ import java.util.UUID;
 public class BleTagPlugin extends Plugin {
 
     private static final UUID CCCD_UUID = UUID.fromString("00002902-0000-1000-8000-00805f9b34fb");
-    private static final long SCAN_DURATION_MS = 6000;
+    // 9s invece di 6, e SCAN_MODE_LOW_LATENCY invece del default LOW_POWER:
+    // alcuni tracker (es. Nutale Mate) pubblicizzano la propria presenza a
+    // intervalli più radi per risparmiare batteria, e col duty-cycle ridotto
+    // di LOW_POWER capitava di non intercettare nessun pacchetto entro la
+    // finestra di scansione, facendo sembrare il dispositivo "introvabile"
+    // anche se acceso e vicino - LOW_LATENCY scansiona quasi di continuo.
+    private static final long SCAN_DURATION_MS = 9000;
 
     // Keyed by MAC address rather than a single field, so more than one tag
     // (e.g. one per team) can stay connected at the same time.
@@ -105,8 +112,11 @@ public class BleTagPlugin extends Plugin {
                 }
             }
         };
+        ScanSettings settings = new ScanSettings.Builder()
+            .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
+            .build();
         try {
-            scanner.startScan(scanCallback);
+            scanner.startScan(null, settings, scanCallback);
         } catch (SecurityException e) {
             call.reject("Permesso Bluetooth mancante");
             return;
@@ -221,11 +231,25 @@ public class BleTagPlugin extends Plugin {
         @Override
         public void onServicesDiscovered(BluetoothGatt g, int status) {
             int subscribed = 0;
+            // Elenco dei servizi/caratteristiche scoperti, incluso su OGNI
+            // connessione (non solo per debug): se "subscribed" risulta 0 il
+            // tracker non ha nessuna caratteristica NOTIFY/INDICATE su cui
+            // agganciarsi (il bottone fisico non può quindi arrivare come
+            // evento BLE) e questo elenco è ciò che serve per capire perché,
+            // senza dover ricorrere a un'app esterna come nRF Connect.
+            JSArray services = new JSArray();
             for (BluetoothGattService service : g.getServices()) {
+                JSObject svcInfo = new JSObject();
+                svcInfo.put("uuid", service.getUuid().toString());
+                JSArray chars = new JSArray();
                 for (BluetoothGattCharacteristic ch : service.getCharacteristics()) {
                     int props = ch.getProperties();
                     boolean notify = (props & BluetoothGattCharacteristic.PROPERTY_NOTIFY) != 0;
                     boolean indicate = (props & BluetoothGattCharacteristic.PROPERTY_INDICATE) != 0;
+                    JSObject chInfo = new JSObject();
+                    chInfo.put("uuid", ch.getUuid().toString());
+                    chInfo.put("notify", notify || indicate);
+                    chars.put(chInfo);
                     if (!notify && !indicate) continue;
                     try {
                         g.setCharacteristicNotification(ch, true);
@@ -244,10 +268,13 @@ public class BleTagPlugin extends Plugin {
                         subscribed++;
                     } catch (SecurityException ignored) {}
                 }
+                svcInfo.put("characteristics", chars);
+                services.put(svcInfo);
             }
             JSObject data = new JSObject();
             data.put("address", addressOf(g));
             data.put("subscribed", subscribed);
+            data.put("services", services);
             notifyListeners("connected", data);
         }
 

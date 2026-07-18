@@ -204,10 +204,42 @@ export async function scanBleTags() {
 
 // Multiple tags can be connected at once (e.g. one per team) - each
 // connection is independent on the native side, keyed by MAC address.
-export async function connectBleTag(address) {
+// Waits for the native "connected" event (services actually discovered),
+// not just for the connectGatt() call to have been issued: the plugin's
+// connect() resolves as soon as the OS accepts the connection attempt, well
+// before it succeeds or fails, so awaiting only that could report "Connesso!"
+// even when the tag never actually paired. Returns { subscribed, services }
+// so the caller can warn if the device exposes no NOTIFY/INDICATE
+// characteristic at all (button presses could never reach the app) instead
+// of just going quiet - the "grosso problema" a proprietary tracker (like
+// the Nutale Mate) can hit if its button doesn't use a standard notify.
+export async function connectBleTag(address, { timeoutMs = 8000 } = {}) {
   const plugin = bleTag();
   if (!plugin) throw new Error('Tag BLE non disponibile su questo dispositivo');
+  const result = new Promise((resolve, reject) => {
+    let connectedHandle, disconnectedHandle, timer;
+    const cleanup = () => {
+      clearTimeout(timer);
+      connectedHandle?.remove();
+      disconnectedHandle?.remove();
+    };
+    connectedHandle = plugin.addListener('connected', (data) => {
+      if (data.address !== address) return;
+      cleanup();
+      resolve({ subscribed: data.subscribed ?? 0, services: data.services ?? [] });
+    });
+    disconnectedHandle = plugin.addListener('disconnected', (data) => {
+      if (data.address !== address) return;
+      cleanup();
+      reject(new Error('Il dispositivo si è disconnesso subito dopo il collegamento'));
+    });
+    timer = setTimeout(() => {
+      cleanup();
+      reject(new Error('Nessuna risposta dal dispositivo (timeout)'));
+    }, timeoutMs);
+  });
   await plugin.connect({ address });
+  return result;
 }
 
 // Pass an address to disconnect just that tag, or omit to disconnect all.

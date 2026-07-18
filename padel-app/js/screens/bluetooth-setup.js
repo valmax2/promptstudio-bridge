@@ -39,6 +39,14 @@ let wizardCapturing = false;
 let liveLog = [];
 let stopLiveFeed = null;
 
+// Elenco servizi/caratteristiche GATT dell'ultimo tag collegato che risulta
+// senza NESSUNA caratteristica NOTIFY/INDICATE (bottone quindi non
+// rilevabile) - permette di vedere il dettaglio tecnico dentro l'app invece
+// di dover usare un'app esterna come nRF Connect per capire cosa espone un
+// tracker non compatibile.
+let lastConnectDiagnostics = null;
+let diagnosticsOpen = false;
+
 export async function renderBluetoothSetup(el) {
   bleScanResults = [];
   bleScanning = false;
@@ -48,6 +56,8 @@ export async function renderBluetoothSetup(el) {
   addBindingPattern = null;
   addBindingHint = null;
   liveLog = [];
+  lastConnectDiagnostics = null;
+  diagnosticsOpen = false;
 
   const { settings } = getState();
   const nothingConfiguredYet = !settings.remoteBindings.length && !settings.bleTags.length;
@@ -85,7 +95,9 @@ function paint(el) {
       <h2>📡 Test dal vivo</h2>
       ${isLiteMode() ? '' : `<p class="small">Premi un pulsante sul dispositivo appena collegato: se il telefono lo riceve, lo vedrai comparire qui sotto <strong>subito</strong>.</p>`}
       <div id="bt-live-log"></div>
+      ${lastConnectDiagnostics ? '<button class="btn ghost small block mt" id="bt-diagnostics">🔍 Diagnostica ultimo tag collegato</button>' : ''}
     </div>
+    ${diagnosticsOpen ? diagnosticsModal() : ''}
 
     <div class="card">
       <div class="toggle-row">
@@ -121,6 +133,29 @@ function paint(el) {
 }
 
 // ---- Guided wizard (one device at a time) ----
+// Dettaglio tecnico dei servizi/caratteristiche GATT dell'ultimo tag
+// collegato senza nessuna caratteristica NOTIFY/INDICATE - stessa
+// informazione che prima si poteva vedere solo con un'app esterna come nRF
+// Connect (usata per diagnosticare tracker come iTag e Nutale Mate).
+function diagnosticsModal() {
+  const services = lastConnectDiagnostics || [];
+  return `
+    <div class="modal-backdrop" id="bt-diagnostics-modal">
+      <div class="modal-card">
+        <h2><span>🔍 Servizi rilevati</span><button class="icon-btn" id="bt-diagnostics-close" aria-label="Chiudi">✕</button></h2>
+        <p class="small">Nessuna caratteristica <strong>NOTIFY</strong> trovata: è per questo che il bottone fisico non arriva come evento all'app, qualunque azione tu ci abbia associato. Se conosci il produttore, questo elenco aiuta a capire se il dispositivo supporta un profilo diverso (es. serve un'app dedicata del produttore).</p>
+        ${services.length ? services.map((s) => `
+          <div class="mt">
+            <strong class="small">Servizio ${escapeHtml(s.uuid)}</strong>
+            ${(s.characteristics || []).map((c) => `<p class="small mb0">• ${escapeHtml(c.uuid)} ${c.notify ? '(notify)' : ''}</p>`).join('')}
+          </div>
+        `).join('') : '<p class="small">Nessun servizio trovato.</p>'}
+        <button class="btn primary block mt" id="bt-diagnostics-done">Chiudi</button>
+      </div>
+    </div>
+  `;
+}
+
 function wizardCard() {
   const slotLabel = wizardSlot === 'A' ? 'Squadra Noi' : 'Squadra Avversari';
   const stepNumber = { slot: 1, type: 2, pairRemote: 3, pairTag: 3, capture: 4, done: 5 }[wizardStep];
@@ -315,6 +350,13 @@ function wireEvents(el) {
     syncSettings();
   }));
 
+  el.querySelector('#bt-diagnostics')?.addEventListener('click', () => { diagnosticsOpen = true; paint(el); });
+  el.querySelector('#bt-diagnostics-close')?.addEventListener('click', () => { diagnosticsOpen = false; paint(el); });
+  el.querySelector('#bt-diagnostics-done')?.addEventListener('click', () => { diagnosticsOpen = false; paint(el); });
+  el.querySelector('#bt-diagnostics-modal')?.addEventListener('click', (e) => {
+    if (e.target.id === 'bt-diagnostics-modal') { diagnosticsOpen = false; paint(el); }
+  });
+
   el.querySelector('#bletag-scan')?.addEventListener('click', async () => {
     bleScanning = true;
     bleScanResults = [];
@@ -333,11 +375,19 @@ function wireEvents(el) {
       bleConnecting = true;
       paint(el);
       try {
-        await connectBleTag(btn.dataset.tagConnect);
+        const { subscribed, services } = await connectBleTag(btn.dataset.tagConnect);
         const tag = { id: genId(), address: btn.dataset.tagConnect, deviceName: btn.dataset.tagName, enabled: true };
         updateSettings({ bleTags: [...getState().settings.bleTags, tag] });
         syncSettings();
-        if (wizardStep === 'pairTag') {
+        if (subscribed === 0) {
+          // Connesso ma nessuna caratteristica NOTIFY/INDICATE trovata: il
+          // bottone fisico non può arrivare come evento BLE con NESSUN
+          // dispositivo in queste condizioni, non solo con questo - meglio
+          // dirlo chiaro subito invece di lasciar credere che funzioni e poi
+          // scoprire in campo che i punti non arrivano mai.
+          lastConnectDiagnostics = services;
+          toast('Connesso, ma nessun pulsante rilevato su questo dispositivo: potrebbe non essere compatibile. Tocca "Diagnostica" qui sopra per i dettagli.', 6000);
+        } else if (wizardStep === 'pairTag') {
           wizardStep = 'capture';
           toast('Connesso!');
         } else {

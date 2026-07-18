@@ -379,13 +379,14 @@ function wireEvents(el) {
         const tag = { id: genId(), address: btn.dataset.tagConnect, deviceName: btn.dataset.tagName, enabled: true };
         updateSettings({ bleTags: [...getState().settings.bleTags, tag] });
         syncSettings();
+        // Sempre salvato, anche con subscribed > 0: una caratteristica NOTIFY
+        // può benissimo esistere (es. livello batteria) senza che sia quella
+        // del bottone fisico, quindi "si connette ma il bottone non arriva
+        // mai" può capitare comunque - il tasto Diagnostica deve restare
+        // disponibile per controllare in ogni caso, non solo quando non si
+        // trova NESSUNA caratteristica notificabile.
+        lastConnectDiagnostics = services;
         if (subscribed === 0) {
-          // Connesso ma nessuna caratteristica NOTIFY/INDICATE trovata: il
-          // bottone fisico non può arrivare come evento BLE con NESSUN
-          // dispositivo in queste condizioni, non solo con questo - meglio
-          // dirlo chiaro subito invece di lasciar credere che funzioni e poi
-          // scoprire in campo che i punti non arrivano mai.
-          lastConnectDiagnostics = services;
           toast('Connesso, ma nessun pulsante rilevato su questo dispositivo: potrebbe non essere compatibile. Tocca "Diagnostica" qui sopra per i dettagli.', 6000);
         } else if (wizardStep === 'pairTag') {
           wizardStep = 'capture';

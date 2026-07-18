@@ -1,5 +1,5 @@
 import { getState, replaceCollection } from '../store.js';
-import { escapeHtml } from '../utils.js';
+import { escapeHtml, SHARE_ICON, EDIT_ICON, DELETE_ICON, TROPHY_ICON, LOSS_ICON } from '../utils.js';
 import { toast } from '../app.js';
 import { matchShareSupported, shareMatch } from '../match-share.js';
 
@@ -54,15 +54,15 @@ async function paint(el) {
 function matchRow(m) {
   const won = m.winner === 'A';
   return `<div class="list-item">
-    <div class="avatar">${won ? '🏆' : '➖'}</div>
+    <div class="avatar match-result-icon ${won ? 'won' : 'lost'}">${won ? TROPHY_ICON : LOSS_ICON}</div>
     <div class="meta">
       <strong>${escapeHtml(m.teamAName)} vs ${escapeHtml(m.teamBName)}</strong>
       <span>${m.mode === 'singles' ? 'Singolo' : 'Doppio'} · ${(m.sets || []).map((s) => `${s.a}-${s.b}`).join(', ')} · ${new Date(m.date).toLocaleDateString('it-IT')}</span>
     </div>
     <span class="badge ${won ? 'accent' : ''}">${won ? 'Vinta' : 'Persa'}</span>
-    ${matchShareSupported() ? `<button class="icon-btn" data-share-match="${m.id}" aria-label="Condividi partita">📤</button>` : ''}
-    <button class="icon-btn" data-edit-match="${m.id}" aria-label="Modifica partita">✏️</button>
-    <button class="icon-btn" data-delete-match="${m.id}" aria-label="Elimina partita">🗑️</button>
+    ${matchShareSupported() ? `<button class="icon-btn match-row-action" data-share-match="${m.id}" aria-label="Condividi partita">${SHARE_ICON}</button>` : ''}
+    <button class="icon-btn match-row-action" data-edit-match="${m.id}" aria-label="Modifica partita">${EDIT_ICON}</button>
+    <button class="icon-btn match-row-action" data-delete-match="${m.id}" aria-label="Elimina partita">${DELETE_ICON}</button>
   </div>`;
 }
 

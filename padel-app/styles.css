@@ -241,6 +241,13 @@ label { font-size: 0.85em; color: var(--text-dim); display: block; margin-bottom
 .avatar img, .avatar svg { width: 100%; height: 100%; object-fit: cover; display: block; }
 .avatar.xl { width: 92px; height: 92px; font-size: 2.4em; }
 .avatar.xxl { width: 128px; height: 128px; font-size: 3.2em; }
+.avatar.match-result-icon svg { width: 60%; height: 60%; object-fit: contain; }
+.avatar.match-result-icon.won { border-color: var(--accent); color: var(--accent); }
+.avatar.match-result-icon.lost { border-color: var(--danger); color: var(--danger); }
+
+/* Icone azione nello storico partite (condividi/modifica/elimina): più
+   grandi del default .icon-btn, per essere più facili da toccare/leggere. */
+.match-row-action.icon-btn svg { width: 34px; height: 34px; }
 
 .avatar-frame-wrap { position: relative; display: inline-block; }
 .avatar-frame-badge {

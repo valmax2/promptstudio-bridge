@@ -8,7 +8,7 @@ const MODES = [
   },
   {
     icon: '🥇', title: "Punto d'oro (no-ad)",
-    body: "A 40 pari (parità) il punto successivo decide subito il gioco, invece di giocare vantaggio/parità all'infinito. Si attiva/disattiva in Impostazioni → Segnapunti.",
+    body: "Chiamato anche Killer Point, Punto de Oro o Punto Secco: a 40 pari (parità) il punto successivo decide subito il gioco, invece di giocare vantaggio/parità all'infinito. Si attiva/disattiva in Impostazioni → Segnapunti (non è la modalità \"Killer\" qui sotto, che è un torneo a eliminazione diverso).",
   },
   {
     icon: '🏁', title: 'Super tie-break al 3° set',
@@ -19,8 +19,8 @@ const MODES = [
     body: "Torneo a rotazione con minimo 4 giocatori: ogni turno si formano coppie diverse su uno o più campi, e ognuno accumula punti individuali. Alla fine vince chi ha totalizzato più punti in classifica.",
   },
   {
-    icon: '🔪', title: 'Killer',
-    body: "Eliminazione diretta con minimo 3 giocatori e un numero di vite a scelta: chi perde (un game intero, o un punto secco, a scelta) perde una vita; chi resta senza vite è eliminato, finché non rimane un solo Killer.",
+    icon: '🔪', title: 'Killer (torneo)',
+    body: "Diverso dal \"Punto d'oro\" qui sopra, nonostante il nome simile: è un torneo a eliminazione diretta con minimo 3 giocatori e un numero di vite a scelta. Chi perde (un game intero, o un punto secco, a scelta) perde una vita; chi resta senza vite è eliminato, finché non rimane un solo Killer.",
   },
 ];
 

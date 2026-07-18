@@ -1,6 +1,7 @@
 import { getState, replaceCollection } from '../store.js';
 import { escapeHtml } from '../utils.js';
 import { toast } from '../app.js';
+import { matchShareSupported, shareMatch } from '../match-share.js';
 
 export async function renderStats(el) {
   await paint(el);
@@ -45,6 +46,9 @@ async function paint(el) {
   el.querySelectorAll('[data-delete-match]').forEach((btn) => {
     btn.addEventListener('click', () => onDeleteMatch(btn.dataset.deleteMatch, el));
   });
+  el.querySelectorAll('[data-share-match]').forEach((btn) => {
+    btn.addEventListener('click', () => onShareMatch(btn.dataset.shareMatch));
+  });
 }
 
 function matchRow(m) {
@@ -56,9 +60,18 @@ function matchRow(m) {
       <span>${m.mode === 'singles' ? 'Singolo' : 'Doppio'} · ${(m.sets || []).map((s) => `${s.a}-${s.b}`).join(', ')} · ${new Date(m.date).toLocaleDateString('it-IT')}</span>
     </div>
     <span class="badge ${won ? 'accent' : ''}">${won ? 'Vinta' : 'Persa'}</span>
+    ${matchShareSupported() ? `<button class="icon-btn" data-share-match="${m.id}" aria-label="Condividi partita">📤</button>` : ''}
     <button class="icon-btn" data-edit-match="${m.id}" aria-label="Modifica partita">✏️</button>
     <button class="icon-btn" data-delete-match="${m.id}" aria-label="Elimina partita">🗑️</button>
   </div>`;
+}
+
+async function onShareMatch(id) {
+  const { matches } = getState();
+  const m = matches.find((x) => x.id === id);
+  if (!m) return;
+  const ok = await shareMatch(m);
+  if (!ok) toast('Condivisione non riuscita');
 }
 
 async function onEditMatch(id, el) {

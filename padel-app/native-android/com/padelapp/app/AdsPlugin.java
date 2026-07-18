@@ -52,6 +52,14 @@ public class AdsPlugin extends Plugin {
                 adView.loadAd(new AdRequest.Builder().build());
             }
             adView.setVisibility(android.view.View.VISIBLE);
+            // AdSize.BANNER è fissa a 50dp: comunico questo valore alla web
+            // layer così può spostare sopra le proprie icone di sistema
+            // (barra di navigazione in basso) invece di lasciarle coperte
+            // dal banner, che è una view Android separata sovrapposta alla
+            // WebView e non un elemento dentro la pagina.
+            JSObject sizeEvent = new JSObject();
+            sizeEvent.put("heightDp", 50);
+            notifyListeners("bannerSize", sizeEvent);
         });
         call.resolve();
     }
@@ -62,6 +70,9 @@ public class AdsPlugin extends Plugin {
             if (adView != null) {
                 adView.setVisibility(android.view.View.GONE);
             }
+            JSObject sizeEvent = new JSObject();
+            sizeEvent.put("heightDp", 0);
+            notifyListeners("bannerSize", sizeEvent);
         });
         call.resolve();
     }

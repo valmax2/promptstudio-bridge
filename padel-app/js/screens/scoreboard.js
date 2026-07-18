@@ -10,7 +10,6 @@ import { toast } from '../app.js';
 import { nearestColorName } from '../color-presets.js';
 import { LITE_MODE } from '../lite-mode.js';
 import { canUseRemote } from '../gate-config.js';
-import { matchShareSupported, shareMatch } from '../match-share.js';
 import {
   enableRemote, disableRemote, listenBindings,
   setKeepScreenOn,
@@ -34,11 +33,15 @@ let setupTimeMinutes = 45;
 let timeInterval = null;
 let stopHwKeys = () => {};
 let victoryModalOpen = false;
+let serverPickerOpen = false;
+let quickSummaryOpen = false;
 
 export async function renderScoreboard(el) {
   const { settings } = getState();
   ttsEnabled = settings.ttsEnabled;
   victoryModalOpen = false;
+  serverPickerOpen = false;
+  quickSummaryOpen = false;
 
   document.getElementById('bottom-nav').classList.add('hidden');
   setKeepScreenOn(true);
@@ -413,14 +416,20 @@ function paint(el) {
       </div>
       <div class="sb-controls">
         <button id="sb-undo" ${history.length ? '' : 'disabled'}>↩️ Annulla</button>
-        <button id="sb-settings">${LITE_MODE ? '🔵 Bluetooth' : '⚙️ Impostazioni'}</button>
+        <button id="sb-settings">${LITE_MODE ? '🔵 Bluetooth' : '📋 Riepilogo'}</button>
         <button id="sb-newmatch">🔄 Nuova partita</button>
       </div>
+      ${serverPickerOpen ? serverPickerModal() : ''}
+      ${quickSummaryOpen ? quickSummaryModal(settings) : ''}
     </div>
   `;
 
   el.querySelector('#sb-back').addEventListener('click', () => navigate('home'));
-  el.querySelector('#sb-settings').addEventListener('click', () => navigate(LITE_MODE ? 'bluetooth-setup' : 'settings'));
+  el.querySelector('#sb-settings').addEventListener('click', () => {
+    if (LITE_MODE) { navigate('bluetooth-setup'); return; }
+    quickSummaryOpen = true;
+    paint(el);
+  });
   el.querySelector('#sb-mute').addEventListener('click', () => {
     ttsEnabled = !ttsEnabled;
     if (!ttsEnabled) stopSpeech();
@@ -446,7 +455,6 @@ function paint(el) {
   });
   el.querySelector('#sb-undo').addEventListener('click', onUndo);
   el.querySelector('#sb-newmatch').addEventListener('click', onReset);
-  el.querySelector('#sb-share')?.addEventListener('click', onShareMatch);
 
   if (!match.matchOver) {
     el.querySelector('#half-a').addEventListener('click', () => onPoint('A'));
@@ -458,18 +466,54 @@ function paint(el) {
       onEditName(nameEl.dataset.editName, el);
     });
   });
-  el.querySelectorAll('[data-toggle-server]').forEach((btn) => {
+  el.querySelectorAll('[data-open-server-picker]').forEach((btn) => {
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
-      const team = btn.dataset.toggleServer;
-      const key = team === 'A' ? 'serverPlayerA' : 'serverPlayerB';
-      match[key] = match[key] ? 0 : 1;
-      const players = team === 'A' ? match.teamAPlayers : match.teamBPlayers;
-      const name = players[match[key]];
-      if (ttsEnabled && name) say(`Ora batte ${name}`);
+      serverPickerOpen = true;
       paint(el);
     });
   });
+  el.querySelector('#pick-random-server')?.addEventListener('click', () => {
+    const options = [
+      { team: 'A', idx: 0 },
+      ...(match.teamAPlayers.length > 1 ? [{ team: 'A', idx: 1 }] : []),
+      { team: 'B', idx: 0 },
+      ...(match.teamBPlayers.length > 1 ? [{ team: 'B', idx: 1 }] : []),
+    ];
+    const pick = options[Math.floor(Math.random() * options.length)];
+    match.server = pick.team;
+    match[pick.team === 'A' ? 'serverPlayerA' : 'serverPlayerB'] = pick.idx;
+    const players = pick.team === 'A' ? match.teamAPlayers : match.teamBPlayers;
+    const name = players[pick.idx];
+    if (ttsEnabled && name) say(`Batte ${name}`);
+    serverPickerOpen = false;
+    paint(el);
+  });
+  el.querySelector('#server-picker-close')?.addEventListener('click', () => { serverPickerOpen = false; paint(el); });
+  el.querySelector('#server-picker-modal')?.addEventListener('click', (e) => {
+    if (e.target.id === 'server-picker-modal') { serverPickerOpen = false; paint(el); }
+  });
+  el.querySelectorAll('[data-pick-live-server]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const [team, idxStr] = btn.dataset.pickLiveServer.split(':');
+      const idx = Number(idxStr);
+      match.server = team;
+      match[team === 'A' ? 'serverPlayerA' : 'serverPlayerB'] = idx;
+      const players = team === 'A' ? match.teamAPlayers : match.teamBPlayers;
+      const name = players[idx];
+      if (ttsEnabled && name) say(`Ora batte ${name}`);
+      serverPickerOpen = false;
+      paint(el);
+    });
+  });
+
+  el.querySelector('#quick-summary-close')?.addEventListener('click', () => { quickSummaryOpen = false; paint(el); });
+  el.querySelector('#quick-summary-done')?.addEventListener('click', () => { quickSummaryOpen = false; paint(el); });
+  el.querySelector('#quick-summary-modal')?.addEventListener('click', (e) => {
+    if (e.target.id === 'quick-summary-modal') { quickSummaryOpen = false; paint(el); }
+  });
+  el.querySelector('#quick-golden')?.addEventListener('change', (e) => { match.goldenPoint = e.target.checked; });
+  el.querySelector('#quick-supertb')?.addEventListener('change', (e) => { match.superTiebreak3rdSet = e.target.checked; });
 }
 
 function teamHalf(team) {
@@ -497,10 +541,61 @@ function teamHalf(team) {
 
   return `
     <div class="sb-half sb-${team.toLowerCase()}" id="half-${team.toLowerCase()}">
-      <div class="sb-name-row" data-edit-name="${team}">${escapeHtml(name)}${serving ? '<span class="serve-ball">🎾</span>' : ''}</div>
-      ${serving && isDoubles ? `<button class="sb-server-player" data-toggle-server="${team}">Batte: ${escapeHtml(servingPlayerName)} ⇄</button>` : ''}
+      <div class="sb-name-row" data-edit-name="${team}">${escapeHtml(name)}</div>
+      ${serving ? `<button class="sb-server-player" data-open-server-picker="${team}">🎾 ${isDoubles ? `Batte: ${escapeHtml(servingPlayerName)}` : 'Al servizio'}</button>` : ''}
       <div class="sb-stack ${pointsOnlyMode ? 'points-only' : ''}">${stackContent}</div>
       ${badge ? `<div class="sb-badge">${badge}</div>` : ''}
+    </div>
+  `;
+}
+
+// Riepilogo compatto della partita in corso, apribile senza abbandonare lo
+// schermo di gioco (a differenza della schermata Impostazioni completa) - le
+// regole qui sotto agiscono live sulla partita in corso: scoring.js legge
+// match.goldenPoint/match.superTiebreak3rdSet ad ogni punto, quindi
+// cambiarle a metà partita è sicuro e ha effetto dal punto successivo.
+function quickSummaryModal(settings) {
+  const setsLine = match.sets.length
+    ? match.sets.map((s) => `${s.a}-${s.b}`).join(' · ')
+    : 'Nessun set concluso';
+  return `
+    <div class="modal-backdrop" id="quick-summary-modal">
+      <div class="modal-card">
+        <h2><span>📋 Riepilogo partita</span><button class="icon-btn" id="quick-summary-close" aria-label="Chiudi">✕</button></h2>
+        <p class="small">${escapeHtml(match.teamAName)} vs ${escapeHtml(match.teamBName)} · ${match.mode === 'singles' ? 'Singolo' : 'Doppio'}</p>
+        <p class="small">Set: ${setsLine}</p>
+        <div class="toggle-row mt">
+          <div><strong>Punto d'oro</strong><p class="mb0 small">A 40 pari, il punto successivo decide il gioco</p></div>
+          <label class="switch"><input type="checkbox" id="quick-golden" ${match.goldenPoint ? 'checked' : ''}><span class="slider"></span></label>
+        </div>
+        <div class="toggle-row mt">
+          <div><strong>Super tie-break al 3° set</strong><p class="mb0 small">Set decisivo fino a 10 punti invece di un set intero</p></div>
+          <label class="switch"><input type="checkbox" id="quick-supertb" ${match.superTiebreak3rdSet ? 'checked' : ''}><span class="slider"></span></label>
+        </div>
+        <button class="btn primary block mt" id="quick-summary-done">✅ Fatto, riprendi</button>
+      </div>
+    </div>
+  `;
+}
+
+function serverPickerModal() {
+  const options = [
+    { team: 'A', idx: 0, name: match.teamAPlayers[0] },
+    ...(match.teamAPlayers.length > 1 ? [{ team: 'A', idx: 1, name: match.teamAPlayers[1] }] : []),
+    { team: 'B', idx: 0, name: match.teamBPlayers[0] },
+    ...(match.teamBPlayers.length > 1 ? [{ team: 'B', idx: 1, name: match.teamBPlayers[1] }] : []),
+  ];
+  return `
+    <div class="modal-backdrop" id="server-picker-modal">
+      <div class="modal-card">
+        <h2><span>🎾 Chi batte?</span><button class="icon-btn" id="server-picker-close" aria-label="Chiudi">✕</button></h2>
+        <button class="btn primary block mt" id="pick-random-server" style="font-size:1.15em;padding:16px;">🎲 Battitore casuale</button>
+        <div class="mt">
+          ${options.map((o) => `
+            <button class="btn ${match.server === o.team && (o.idx === ((o.team === 'A' ? match.serverPlayerA : match.serverPlayerB) || 0)) ? 'primary' : 'secondary'} block mt" data-pick-live-server="${o.team}:${o.idx}">${escapeHtml(o.name)}</button>
+          `).join('')}
+        </div>
+      </div>
     </div>
   `;
 }
@@ -533,23 +628,9 @@ function matchOverOverlay() {
     <div class="sb-overlay">
       <h2>${title}</h2>
       <p>${detail}</p>
-      <p class="small">✅ Salvata automaticamente nelle statistiche</p>
-      ${matchShareSupported() ? '<button class="btn secondary mt" id="sb-share">📤 Condividi risultato</button>' : ''}
+      <p class="small">✅ Salvata automaticamente nelle statistiche. Puoi condividerla in un secondo momento dallo storico partite.</p>
     </div>
   `;
-}
-
-async function onShareMatch() {
-  const record = {
-    date: new Date().toISOString(),
-    teamAName: match.teamAName,
-    teamBName: match.teamBName,
-    mode: match.mode,
-    sets: match.sets,
-    winner: match.matchWinner,
-  };
-  const ok = await shareMatch(record);
-  if (!ok) toast('Condivisione non riuscita');
 }
 
 function onPoint(team) {
@@ -563,13 +644,21 @@ function onPoint(team) {
   if (match.matchOver && !matchAutoSaved) {
     matchAutoSaved = true;
     saveMatchRecord(match);
+    // Le icone di sistema (Home, Punteggio, Community...) restano nascoste
+    // solo durante il punteggio attivo, per l'immersione a schermo intero -
+    // una volta finita la partita tornano visibili, così si può navigare
+    // subito altrove senza restare "intrappolati" nel riepilogo.
+    document.getElementById('bottom-nav').classList.remove('hidden');
   }
   paint(document.querySelector('.screen'));
 }
 
 function onUndo() {
   if (!match || !history.length) return;
-  if (match.matchOver) matchAutoSaved = false;
+  if (match.matchOver) {
+    matchAutoSaved = false;
+    document.getElementById('bottom-nav').classList.add('hidden');
+  }
   match = history.pop();
   stopSpeech();
   paint(document.querySelector('.screen'));
@@ -588,6 +677,7 @@ async function onReset() {
   stopSpeech();
   stopHwKeys();
   disableRemote();
+  document.getElementById('bottom-nav').classList.add('hidden');
   paintSetup(el);
 }
 

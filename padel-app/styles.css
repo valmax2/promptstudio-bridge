@@ -62,7 +62,10 @@ p { margin: 0 0 8px; color: var(--text-dim); }
 button { font-family: inherit; }
 
 .app {
-  padding: calc(16px + var(--safe-top)) 16px calc(96px + var(--safe-bottom));
+  /* --ad-banner-height è impostata da js/ads.js quando il banner AdMob
+     nativo è visibile, così il contenuto scorre sopra e non ci finisce
+     sotto (il banner è una view Android separata, non dentro la WebView). */
+  padding: calc(16px + var(--safe-top)) 16px calc(96px + var(--safe-bottom) + var(--ad-banner-height, 0px));
   min-height: 100%;
 }
 
@@ -270,7 +273,10 @@ label { font-size: 0.85em; color: var(--text-dim); display: block; margin-bottom
 
 /* Bottom navigation */
 .bottom-nav {
-  position: fixed; left: 0; right: 0; bottom: 0;
+  position: fixed; left: 0; right: 0;
+  /* Si sposta sopra il banner AdMob nativo quando visibile (vedi
+     js/ads.js), altrimenti resterebbe coperto dal banner sovrapposto. */
+  bottom: var(--ad-banner-height, 0px);
   display: flex; justify-content: space-around;
   background: var(--bg-elevated);
   border-top: 1px solid var(--border);
@@ -393,12 +399,13 @@ label { font-size: 0.85em; color: var(--text-dim); display: block; margin-bottom
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.sb-name-row .serve-ball { margin-left: 6px; }
 .sb-server-player {
   flex: 0 0 auto; display: block; width: 100%; border: none;
-  background: rgba(0,0,0,0.22); color: #fff;
+  border-top: 2px solid rgba(255,255,255,0.2);
+  margin-top: 4px;
+  background: rgba(0,0,0,0.3); color: #fff;
   font-size: clamp(0.7rem, 2vw, 0.9rem); font-weight: 700;
-  padding: 4px 8px; text-transform: none; letter-spacing: normal;
+  padding: 6px 8px; text-transform: none; letter-spacing: normal;
 }
 
 .sb-stack {

@@ -10,6 +10,12 @@ export async function initAds() {
   if (!Ads) return;
   try {
     await Ads.initialize();
+    // Il banner è una view Android nativa sovrapposta alla WebView, non un
+    // elemento della pagina: senza questo, coprirebbe la barra di
+    // navigazione in basso (vedi styles.css .bottom-nav/.app).
+    Ads.addListener('bannerSize', ({ heightDp }) => {
+      document.documentElement.style.setProperty('--ad-banner-height', `${heightDp}px`);
+    });
   } catch {}
 }
 

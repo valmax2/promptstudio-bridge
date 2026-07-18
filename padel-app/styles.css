@@ -62,11 +62,16 @@ p { margin: 0 0 8px; color: var(--text-dim); }
 button { font-family: inherit; }
 
 .app {
-  /* --ad-banner-height è impostata da js/ads.js quando il banner AdMob
-     nativo è visibile, così il contenuto scorre sopra e non ci finisce
-     sotto (il banner è una view Android separata, non dentro la WebView). */
-  padding: calc(16px + var(--safe-top)) 16px calc(96px + var(--safe-bottom) + var(--ad-banner-height, 0px));
+  padding: calc(16px + var(--safe-top)) 16px calc(96px + var(--safe-bottom));
   min-height: 100%;
+}
+/* Il banner AdMob è una view Android nativa sovrapposta alla WebView (non
+   un elemento della pagina): senza questo spazio riservato coprirebbe la
+   barra di navigazione in basso. AdSize.BANNER (native-android/AdsPlugin)
+   è sempre alta 50dp, riservata qui in modo fisso e sincrono - vedi
+   js/ads.js showBanner/hideBanner. */
+:root.ad-banner-visible .app {
+  padding-bottom: calc(96px + var(--safe-bottom) + 50px);
 }
 
 .screen { animation: fadeIn .18s ease; }
@@ -273,15 +278,17 @@ label { font-size: 0.85em; color: var(--text-dim); display: block; margin-bottom
 
 /* Bottom navigation */
 .bottom-nav {
-  position: fixed; left: 0; right: 0;
-  /* Si sposta sopra il banner AdMob nativo quando visibile (vedi
-     js/ads.js), altrimenti resterebbe coperto dal banner sovrapposto. */
-  bottom: var(--ad-banner-height, 0px);
+  position: fixed; left: 0; right: 0; bottom: 0;
   display: flex; justify-content: space-around;
   background: var(--bg-elevated);
   border-top: 1px solid var(--border);
   padding: 8px 4px calc(8px + var(--safe-bottom));
   z-index: 50;
+}
+/* Si sposta sopra il banner AdMob nativo quando visibile, altrimenti
+   resterebbe coperto dal banner sovrapposto (vedi js/ads.js). */
+:root.ad-banner-visible .bottom-nav {
+  bottom: 50px;
 }
 .bottom-nav.hidden { display: none; }
 .nav-btn {

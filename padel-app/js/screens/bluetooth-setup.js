@@ -242,6 +242,18 @@ function overviewCard(settings) {
   `;
 }
 
+// Con più dispositivi collegati (es. un tag per squadra) non si capiva a
+// colpo d'occhio quale fosse quale - questa etichetta legge dalle
+// associazioni quale squadra segna il punto con quel dispositivo, così
+// l'elenco lo dice chiaro invece di dover aprire "Configura pulsante".
+function teamLabelFor(deviceDescriptor, bindings) {
+  const b = bindings.find((x) => x.deviceDescriptor === deviceDescriptor && (x.action === 'pointA' || x.action === 'pointB'));
+  if (!b) return '';
+  return b.action === 'pointA'
+    ? '<span class="badge" style="background:#1565C0;color:#fff;">🟦 Squadra Noi</span>'
+    : '<span class="badge" style="background:#F2A900;color:#000;">🟧 Squadra Avversari</span>';
+}
+
 // Collapses the flat remoteBindings list into one row per physical device,
 // so the overview shows "un dispositivo" instead of two loose rows (single
 // click, double click) for the same remote.
@@ -251,10 +263,11 @@ function groupedRemoteRows(bindings) {
     if (!byDevice.has(b.deviceDescriptor)) byDevice.set(b.deviceDescriptor, { deviceName: b.deviceName, bindings: [] });
     byDevice.get(b.deviceDescriptor).bindings.push(b);
   });
-  return [...byDevice.values()].map((d) => `
+  return [...byDevice.entries()].map(([deviceDescriptor, d]) => `
     <div class="card" style="background:var(--surface-2);margin-top:10px;">
       <div class="toggle-row">
         <div><strong>🎮 ${escapeHtml(d.deviceName)}</strong><p class="mb0 small">${d.bindings.length} associazion${d.bindings.length === 1 ? 'e' : 'i'}</p></div>
+        ${teamLabelFor(deviceDescriptor, bindings)}
       </div>
     </div>
   `).join('');
@@ -528,6 +541,7 @@ function tagRow(t, remoteBindings) {
       <div><strong>🔑 ${escapeHtml(t.deviceName || 'Dispositivo')}</strong><p class="mb0 small">${t.address}</p></div>
       <label class="switch"><input type="checkbox" data-tag-enabled="${t.id}" ${t.enabled ? 'checked' : ''}><span class="slider"></span></label>
     </div>
+    ${teamLabelFor(t.address, remoteBindings) ? `<div class="mt">${teamLabelFor(t.address, remoteBindings)}</div>` : ''}
     ${hasBindings
       ? `<p class="small mb0" style="color:var(--accent,#1FBE96);">✓ Pulsante configurato</p>`
       : `<p class="small mb0" style="color:var(--danger,#e5484d);">⚠️ Pulsante non ancora configurato: il tag è connesso ma non fa ancora nulla.</p>`}

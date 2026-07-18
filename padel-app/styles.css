@@ -506,6 +506,19 @@ label { font-size: 0.85em; color: var(--text-dim); display: block; margin-bottom
   -webkit-text-stroke: var(--number-border-width, 0px) var(--number-border-color, transparent);
   paint-order: stroke fill;
 }
+/* In orizzontale l'altezza dello schermo è poca, e il tetto del punteggio
+   (min(...vw, ...vh)) era legato quasi solo al vh: aumentare lo scale col ➕
+   non lo faceva crescere quasi per niente. GAME/SET occupano meno spazio
+   verticale (grid-template-rows più stretto) e il tetto vh del punteggio
+   sale parecchio, dato che qui la larghezza abbonda e non è più il limite.
+   La modalità "solo punteggio" resta invariata (già ok secondo l'utente). */
+@media (orientation: landscape) {
+  .sb-stack:not(.points-only) { grid-template-rows: 4fr 0.7fr 1fr 0.7fr 1fr; }
+  .sb-point { font-size: min(calc(18vw * var(--number-size-scale, 1)), calc(40vh * var(--number-size-scale, 1))); }
+  .sb-cap { font-size: calc(clamp(0.55rem, 1.3vw, 0.85rem) * var(--number-size-scale, 1)); }
+  .sb-mid { font-size: min(calc(9vw * var(--number-size-scale, 1)), 22vh); }
+}
+
 .sb-badge {
   position: absolute;
   top: 8px;

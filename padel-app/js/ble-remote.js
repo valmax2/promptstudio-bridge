@@ -9,6 +9,8 @@
 // native-android/MainActivity.java for the native side that forwards key
 // events into the WebView as a "padel-hw-key" custom event, tagged with the
 // source device's stable descriptor.
+import { getState } from './store.js';
+
 export const KEY_LABELS = {
   24: 'Volume +',
   25: 'Volume -',
@@ -263,8 +265,12 @@ export const BLE_TAG_KEYCODE = 9001;
   const plugin = bleTag();
   if (!plugin) return;
   plugin.addListener('tagPressed', ({ address }) => {
+    // Nome vero del tag (quello scelto/rilevato al collegamento) invece del
+    // generico "Tag Bluetooth" - utile nel log "Test dal vivo" quando più
+    // tag sono collegati insieme e vanno distinti a colpo d'occhio.
+    const tag = getState().settings.bleTags.find((t) => t.address === address);
     window.dispatchEvent(new CustomEvent('padel-hw-key', {
-      detail: { keyCode: BLE_TAG_KEYCODE, deviceDescriptor: address, deviceName: 'Tag Bluetooth' },
+      detail: { keyCode: BLE_TAG_KEYCODE, deviceDescriptor: address, deviceName: tag?.deviceName || 'Tag Bluetooth' },
     }));
   });
 })();

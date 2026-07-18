@@ -84,6 +84,17 @@ public class BleTagPlugin extends Plugin {
     private final Map<String, Integer> subscribedCountByAddress = new HashMap<>();
     private final Map<String, JSArray> servicesInfoByAddress = new HashMap<>();
 
+    // Diverse tracker economici (confermato su iTag e Nutale Mate: 4 notifiche
+    // per una singola pressione fisica, invece di una) mandano più notifiche
+    // BLE ravvicinate per un solo evento reale, probabilmente per affidabilità
+    // su un collegamento non garantito. Senza filtro, il rilevamento
+    // singolo/doppio click lato JS le legge come 2 doppi-click veloci di
+    // fila, facendo scattare "Annulla" al posto del punto per ogni pressione
+    // vera. Scartare notifiche troppo ravvicinate le riduce a un evento solo,
+    // senza toccare il doppio click intenzionale dell'utente (mai così rapido).
+    private static final long PRESS_DEBOUNCE_MS = 120;
+    private final Map<String, Long> lastPressAtByAddress = new HashMap<>();
+
     private String scanPermissionAlias() {
         return Build.VERSION.SDK_INT >= 31 ? "ble" : "location";
     }
@@ -242,6 +253,7 @@ public class BleTagPlugin extends Plugin {
                 pendingDescriptorQueue.remove(address);
                 subscribedCountByAddress.remove(address);
                 servicesInfoByAddress.remove(address);
+                lastPressAtByAddress.remove(address);
                 JSObject data = new JSObject();
                 data.put("address", address);
                 notifyListeners("disconnected", data);
@@ -333,8 +345,13 @@ public class BleTagPlugin extends Plugin {
 
         @Override
         public void onCharacteristicChanged(BluetoothGatt g, BluetoothGattCharacteristic characteristic) {
+            String address = addressOf(g);
+            long now = System.currentTimeMillis();
+            Long last = lastPressAtByAddress.get(address);
+            if (last != null && (now - last) < PRESS_DEBOUNCE_MS) return;
+            lastPressAtByAddress.put(address, now);
             JSObject data = new JSObject();
-            data.put("address", addressOf(g));
+            data.put("address", address);
             data.put("uuid", characteristic.getUuid().toString());
             notifyListeners("tagPressed", data);
         }

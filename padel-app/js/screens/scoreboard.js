@@ -303,6 +303,16 @@ function paintSetup(el) {
               ${[0, 1, 2, 3, 5].map((n) => `<button data-setup-time-announce="${n}" class="${settings.announceTimeEveryMatches === n ? 'active' : ''}">${n === 0 ? 'Mai' : n === 1 ? 'Ogni partita' : `Ogni ${n}`}</button>`).join('')}
             </div>
           </div>
+          ${settings.announceTimeEveryMatches ? `
+          <div class="field mt mb0">
+            <label>🗣️ Frase dell'annuncio orario</label>
+            <input id="setup-time-announce-phrase" placeholder="Sono le {orario}. Avete tempo per un'altra partita?" maxlength="140" value="${escapeHtml(settings.timeAnnouncePhrase || '')}">
+            <div class="row mt" style="gap:8px;">
+              <button class="btn secondary small block" id="setup-save-time-announce-phrase">💾 Salva frase</button>
+              <button class="btn ghost small block" id="setup-reset-time-announce-phrase">↺ Predefinita</button>
+            </div>
+          </div>
+          ` : ''}
         </div>
         <div class="card">
           <label>🏆 Frase di fine partita</label>
@@ -340,6 +350,15 @@ function paintSetup(el) {
     updateSettings({ announceTimeEveryMatches: parseInt(btn.dataset.setupTimeAnnounce, 10) });
     paintSetup(el);
   }));
+  el.querySelector('#setup-save-time-announce-phrase')?.addEventListener('click', () => {
+    const text = el.querySelector('#setup-time-announce-phrase').value.trim().slice(0, 140);
+    updateSettings({ timeAnnouncePhrase: text || null });
+    toast('Frase salvata');
+  });
+  el.querySelector('#setup-reset-time-announce-phrase')?.addEventListener('click', () => {
+    updateSettings({ timeAnnouncePhrase: null });
+    paintSetup(el);
+  });
   el.querySelector('#setup-bluetooth')?.addEventListener('click', () => navigate('bluetooth-setup'));
   el.querySelector('#setup-exit-lite')?.addEventListener('click', () => {
     updateSettings({ liteModeUser: false });
@@ -633,6 +652,15 @@ function paint(el) {
       paint(el);
     });
   });
+  el.querySelector('#quick-save-time-announce-phrase')?.addEventListener('click', () => {
+    const text = el.querySelector('#quick-time-announce-phrase').value.trim().slice(0, 140);
+    updateSettings({ timeAnnouncePhrase: text || null });
+    toast('Frase salvata');
+  });
+  el.querySelector('#quick-reset-time-announce-phrase')?.addEventListener('click', () => {
+    updateSettings({ timeAnnouncePhrase: null });
+    paint(el);
+  });
 }
 
 function teamHalf(team) {
@@ -729,6 +757,16 @@ function quickSummaryModal(settings) {
             ${[0, 1, 2, 3, 5].map((n) => `<button data-quick-time-announce="${n}" class="${settings.announceTimeEveryMatches === n ? 'active' : ''}">${n === 0 ? 'Mai' : n === 1 ? 'Ogni partita' : `Ogni ${n}`}</button>`).join('')}
           </div>
         </div>
+        ${settings.announceTimeEveryMatches ? `
+        <div class="field mt mb0">
+          <label>🗣️ Frase dell'annuncio orario</label>
+          <input id="quick-time-announce-phrase" placeholder="Sono le {orario}. Avete tempo per un'altra partita?" maxlength="140" value="${escapeHtml(settings.timeAnnouncePhrase || '')}">
+          <div class="row mt" style="gap:8px;">
+            <button class="btn secondary small block" id="quick-save-time-announce-phrase">💾 Salva frase</button>
+            <button class="btn ghost small block" id="quick-reset-time-announce-phrase">↺ Predefinita</button>
+          </div>
+        </div>
+        ` : ''}
         <button class="btn primary block mt" id="quick-summary-done">✅ Fatto, riprendi</button>
       </div>
     </div>

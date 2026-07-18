@@ -15,10 +15,10 @@ function loadImage(url) {
   });
 }
 
-// Disegna il fondo: sfondo personalizzato dall'admin (Impostazioni ->
-// sezione admin) se presente e caricabile, altrimenti la sfumatura blu-
-// verde di default. Un velo scuro sopra l'immagine mantiene il testo
-// leggibile qualunque sia la foto scelta.
+// Disegna il fondo: sfondo scelto dal giocatore nell'editor pre-condivisione
+// (tra quelli caricati dall'admin) se presente e caricabile, altrimenti la
+// sfumatura blu-verde di default. Un velo scuro sopra l'immagine mantiene il
+// testo leggibile qualunque sia la foto scelta.
 async function drawBackground(ctx, W, H, backgroundUrl) {
   if (backgroundUrl) {
     try {
@@ -42,10 +42,10 @@ async function drawBackground(ctx, W, H, backgroundUrl) {
   ctx.fillRect(0, 0, W, H);
 }
 
-// Cornice decorativa: doppio bordo (neon esterno + sottile interno) più
-// piccoli accenti agli angoli, per un risultato più curato/da poter
-// mandare in giro con orgoglio invece di un semplice screenshot.
-function drawFrame(ctx, W, H, neon) {
+// Cornice di default: doppio bordo (neon esterno + sottile interno) più
+// piccoli accenti agli angoli. Usata quando il giocatore non sceglie una
+// delle cornici-immagine caricate dall'admin.
+function drawDefaultFrame(ctx, W, H, neon) {
   ctx.strokeStyle = neon;
   ctx.lineWidth = 8;
   ctx.strokeRect(20, 20, W - 40, H - 40);
@@ -65,7 +65,17 @@ function drawFrame(ctx, W, H, neon) {
   });
 }
 
-async function drawMatchCard(record, backgroundUrl) {
+// Riga con i nomi dei giocatori sotto il nome squadra - solo se i nomi sono
+// stati salvati nel record (partite giocate dopo questo aggiornamento) e se
+// aggiungono informazione rispetto al nome squadra stesso.
+function playersLine(players, teamName) {
+  if (!Array.isArray(players) || !players.length) return null;
+  const joined = players.join(' e ');
+  if (!joined || joined === teamName) return null;
+  return joined;
+}
+
+async function drawMatchCard(record, { backgroundUrl = null, frameUrl = null } = {}) {
   const canvas = document.createElement('canvas');
   const W = 1080, H = 1350;
   canvas.width = W;
@@ -78,7 +88,7 @@ async function drawMatchCard(record, backgroundUrl) {
   neon.addColorStop(0, '#4DD9FF');
   neon.addColorStop(1, '#8CFF5C');
 
-  drawFrame(ctx, W, H, neon);
+  if (!frameUrl) drawDefaultFrame(ctx, W, H, neon);
 
   ctx.textAlign = 'center';
   ctx.fillStyle = neon;
@@ -92,23 +102,40 @@ async function drawMatchCard(record, backgroundUrl) {
 
   const winnerA = record.winner === 'A';
   const winnerB = record.winner === 'B';
+  const playersA = playersLine(record.teamAPlayers, record.teamAName);
+  const playersB = playersLine(record.teamBPlayers, record.teamBName);
 
+  let y = 285;
   ctx.font = 'bold 58px sans-serif';
   ctx.fillStyle = winnerA ? '#8CFF5C' : '#E5EAF2';
-  ctx.fillText(record.teamAName, W / 2, 300);
+  ctx.fillText(record.teamAName, W / 2, y);
+  if (playersA) {
+    y += 42;
+    ctx.font = '30px sans-serif';
+    ctx.fillStyle = '#B9C2D6';
+    ctx.fillText(playersA, W / 2, y);
+  }
+  y += 52;
   ctx.font = '34px sans-serif';
   ctx.fillStyle = '#B9C2D6';
-  ctx.fillText('vs', W / 2, 350);
+  ctx.fillText('vs', W / 2, y);
+  y += 62;
   ctx.font = 'bold 58px sans-serif';
   ctx.fillStyle = winnerB ? '#8CFF5C' : '#E5EAF2';
-  ctx.fillText(record.teamBName, W / 2, 410);
+  ctx.fillText(record.teamBName, W / 2, y);
+  if (playersB) {
+    y += 42;
+    ctx.font = '30px sans-serif';
+    ctx.fillStyle = '#B9C2D6';
+    ctx.fillText(playersB, W / 2, y);
+  }
 
   // Banner esplicito del vincitore a testo pieno: il solo colore/trofeo sul
   // nome sopra non bastava a farlo capire a colpo d'occhio nell'immagine
   // condivisa.
   const winnerName = winnerA ? record.teamAName : winnerB ? record.teamBName : null;
+  y += 90;
   if (winnerName) {
-    const bannerY = 470;
     ctx.font = 'bold 46px sans-serif';
     const label = `🏆 ${winnerName} VINCE!`;
     const textWidth = ctx.measureText(label).width;
@@ -118,38 +145,39 @@ async function drawMatchCard(record, backgroundUrl) {
     ctx.fillStyle = 'rgba(140,255,92,0.16)';
     ctx.strokeStyle = '#8CFF5C';
     ctx.lineWidth = 3;
-    const bx = (W - boxW) / 2, by = bannerY - boxH / 2 + 10;
+    const bx = (W - boxW) / 2, by = y - boxH / 2 - 6;
     ctx.beginPath();
     ctx.roundRect ? ctx.roundRect(bx, by, boxW, boxH, 16) : ctx.rect(bx, by, boxW, boxH);
     ctx.fill();
     ctx.stroke();
     ctx.fillStyle = '#8CFF5C';
-    ctx.fillText(label, W / 2, bannerY + 16);
+    ctx.fillText(label, W / 2, y + 10);
   } else {
     ctx.font = 'bold 40px sans-serif';
     ctx.fillStyle = '#E5EAF2';
-    ctx.fillText('🤝 Pareggio', W / 2, 480);
+    ctx.fillText('🤝 Pareggio', W / 2, y);
   }
 
+  y += 100;
   ctx.font = '30px sans-serif';
   ctx.fillStyle = '#B9C2D6';
-  ctx.fillText('Storico set', W / 2, 570);
+  ctx.fillText('Risultato', W / 2, y);
 
-  let y = 660;
+  y += 95;
   if (record.sets && record.sets.length) {
     record.sets.forEach((s, i) => {
       ctx.font = '30px sans-serif';
       ctx.fillStyle = '#8B95AC';
       ctx.textAlign = 'center';
-      ctx.fillText(`SET ${i + 1}`, W / 2, y - 60);
-      ctx.font = 'bold 88px sans-serif';
+      ctx.fillText(`SET ${i + 1}`, W / 2, y - 58);
+      ctx.font = 'bold 84px sans-serif';
       ctx.fillStyle = s.a > s.b ? '#4DD9FF' : '#E5EAF2';
       ctx.textAlign = 'right';
       ctx.fillText(String(s.a), W / 2 - 40, y);
       ctx.fillStyle = s.b > s.a ? '#4DD9FF' : '#E5EAF2';
       ctx.textAlign = 'left';
       ctx.fillText(String(s.b), W / 2 + 40, y);
-      y += 150;
+      y += 140;
     });
   } else {
     ctx.font = '32px sans-serif';
@@ -163,13 +191,32 @@ async function drawMatchCard(record, backgroundUrl) {
   ctx.font = '28px sans-serif';
   ctx.fillText('Segnapunti padel con telecomandi Bluetooth', W / 2, H - 60);
 
-  return canvas.toDataURL('image/png').split(',')[1];
+  // Cornice-immagine dell'admin: disegnata per ultima, sopra tutto il
+  // contenuto, stirata sull'intera card (i PNG cornice hanno il centro
+  // trasparente).
+  if (frameUrl) {
+    try {
+      const frame = await loadImage(frameUrl);
+      ctx.drawImage(frame, 0, 0, W, H);
+    } catch {
+      drawDefaultFrame(ctx, W, H, neon);
+    }
+  }
+
+  return canvas.toDataURL('image/png');
 }
 
-export async function shareMatch(record, backgroundUrl) {
+// Data-URL per l'anteprima nell'editor pre-condivisione (matita nello
+// storico partite) - stessa identica resa dell'immagine condivisa.
+export async function renderMatchCardPreview(record, opts) {
+  return drawMatchCard(record, opts);
+}
+
+export async function shareMatch(record, opts = {}) {
   if (!matchShareSupported()) return false;
   try {
-    const base64 = await drawMatchCard(record, backgroundUrl);
+    const dataUrl = await drawMatchCard(record, opts);
+    const base64 = dataUrl.split(',')[1];
     const fileName = `padel-match-${Date.now()}.png`;
     const { uri } = await Filesystem().writeFile({ path: fileName, data: base64, directory: 'CACHE' });
     await Share().share({

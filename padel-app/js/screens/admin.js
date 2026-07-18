@@ -5,7 +5,8 @@ import {
   listenCompatibleRemotes, addCompatibleRemote, updateCompatibleRemoteOrder, deleteCompatibleRemote,
   updateCompatibleRemoteImage,
   listenWelcomeImage, uploadWelcomeImage,
-  listenShareCardBackground, uploadShareCardBackground,
+  listenShareAssets, addShareAsset, deleteShareAsset,
+  listenMatchResultIcons, uploadMatchResultIcon,
 } from '../cloud.js';
 import { firebaseAvailable } from '../firebase.js';
 import { navigate } from '../router.js';
@@ -28,9 +29,12 @@ export async function renderAdmin(el) {
   let unsubRemotes = null;
   let unsubWelcomeImage = null;
   let unsubShareBg = null;
+  let unsubShareFrames = null;
+  let unsubResultIcons = null;
   let uploading = false;
   let uploadingWelcomeImage = false;
-  let uploadingShareBg = false;
+  let uploadingShareAsset = false;
+  let uploadingResultIcon = false;
   let pickedRemoteImage = null;
   // { kind: 'avatar'|'prize'|'remote', id, shape } dell'elemento la cui foto
   // stiamo per sostituire cliccando sulla sua anteprima già esistente -
@@ -46,7 +50,9 @@ export async function renderAdmin(el) {
     const compatibleRemotes = [...getState().compatibleRemotes].sort((a, b) => (a.order ?? 9999) - (b.order ?? 9999));
     const remotesFull = compatibleRemotes.length >= MAX_COMPATIBLE_REMOTES;
     const welcomeImageUrl = getState().welcomeImageUrl;
-    const shareCardBackgroundUrl = getState().shareCardBackgroundUrl;
+    const shareBackgrounds = getState().shareBackgrounds || [];
+    const shareFrames = getState().shareFrames || [];
+    const matchResultIcons = getState().matchResultIcons || {};
 
     el.innerHTML = `
       <div class="topbar"><h1>🛠️ Amministratore</h1></div>
@@ -127,12 +133,39 @@ export async function renderAdmin(el) {
       </div>
 
       <div class="card">
-        <h2>🖼️ Cornice/sfondo condivisione partita</h2>
-        <p class="small">Sfondo usato nell'immagine che gli utenti condividono a fine partita (WhatsApp, Telegram, ecc.). Finché non ne carichi uno, si usa la sfumatura blu-verde di default - cambialo ogni tanto per rinnovare la sorpresa.</p>
-        <div class="row" style="gap:14px;align-items:center;">
-          <img src="${shareCardBackgroundUrl || './icon.svg'}" alt="" style="width:96px;aspect-ratio:4/5;border-radius:10px;object-fit:cover;flex-shrink:0;">
-          <input type="file" accept="image/*" id="new-share-bg-file" class="hidden" style="display:none">
-          <button class="btn secondary" id="pick-share-bg-file" ${uploadingShareBg ? 'disabled' : ''}>${uploadingShareBg ? 'Caricamento...' : '📷 Cambia sfondo'}</button>
+        <h2>🖼️ Sfondi condivisione (${shareBackgrounds.length}/4)</h2>
+        <p class="small">Gli sfondi tra cui il giocatore può scegliere quando personalizza l'immagine del risultato (matita nello storico partite). Fino a 4; se non ne carichi nessuno resta solo quello di base. Tocca una miniatura per eliminarla.</p>
+        <div class="share-asset-row">
+          ${shareBackgrounds.map((b) => `<button class="share-asset-btn" data-del-share-asset="background:${b.id}"><img src="${b.imageUrl}" alt=""></button>`).join('')}
+        </div>
+        <input type="file" accept="image/*" id="new-share-bg-file" class="hidden" style="display:none">
+        <button class="btn secondary block mt" id="pick-share-bg-file" ${uploadingShareAsset || shareBackgrounds.length >= 4 ? 'disabled' : ''}>${uploadingShareAsset ? 'Caricamento...' : '➕ Aggiungi sfondo'}</button>
+      </div>
+
+      <div class="card">
+        <h2>🪟 Cornici condivisione (${shareFrames.length}/4)</h2>
+        <p class="small">Le cornici tra cui il giocatore può scegliere. Usa immagini PNG con il <strong>centro trasparente</strong> (formato verticale 4:5): vengono sovrapposte all'immagine del risultato. Tocca una miniatura per eliminarla.</p>
+        <div class="share-asset-row">
+          ${shareFrames.map((f) => `<button class="share-asset-btn" data-del-share-asset="frame:${f.id}"><img src="${f.imageUrl}" alt=""></button>`).join('')}
+        </div>
+        <input type="file" accept="image/*" id="new-share-frame-file" class="hidden" style="display:none">
+        <button class="btn secondary block mt" id="pick-share-frame-file" ${uploadingShareAsset || shareFrames.length >= 4 ? 'disabled' : ''}>${uploadingShareAsset ? 'Caricamento...' : '➕ Aggiungi cornice'}</button>
+      </div>
+
+      <div class="card">
+        <h2>🏆 Icone vinta/persa storico</h2>
+        <p class="small">Le immagini tonde accanto a ogni partita nello storico (Statistiche). Se non le carichi si usano le icone di base (trofeo / X).</p>
+        <div class="row" style="gap:18px;">
+          <div class="center" style="flex:1;">
+            <div class="avatar match-result-icon big won" style="margin:0 auto 8px;">${matchResultIcons.wonUrl ? `<img src="${matchResultIcons.wonUrl}" alt="">` : '🏆'}</div>
+            <input type="file" accept="image/*" id="new-icon-won-file" class="hidden" style="display:none">
+            <button class="btn secondary small" id="pick-icon-won-file" ${uploadingResultIcon ? 'disabled' : ''}>📷 Vinta</button>
+          </div>
+          <div class="center" style="flex:1;">
+            <div class="avatar match-result-icon big lost" style="margin:0 auto 8px;">${matchResultIcons.lostUrl ? `<img src="${matchResultIcons.lostUrl}" alt="">` : '❌'}</div>
+            <input type="file" accept="image/*" id="new-icon-lost-file" class="hidden" style="display:none">
+            <button class="btn secondary small" id="pick-icon-lost-file" ${uploadingResultIcon ? 'disabled' : ''}>📷 Persa</button>
+          </div>
         </div>
       </div>
 
@@ -224,25 +257,66 @@ export async function renderAdmin(el) {
       }
     });
 
-    el.querySelector('#pick-share-bg-file').addEventListener('click', () => el.querySelector('#new-share-bg-file').click());
-    el.querySelector('#new-share-bg-file').addEventListener('change', async (e) => {
-      const file = e.target.files[0];
-      e.target.value = '';
-      if (!file) return;
-      const blob = await openImageCropper(file, { shape: 'square', aspect: 4 / 5 });
-      if (!blob) return;
-      uploadingShareBg = true;
-      paint();
+    const wireShareAssetUpload = (pickId, fileId, kind, label, crop) => {
+      el.querySelector(pickId)?.addEventListener('click', () => el.querySelector(fileId).click());
+      el.querySelector(fileId)?.addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        e.target.value = '';
+        if (!file) return;
+        // Le cornici NON passano dal ritaglio: il PNG col centro trasparente
+        // va caricato intero, il ritaglio lo convertirebbe perdendo l'alfa.
+        const blob = crop ? await openImageCropper(file, { shape: 'square', aspect: 4 / 5 }) : file;
+        if (!blob) return;
+        uploadingShareAsset = true;
+        paint();
+        try {
+          await addShareAsset(kind, blob);
+          toast(label + ' aggiunto!');
+        } catch (err) {
+          toast('Errore: ' + err.message);
+        } finally {
+          uploadingShareAsset = false;
+          paint();
+        }
+      });
+    };
+    wireShareAssetUpload('#pick-share-bg-file', '#new-share-bg-file', 'background', 'Sfondo', true);
+    wireShareAssetUpload('#pick-share-frame-file', '#new-share-frame-file', 'frame', 'Cornice', false);
+
+    el.querySelectorAll('[data-del-share-asset]').forEach((btn) => btn.addEventListener('click', async () => {
+      const [kind, itemId] = btn.dataset.delShareAsset.split(':');
+      if (!confirm(kind === 'frame' ? 'Eliminare questa cornice?' : 'Eliminare questo sfondo?')) return;
       try {
-        await uploadShareCardBackground(blob);
-        toast('Sfondo aggiornato!');
+        await deleteShareAsset(kind, itemId);
+        toast('Eliminato');
       } catch (err) {
         toast('Errore: ' + err.message);
-      } finally {
-        uploadingShareBg = false;
-        paint();
       }
-    });
+    }));
+
+    const wireResultIconUpload = (pickId, fileId, kind) => {
+      el.querySelector(pickId)?.addEventListener('click', () => el.querySelector(fileId).click());
+      el.querySelector(fileId)?.addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        e.target.value = '';
+        if (!file) return;
+        const blob = await openImageCropper(file, { shape: 'circle' });
+        if (!blob) return;
+        uploadingResultIcon = true;
+        paint();
+        try {
+          await uploadMatchResultIcon(kind, blob);
+          toast('Icona aggiornata!');
+        } catch (err) {
+          toast('Errore: ' + err.message);
+        } finally {
+          uploadingResultIcon = false;
+          paint();
+        }
+      });
+    };
+    wireResultIconUpload('#pick-icon-won-file', '#new-icon-won-file', 'won');
+    wireResultIconUpload('#pick-icon-lost-file', '#new-icon-lost-file', 'lost');
 
     el.querySelector('#pick-remote-file')?.addEventListener('click', () => el.querySelector('#new-remote-file').click());
     el.querySelector('#new-remote-file')?.addEventListener('change', async (e) => {
@@ -339,8 +413,10 @@ export async function renderAdmin(el) {
     unsubPrizes = listenPrizes((list) => { setState({ prizes: list }, { silent: true }); if (!uploading) paint(); });
     unsubRemotes = listenCompatibleRemotes((list) => { setState({ compatibleRemotes: list }, { silent: true }); paint(); });
     unsubWelcomeImage = listenWelcomeImage((url) => { setState({ welcomeImageUrl: url }, { silent: true }); if (!uploadingWelcomeImage) paint(); });
-    unsubShareBg = listenShareCardBackground((url) => { setState({ shareCardBackgroundUrl: url }, { silent: true }); if (!uploadingShareBg) paint(); });
+    unsubShareBg = listenShareAssets('background', (items) => { setState({ shareBackgrounds: items }, { silent: true }); if (!uploadingShareAsset) paint(); });
+    unsubShareFrames = listenShareAssets('frame', (items) => { setState({ shareFrames: items }, { silent: true }); if (!uploadingShareAsset) paint(); });
+    unsubResultIcons = listenMatchResultIcons((icons) => { setState({ matchResultIcons: icons }, { silent: true }); if (!uploadingResultIcon) paint(); });
   }
 
-  return () => { unsubAvatars?.(); unsubPrizes?.(); unsubRemotes?.(); unsubWelcomeImage?.(); unsubShareBg?.(); };
+  return () => { unsubAvatars?.(); unsubPrizes?.(); unsubRemotes?.(); unsubWelcomeImage?.(); unsubShareBg?.(); unsubShareFrames?.(); unsubResultIcons?.(); };
 }

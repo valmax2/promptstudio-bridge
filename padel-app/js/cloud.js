@@ -373,14 +373,44 @@ export function listenWelcomeImage(cb) {
   return fsListen('config/welcomeImage', (data) => cb(data?.imageUrl || null));
 }
 
-// ---- Admin: sfondo/cornice della card immagine di condivisione partita ----
-export async function uploadShareCardBackground(blob) {
-  if (!isCloudReady()) return;
-  const imageUrl = await uploadCatalogImage('admin-config/shareCardBackground', blob);
-  await fsSet('config/shareCardBackground', { imageUrl, updatedAt: Date.now() });
+// ---- Admin: cataloghi sfondi e cornici per l'immagine di condivisione ----
+// Due doc sotto config/ (coperti dalle regole esistenti admin-write/all-read)
+// con dentro un array di {id, imageUrl}: il giocatore sceglie da qui nella
+// finestra di modifica pre-condivisione (matita nello storico partite),
+// l'admin gestisce la lista (max 4 per tipo) dalla schermata Admin.
+function shareAssetDoc(kind) {
+  return kind === 'frame' ? 'config/shareFrames' : 'config/shareBackgrounds';
 }
 
-export function listenShareCardBackground(cb) {
+export async function addShareAsset(kind, blob) {
+  if (!isCloudReady()) return;
+  const itemId = genId();
+  const imageUrl = await uploadCatalogImage(`admin-config/share-${kind}-${itemId}`, blob);
+  const doc = shareAssetDoc(kind);
+  const current = (await fsGet(doc))?.items || [];
+  await fsSet(doc, { items: [...current, { id: itemId, imageUrl }], updatedAt: Date.now() });
+}
+
+export async function deleteShareAsset(kind, itemId) {
+  if (!isCloudReady()) return;
+  const doc = shareAssetDoc(kind);
+  const current = (await fsGet(doc))?.items || [];
+  await fsSet(doc, { items: current.filter((x) => x.id !== itemId), updatedAt: Date.now() });
+}
+
+export function listenShareAssets(kind, cb) {
   if (!firebaseAvailable()) return () => {};
-  return fsListen('config/shareCardBackground', (data) => cb(data?.imageUrl || null));
+  return fsListen(shareAssetDoc(kind), (data) => cb(data?.items || []));
+}
+
+// ---- Admin: icone vinta/persa dello storico partite ----
+export async function uploadMatchResultIcon(kind, blob) {
+  if (!isCloudReady()) return;
+  const imageUrl = await uploadCatalogImage(`admin-config/matchResultIcon-${kind}`, blob);
+  await fsSet('config/matchResultIcons', { [kind === 'won' ? 'wonUrl' : 'lostUrl']: imageUrl, updatedAt: Date.now() });
+}
+
+export function listenMatchResultIcons(cb) {
+  if (!firebaseAvailable()) return () => {};
+  return fsListen('config/matchResultIcons', (data) => cb({ wonUrl: data?.wonUrl || null, lostUrl: data?.lostUrl || null }));
 }

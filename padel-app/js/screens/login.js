@@ -5,7 +5,11 @@ import { navigate } from '../router.js';
 import { toast } from '../app.js';
 import { genFriendCode } from '../utils.js';
 
-export async function renderLogin(el) {
+export async function renderLogin(el, params = {}) {
+  // Arrivando dal pulsante Accedi della schermata iniziale si torna LÌ dopo
+  // il login, per scegliere con calma tra modalità Full e Light - non
+  // catapultati nel profilo.
+  const fromWelcome = params.from === 'welcome';
   if (!firebaseAvailable()) {
     el.innerHTML = `
       <div class="topbar"><h1>Accesso</h1></div>
@@ -18,7 +22,7 @@ export async function renderLogin(el) {
     return;
   }
 
-  if (currentUser()) { navigate('home'); return; }
+  if (currentUser()) { navigate(fromWelcome ? 'welcome' : 'home'); return; }
 
   let mode = 'login';
 
@@ -87,7 +91,7 @@ export async function renderLogin(el) {
         if (remoteSettings) updateSettings(remoteSettings);
         await pushProfile({ ...profile, uid });
         toast(mode === 'login' ? 'Accesso effettuato!' : 'Account creato!');
-        navigate('profile');
+        navigate(fromWelcome ? 'welcome' : 'profile');
       } catch (err) {
         toast(describeAuthError(err));
       }

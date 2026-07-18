@@ -107,10 +107,14 @@ const DEFAULT_STATE = {
   // dall'admin in qualsiasi momento (vedi js/screens/admin.js). null finché
   // l'admin non ne carica una: si usa icon.svg come immagine provvisoria.
   welcomeImageUrl: null,
-  // Sfondo/cornice personalizzabile della card immagine condivisa a fine
-  // partita (js/match-share.js) - sostituibile dall'admin quando vuole,
-  // null = sfumatura blu-verde di default.
-  shareCardBackgroundUrl: null,
+  // Cataloghi admin per l'immagine di condivisione partita (js/match-share.js):
+  // il giocatore sceglie sfondo e cornice tra questi nella finestra di
+  // modifica pre-condivisione. Array di {id, imageUrl}, max 4 per tipo.
+  shareBackgrounds: [],
+  shareFrames: [],
+  // Icone vinta/persa dello storico partite, sostituibili dall'admin -
+  // null = icone SVG predefinite (trofeo / X).
+  matchResultIcons: { wonUrl: null, lostUrl: null },
   // Stato dell'acquisto "Pro" - va trattato come sola lettura lato UI:
   // l'unico modo corretto per cambiarlo è js/billing.js:verifyProOnLaunch(),
   // che lo riverifica sempre contro Play Billing (mai un valore che si

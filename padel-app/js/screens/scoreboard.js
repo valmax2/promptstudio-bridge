@@ -437,7 +437,8 @@ function paint(el) {
       </div>
       <div class="sb-controls">
         <button id="sb-undo" ${history.length ? '' : 'disabled'}>↩️ Annulla</button>
-        <button id="sb-settings">${isLiteMode() ? '🔵 Bluetooth' : '📋 Riepilogo'}</button>
+        <button id="sb-settings">📋 Riepilogo</button>
+        ${isLiteMode() ? '<button id="sb-bluetooth">🔵 Bluetooth</button>' : ''}
         <button id="sb-newmatch">🔄 Nuova partita</button>
       </div>
       ${serverPickerOpen ? serverPickerModal() : ''}
@@ -447,10 +448,10 @@ function paint(el) {
 
   el.querySelector('#sb-back').addEventListener('click', () => navigate('home'));
   el.querySelector('#sb-settings').addEventListener('click', () => {
-    if (isLiteMode()) { navigate('bluetooth-setup'); return; }
     quickSummaryOpen = true;
     paint(el);
   });
+  el.querySelector('#sb-bluetooth')?.addEventListener('click', () => navigate('bluetooth-setup'));
   el.querySelector('#sb-mute').addEventListener('click', () => {
     ttsEnabled = !ttsEnabled;
     if (!ttsEnabled) stopSpeech();
@@ -785,8 +786,15 @@ async function saveMatchRecord(m) {
     date: new Date().toISOString(),
     teamAName: m.teamAName,
     teamBName: m.teamBName,
+    // Nomi dei singoli giocatori: servono all'immagine di condivisione
+    // (match-share.js), che li mostra sotto i nomi squadra.
+    teamAPlayers: m.teamAPlayers,
+    teamBPlayers: m.teamBPlayers,
     mode: m.mode,
-    sets: m.sets,
+    // Nelle partite a tempo non si chiudono mai set veri: il punteggio
+    // finale a giochi va salvato come "set" unico, altrimenti lo storico e
+    // l'immagine condivisa risultano vuoti ("Nessun set concluso").
+    sets: m.sets.length ? m.sets : (m.format === 'time' ? [{ a: m.currentSet.gamesA, b: m.currentSet.gamesB }] : m.sets),
     winner: m.matchWinner,
     golden: m.goldenPoint,
     superTiebreak: m.superTiebreak3rdSet,

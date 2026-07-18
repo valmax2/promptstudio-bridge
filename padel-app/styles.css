@@ -158,6 +158,10 @@ label { font-size: 0.85em; color: var(--text-dim); display: block; margin-bottom
   padding: 0;
 }
 .modal-backdrop.hidden { display: none; }
+/* Con il banner AdMob visibile (overlay nativo SEMPRE sopra la WebView, il
+   CSS non può coprirlo) il foglio modale si alza di 50px: i suoi pulsanti
+   in fondo non finiscono mai sotto la pubblicità. */
+:root.ad-banner-visible .modal-backdrop { padding-bottom: 50px; }
 .modal-card {
   background: var(--bg-elevated); border-radius: var(--radius) var(--radius) 0 0;
   width: 100%; max-width: 480px; max-height: 80vh; overflow-y: auto;
@@ -244,10 +248,31 @@ label { font-size: 0.85em; color: var(--text-dim); display: block; margin-bottom
 .avatar.match-result-icon svg { width: 60%; height: 60%; object-fit: contain; }
 .avatar.match-result-icon.won { border-color: var(--accent); color: var(--accent); }
 .avatar.match-result-icon.lost { border-color: var(--danger); color: var(--danger); }
+/* Cerchio grande come richiesto - e l'immagine dentro (se l'admin ne ha
+   caricata una al posto delle icone SVG di default) riempie tutto il tondo. */
+.avatar.match-result-icon.big { width: 58px; height: 58px; border-width: 3px; }
+.avatar.match-result-icon img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
 
 /* Icone azione nello storico partite (condividi/modifica/elimina): più
    grandi del default .icon-btn, per essere più facili da toccare/leggere. */
 .match-row-action.icon-btn svg { width: 34px; height: 34px; }
+
+/* Editor pre-condivisione (matita nello storico): anteprima card 4:5 +
+   file di miniature per scegliere sfondo e cornice. */
+.share-preview-wrap { display: flex; justify-content: center; margin-top: 10px; }
+.share-preview-wrap img {
+  width: min(62vw, 240px); aspect-ratio: 4/5; object-fit: cover;
+  border-radius: 12px; border: 1px solid var(--border); background: var(--surface-2);
+}
+.share-asset-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.share-asset-btn {
+  width: 56px; height: 70px; border-radius: 8px; border: 2px solid var(--border);
+  background: var(--surface-2); padding: 0; overflow: hidden;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text-dim); font-size: 0.75em; font-weight: 600;
+}
+.share-asset-btn img { width: 100%; height: 100%; object-fit: cover; }
+.share-asset-btn.selected { border-color: var(--accent); }
 
 .avatar-frame-wrap { position: relative; display: inline-block; }
 .avatar-frame-badge {
@@ -487,7 +512,10 @@ label { font-size: 0.85em; color: var(--text-dim); display: block; margin-bottom
 .sb-controls {
   flex: 0 0 auto;
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
+  /* auto-fit: 3 pulsanti normalmente, 4 in Modalità Light (c'è anche il
+     tasto Bluetooth) - si dividono comunque la larghezza in parti uguali. */
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
   background: #111;
 }
 .sb-controls button {
@@ -619,6 +647,13 @@ a { color: var(--accent-2); }
 .mt { margin-top: 14px; }
 .mb0 { margin-bottom: 0; }
 .small { font-size: 0.9em; color: var(--text-dim); }
+
+/* Pulsanti-scelta della schermata iniziale (Full / Light): titolo + riga di
+   spiegazione dentro lo stesso pulsante. */
+.welcome-cta { display: flex; flex-direction: column; gap: 3px; padding: 14px 16px; }
+.welcome-choice-title { font-size: 1.1em; font-weight: 700; }
+.welcome-choice-desc { font-size: 0.8em; font-weight: 400; opacity: 0.8; }
+.welcome-logged { margin: 0 0 10px; text-align: center; }
 
 .welcome-screen {
   min-height: 100vh; display: flex; flex-direction: column; align-items: center;

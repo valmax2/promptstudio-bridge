@@ -1,6 +1,6 @@
-import { getState, setState } from '../store.js';
+import { getState, setState, updateSettings } from '../store.js';
 import { navigate } from '../router.js';
-import { firebaseAvailable } from '../firebase.js';
+import { firebaseAvailable, currentUser } from '../firebase.js';
 import { listenWelcomeImage } from '../cloud.js';
 import { t } from '../i18n.js';
 
@@ -28,6 +28,18 @@ export async function renderWelcome(el) {
   return () => { unsubWelcomeImage?.(); };
 }
 
+// "Accedi" sparisce una volta loggati: al suo posto una riga di conferma,
+// così chi apre l'app capisce subito con che account sta giocando.
+function loginButton() {
+  const user = firebaseAvailable() ? currentUser() : null;
+  const profileName = getState().profile?.name;
+  if (user) {
+    return `<p class="welcome-logged small">✅ Connesso come <strong>${profileName || user.email || 'giocatore'}</strong></p>`;
+  }
+  if (!firebaseAvailable()) return '';
+  return `<button class="btn secondary block welcome-cta" id="welcome-login" style="margin-bottom:10px;">🔑 Accedi / Crea account</button>`;
+}
+
 function paint(el) {
   const welcomeImageUrl = getState().welcomeImageUrl;
   el.innerHTML = `
@@ -36,7 +48,15 @@ function paint(el) {
       <h1 class="welcome-title">Padel App</h1>
       <p class="welcome-tagline">${t('welcomeTagline')}</p>
       <p class="welcome-desc">${t('welcomeDesc')}</p>
-      <button class="btn primary block welcome-cta" id="welcome-open">${t('welcomeOpen')}</button>
+      ${loginButton()}
+      <button class="btn primary block welcome-cta" id="welcome-open-full">
+        <span class="welcome-choice-title">🏟️ Apri modalità Full</span>
+        <span class="welcome-choice-desc">App completa: partite, community, eventi, statistiche</span>
+      </button>
+      <button class="btn secondary block welcome-cta" id="welcome-open-lite" style="margin-top:10px;">
+        <span class="welcome-choice-title">⚡ Apri modalità Light</span>
+        <span class="welcome-choice-desc">Solo partita e Bluetooth: semplice e immediata</span>
+      </button>
       <div class="row" style="gap:10px;margin-top:14px;">
         <button class="btn secondary" id="welcome-tutorial" style="flex:1;min-width:0;">${BOOK_ICON} ${t('welcomeTutorial')}</button>
         <button class="btn secondary" id="welcome-support" style="flex:1;min-width:0;">${MAIL_ICON} ${t('welcomeSupport')}</button>
@@ -58,9 +78,18 @@ function paint(el) {
     </div>
   `;
 
-  el.querySelector('#welcome-open').addEventListener('click', () => {
+  el.querySelector('#welcome-login')?.addEventListener('click', () => {
+    navigate('login', { params: { from: 'welcome' } });
+  });
+  el.querySelector('#welcome-open-full').addEventListener('click', () => {
     setState({ hasSeenWelcome: true });
+    updateSettings({ liteModeUser: false });
     navigate('home', { replace: true });
+  });
+  el.querySelector('#welcome-open-lite').addEventListener('click', () => {
+    setState({ hasSeenWelcome: true });
+    updateSettings({ liteModeUser: true });
+    navigate('scoreboard', { replace: true });
   });
 
   const tutorialModal = el.querySelector('#tutorial-modal');

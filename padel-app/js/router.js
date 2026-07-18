@@ -2,8 +2,10 @@ import { isLiteMode } from './lite-mode.js';
 import { showBanner, hideBanner } from './ads.js';
 
 // Il banner AdMob resta nascosto durante il punteggio dal vivo, mai durante
-// una partita in corso - solo sulle altre schermate.
-const LIVE_MATCH_ROUTES = ['scoreboard', 'americano', 'killer'];
+// una partita in corso - solo sulle altre schermate. Nascosto anche in
+// Admin: lì si lavora con ritaglio immagini e finestre a tutto schermo che
+// il banner nativo (sempre sopra la WebView) finirebbe per coprire.
+const LIVE_MATCH_ROUTES = ['scoreboard', 'americano', 'killer', 'admin'];
 
 const routes = new Map();
 let currentRoute = null;

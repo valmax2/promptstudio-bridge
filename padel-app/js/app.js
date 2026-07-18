@@ -130,7 +130,7 @@ verifyProOnLaunch();
 initRouter(appEl, navEl);
 
 if (isLiteMode()) {
-  // Interfaccia Light (build beta O attivata dall'utente dalla Home): salta
+  // Interfaccia Light (build beta O attivata dall'utente): salta
   // community/eventi/login/welcome e apre direttamente sul setup partita -
   // solo l'essenziale per giocare. Il Bluetooth resta a un tocco di distanza
   // dal tabellone.
@@ -139,7 +139,10 @@ if (isLiteMode()) {
   startRouter('scoreboard');
 } else {
   navEl.classList.remove('hidden');
-  startRouter(getState().hasSeenWelcome ? 'home' : 'welcome');
+  // La schermata iniziale (presentazione + Accedi + scelta Full/Light) esce
+  // a OGNI avvio, non solo al primo: è il bivio d'ingresso voluto. Chi ha
+  // lasciato attiva la Light la salta del tutto (ramo qui sopra).
+  startRouter('welcome');
 }
 
 // Firebase parte comunque quando la Light è solo quella runtime: uscendone

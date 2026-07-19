@@ -52,6 +52,13 @@ if ! grep -q "versionCode $VERSION_CODE" android/app/build.gradle; then
   exit 1
 fi
 
+echo "▶ Imposto la scritta versione mostrata in Impostazioni ($VERSION_NAME)"
+sed -i "s/'dev'/'$VERSION_NAME'/" "$BUILD/www/js/version.js"
+if ! grep -q "'$VERSION_NAME'" "$BUILD/www/js/version.js"; then
+  echo "❌ Impossibile impostare APP_VERSION: pattern non trovato in js/version.js" >&2
+  exit 1
+fi
+
 echo "▶ Genero l'icona nativa dell'app Android da icon.png"
 mkdir -p assets
 cp "$HERE"/icon.png assets/icon-only.png

@@ -4,8 +4,7 @@ import { firebaseAvailable, currentUser } from '../firebase.js';
 import { listenWelcomeImage } from '../cloud.js';
 import { t } from '../i18n.js';
 
-// TODO: sostituisci con la tua email reale di supporto.
-const SUPPORT_EMAIL = 'supporto@padelapp.app';
+const SUPPORT_EMAIL = 'VStudioApps@gmail.com';
 
 // SVG a dimensione fissa (18x18) cosi le icone dei due pulsanti risultano
 // sempre identiche, a differenza degli emoji che su Android variano molto

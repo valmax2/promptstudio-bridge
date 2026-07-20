@@ -1,32 +1,35 @@
 # Pubblicità (AdMob) + versione Pro
 
-L'integrazione è **già nel codice** (`ads.js`) ma parte con gli **ID di TEST** di Google e
-si attiva **solo nell'app nativa**. Sul web/PWA non succede nulla.
+L'integrazione è **già nel codice** (`ads.js`) con gli **ID reali** di Poly Reducer 3D,
+ma per ora `TESTING = true` (mostra annunci finti sicuri finché non verifichiamo che
+tutto funzioni sul telefono). Si attiva **solo nell'app nativa**: sul web/PWA non succede nulla.
+
+## I tuoi ID AdMob (già inseriti in `ads.js`)
+- **App ID:** `ca-app-pub-2590590501208291~8345014556`
+- **Interstitial:** `ca-app-pub-2590590501208291/1643874838`
+- **Rewarded:** `ca-app-pub-2590590501208291/6525646366`
 
 ## Cosa fa già
-- **Interstitial** (schermo intero) ogni **3 esportazioni** (`adAfterExport()`).
-- **Rewarded** (video premiato) pronto tramite `showRewarded()` — da agganciare a una
-  funzione premium quando vuoi (es. "esporta in altissima qualità").
+- **Interstitial** (schermo intero): al massimo **1 volta per sessione** (`adAfterExport()`).
+- **Rewarded** (video premiato): sblocca il **"dettaglio massimo"** (riduzione oltre l'88%) tramite `showRewarded()`.
 - Rispetta un flag **Pro**: se `pr3d-pro` è attivo, niente pubblicità.
 
 ## Passi per attivarla davvero (sul PC)
-1. Crea un account **AdMob** → registra l'app Android → ottieni:
-   - **App ID** (tipo `ca-app-pub-XXXX~YYYY`)
-   - **Ad unit** Interstitial e Rewarded (`ca-app-pub-XXXX/ZZZZ`)
-2. Installa il plugin nel progetto Capacitor:
+1. Installa il plugin nel progetto Capacitor:
    ```bash
    cd 3d-reducer
    npm install @capacitor-community/admob
    npx cap sync android
    ```
-3. Metti l'**App ID** nel `AndroidManifest.xml` (Capacitor: `android/app/src/main/AndroidManifest.xml`), dentro `<application>`:
+2. Metti l'**App ID** nel `AndroidManifest.xml` (`android/app/src/main/AndroidManifest.xml`), dentro `<application>`:
    ```xml
    <meta-data
      android:name="com.google.android.gms.ads.APPLICATION_ID"
-     android:value="ca-app-pub-XXXXXXXX~YYYYYYYY"/>
+     android:value="ca-app-pub-2590590501208291~8345014556"/>
    ```
-4. In **`ads.js`**: sostituisci i due `AD_IDS` con i tuoi ad unit reali e imposta `TESTING = false`.
-5. Ricompila l'AAB (`bash build-aab.sh`).
+3. Ricompila l'APK di debug e provalo sul telefono (`cd android && ./gradlew assembleDebug`) — con `TESTING = true` vedrai annunci di prova, sicuri da guardare/toccare.
+4. Quando confermi che funziona: in **`ads.js`** metti `TESTING = false`.
+5. Aumenta `versionCode` in `android/app/build.gradle` e ricompila l'AAB (`bash build-aab.sh`) per l'aggiornamento su Play Console.
 
 > ⚠️ Non pubblicare con gli ID di test, e non cliccare i tuoi annunci reali (Google banna).
 > In UE il **consenso (UMP)** è obbligatorio: `ads.js` prova già a mostrarlo se il plugin lo supporta;

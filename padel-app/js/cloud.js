@@ -1,0 +1,339 @@
+// Thin wrappers around js/firebase.js that map app entities (profile, friends,
+// circles, events, matches) onto Firestore collections. Every function is a
+// no-op (returns null / does nothing) when Firebase isn't configured or the
+// device is offline, so screens can call these unconditionally.
+import {
+  firebaseAvailable, db, mods, currentUser,
+  fsGet, fsSet, fsAdd, fsQueryWhere, fsListenCollection, fsListen, uploadAvatar, uploadCatalogImage,
+} from './firebase.js';
+import { uid as genId } from './utils.js';
+
+function uid() {
+  const u = currentUser();
+  return u ? u.uid : null;
+}
+
+export function isCloudReady() {
+  return firebaseAvailable() && !!uid();
+}
+
+// ---- Profile ----
+export async function pullProfile() {
+  const id = uid();
+  if (!isCloudReady() || !id) return null;
+  return fsGet(`users/${id}`);
+}
+
+export async function pushProfile(profile) {
+  const id = uid();
+  if (!isCloudReady() || !id) return;
+  await fsSet(`users/${id}`, { ...profile, uid: id, updatedAt: Date.now() });
+}
+
+export async function uploadAvatarBlob(blob) {
+  const id = uid();
+  if (!isCloudReady() || !id) return null;
+  return uploadAvatar(id, blob);
+}
+
+// ---- Friends ----
+export async function findUserByFriendCode(code) {
+  if (!firebaseAvailable()) return null;
+  const results = await fsQueryWhere('users', 'friendCode', '==', code.trim().toUpperCase());
+  return results[0] || null;
+}
+
+export async function addFriend(friendUid, friendData, myData = {}) {
+  const id = uid();
+  if (!isCloudReady() || !id) return;
+  await fsSet(`users/${id}/friends/${friendUid}`, { ...friendData, addedAt: Date.now() });
+  // Also write my own name/friendCode on the other side, not just a bare
+  // "reciprocalOf" marker - otherwise the friend sees a nameless entry in
+  // their own list, and features like chat/event invites have nothing to
+  // display for the person who did the adding.
+  await fsSet(`users/${friendUid}/friends/${id}`, { ...myData, addedAt: Date.now(), reciprocalOf: id });
+}
+
+export function listenFriends(cb) {
+  const id = uid();
+  if (!isCloudReady() || !id) return () => {};
+  return fsListenCollection(`users/${id}/friends`, cb);
+}
+
+export async function removeFriend(friendUid) {
+  const id = uid();
+  if (!isCloudReady() || !id) return;
+  const { fs } = mods();
+  await fs.deleteDoc(fs.doc(db(), `users/${id}/friends/${friendUid}`));
+  await fs.deleteDoc(fs.doc(db(), `users/${friendUid}/friends/${id}`));
+}
+
+// ---- Chat (1:1 with a friend) ----
+export function chatIdFor(a, b) {
+  return [a, b].sort().join('_');
+}
+
+export async function ensureChat(otherUid) {
+  const id = uid();
+  if (!isCloudReady() || !id) return null;
+  const chatId = chatIdFor(id, otherUid);
+  await fsSet(`chats/${chatId}`, { participants: [id, otherUid].sort(), updatedAt: Date.now() });
+  return chatId;
+}
+
+export async function sendChatMessage(chatId, text) {
+  const id = uid();
+  if (!isCloudReady() || !id) return;
+  await fsAdd(`chats/${chatId}/messages`, { senderId: id, text, createdAt: Date.now() });
+  await fsSet(`chats/${chatId}`, { lastMessage: text, lastMessageAt: Date.now(), lastSenderId: id });
+}
+
+export function listenChatMessages(chatId, cb) {
+  if (!isCloudReady()) return () => {};
+  return fsListenCollection(`chats/${chatId}/messages`, cb);
+}
+
+export function listenMyChats(cb) {
+  const id = uid();
+  if (!isCloudReady() || !id) return () => {};
+  return fsListenCollection('chats', cb, [['participants', 'array-contains', id]]);
+}
+
+export async function deleteChat(chatId) {
+  if (!isCloudReady()) return;
+  const { fs } = mods();
+  await fs.deleteDoc(fs.doc(db(), `chats/${chatId}`));
+}
+
+// ---- Circles (closed groups, shown to users as "Gruppi") ----
+export async function createCircle(name) {
+  const id = uid();
+  if (!isCloudReady() || !id) return null;
+  return fsAdd('circles', { name, ownerId: id, memberIds: [id], createdAt: Date.now() });
+}
+
+export async function joinCircle(circleId) {
+  const id = uid();
+  if (!isCloudReady() || !id) return;
+  const { fs } = mods();
+  const ref = fs.doc(db(), `circles/${circleId}`);
+  const snap = await fs.getDoc(ref);
+  if (!snap.exists()) throw new Error('Gruppo non trovato');
+  const data = snap.data();
+  const memberIds = Array.from(new Set([...(data.memberIds || []), id]));
+  await fs.setDoc(ref, { memberIds }, { merge: true });
+}
+
+// Adds a friend directly by uid (the "+ Aggiungi" flow), as an alternative
+// to sharing a join code.
+export async function addMemberToCircle(circleId, friendUid) {
+  if (!isCloudReady()) return;
+  const { fs } = mods();
+  const ref = fs.doc(db(), `circles/${circleId}`);
+  const snap = await fs.getDoc(ref);
+  if (!snap.exists()) throw new Error('Gruppo non trovato');
+  const memberIds = Array.from(new Set([...(snap.data().memberIds || []), friendUid]));
+  await fs.setDoc(ref, { memberIds }, { merge: true });
+}
+
+export async function leaveCircle(circleId) {
+  const id = uid();
+  if (!isCloudReady() || !id) return;
+  const { fs } = mods();
+  const ref = fs.doc(db(), `circles/${circleId}`);
+  const snap = await fs.getDoc(ref);
+  if (!snap.exists()) return;
+  const memberIds = (snap.data().memberIds || []).filter((m) => m !== id);
+  await fs.setDoc(ref, { memberIds }, { merge: true });
+}
+
+export async function deleteCircle(circleId) {
+  if (!isCloudReady()) return;
+  const { fs } = mods();
+  await fs.deleteDoc(fs.doc(db(), `circles/${circleId}`));
+}
+
+export function listenMyCircles(cb) {
+  const id = uid();
+  if (!isCloudReady() || !id) return () => {};
+  return fsListenCollection('circles', cb, [['memberIds', 'array-contains', id]]);
+}
+
+// ---- Group chat (one thread per circle, shared by all its members) ----
+export async function sendCircleMessage(circleId, text) {
+  const id = uid();
+  if (!isCloudReady() || !id) return;
+  await fsAdd(`circles/${circleId}/messages`, { senderId: id, text, createdAt: Date.now() });
+  // Mirrors sendChatMessage's lastMessage/lastMessageAt/lastSenderId on the
+  // parent doc - lets Community show an unread dot on the group without
+  // having to listen to every group's full messages subcollection.
+  const { fs } = mods();
+  await fs.updateDoc(fs.doc(db(), `circles/${circleId}`), { lastMessage: text, lastMessageAt: Date.now(), lastSenderId: id });
+}
+
+export function listenCircleMessages(circleId, cb) {
+  if (!isCloudReady()) return () => {};
+  return fsListenCollection(`circles/${circleId}/messages`, cb);
+}
+
+// ---- Events ----
+// invitedFriendIds: uids picked from the friends list when creating the
+// event. invitedIds (host + invitees) is what listenMyEvents queries on -
+// events no longer require a circle to be visible to the people invited.
+export async function createEvent(event, invitedFriendIds = []) {
+  const id = uid();
+  if (!isCloudReady() || !id) return null;
+  const invitedIds = Array.from(new Set([id, ...invitedFriendIds]));
+  const participants = { [id]: 'yes' };
+  invitedFriendIds.forEach((fid) => { participants[fid] = 'invited'; });
+  return fsAdd('events', {
+    ...event,
+    hostId: id,
+    invitedIds,
+    participants,
+    createdAt: Date.now(),
+  });
+}
+
+export async function respondToEvent(eventId, response) {
+  const id = uid();
+  if (!isCloudReady() || !id) return;
+  const { fs } = mods();
+  const ref = fs.doc(db(), `events/${eventId}`);
+  await fs.setDoc(ref, { participants: { [id]: response } }, { merge: true });
+}
+
+export function listenMyEvents(cb) {
+  const id = uid();
+  if (!isCloudReady() || !id) return () => {};
+  return fsListenCollection('events', cb, [['invitedIds', 'array-contains', id]]);
+}
+
+// Full delete: only the host can do this (removes the event for everyone -
+// see firestore.rules).
+export async function deleteEvent(eventId) {
+  if (!isCloudReady()) return;
+  const { fs } = mods();
+  await fs.deleteDoc(fs.doc(db(), `events/${eventId}`));
+}
+
+// A non-host invitee "leaving" an event: removes only their own uid from
+// invitedIds/participants, so it stops showing up in their own
+// listenMyEvents query without touching anyone else's view of it. Uses
+// updateDoc + deleteField (not setDoc merge, which would only ever add/
+// overwrite map keys, never remove one).
+export async function leaveEvent(eventId) {
+  const id = uid();
+  if (!isCloudReady() || !id) return;
+  const { fs } = mods();
+  const ref = fs.doc(db(), `events/${eventId}`);
+  const snap = await fs.getDoc(ref);
+  if (!snap.exists()) return;
+  const invitedIds = (snap.data().invitedIds || []).filter((x) => x !== id);
+  await fs.updateDoc(ref, { invitedIds, [`participants.${id}`]: fs.deleteField() });
+}
+
+// ---- Matches ----
+export async function pushMatch(match) {
+  const id = uid();
+  if (!isCloudReady() || !id) return;
+  await fsAdd('matches', { ...match, createdBy: id, createdAt: Date.now() });
+}
+
+export function listenMyMatches(cb) {
+  const id = uid();
+  if (!isCloudReady() || !id) return () => {};
+  return fsListenCollection('matches', cb, [['createdBy', '==', id]]);
+}
+
+// ---- Admin catalog (custom avatars + prize showcase, see js/admin.js) ----
+// order controls where the item lands in the shared picker grid relative to
+// the built-in avatars (which use multiples of 10, see js/avatars.js) -
+// defaults to the end of the list when not specified.
+function collectionFor(kind) {
+  return kind === 'avatar' ? 'customAvatars' : 'prizes';
+}
+
+export async function uploadCustomCatalogItem(kind, label, blob, order = 9999) {
+  if (!isCloudReady()) return;
+  const itemId = genId();
+  const collection = collectionFor(kind);
+  const imageUrl = await uploadCatalogImage(`admin-${collection}/${itemId}`, blob);
+  await fsSet(`${collection}/${itemId}`, { label, imageUrl, order, createdAt: Date.now() });
+}
+
+export async function updateCustomCatalogItemOrder(kind, itemId, order) {
+  if (!isCloudReady()) return;
+  await fsSet(`${collectionFor(kind)}/${itemId}`, { order });
+}
+
+// Replaces just the image of an already-existing item (same id, label and
+// order untouched) - lets the admin fix a bad photo without deleting and
+// recreating the whole entry.
+export async function updateCustomCatalogItemImage(kind, itemId, blob) {
+  if (!isCloudReady()) return;
+  const collection = collectionFor(kind);
+  const imageUrl = await uploadCatalogImage(`admin-${collection}/${itemId}`, blob);
+  await fsSet(`${collection}/${itemId}`, { imageUrl });
+}
+
+export function listenCustomAvatars(cb) {
+  if (!firebaseAvailable()) return () => {};
+  return fsListenCollection('customAvatars', cb);
+}
+
+export function listenPrizes(cb) {
+  if (!firebaseAvailable()) return () => {};
+  return fsListenCollection('prizes', cb);
+}
+
+export async function deleteCustomCatalogItem(kind, itemId) {
+  if (!isCloudReady()) return;
+  const { fs } = mods();
+  await fs.deleteDoc(fs.doc(db(), `${collectionFor(kind)}/${itemId}`));
+}
+
+// ---- Admin: bacheca "Telecomandi compatibili" (nome + link + immagine
+// opzionale) - stesso concetto della vetrina Premi, mostrata in una pagina
+// dedicata (js/screens/remote-board.js) raggiungibile dalla schermata
+// Bluetooth. ----
+export async function addCompatibleRemote(label, link, blob, order = 9999) {
+  if (!isCloudReady()) return;
+  const itemId = genId();
+  const imageUrl = blob ? await uploadCatalogImage(`admin-compatibleRemotes/${itemId}`, blob) : null;
+  await fsSet(`compatibleRemotes/${itemId}`, { label, link, imageUrl, order, createdAt: Date.now() });
+}
+
+export async function updateCompatibleRemoteOrder(itemId, order) {
+  if (!isCloudReady()) return;
+  await fsSet(`compatibleRemotes/${itemId}`, { order });
+}
+
+export async function updateCompatibleRemoteImage(itemId, blob) {
+  if (!isCloudReady()) return;
+  const imageUrl = await uploadCatalogImage(`admin-compatibleRemotes/${itemId}`, blob);
+  await fsSet(`compatibleRemotes/${itemId}`, { imageUrl });
+}
+
+export function listenCompatibleRemotes(cb) {
+  if (!firebaseAvailable()) return () => {};
+  return fsListenCollection('compatibleRemotes', cb);
+}
+
+export async function deleteCompatibleRemote(itemId) {
+  if (!isCloudReady()) return;
+  const { fs } = mods();
+  await fs.deleteDoc(fs.doc(db(), `compatibleRemotes/${itemId}`));
+}
+
+// ---- Admin: immagine circolare della schermata iniziale ----
+export async function uploadWelcomeImage(blob) {
+  if (!isCloudReady()) return;
+  const imageUrl = await uploadCatalogImage('admin-config/welcomeImage', blob);
+  await fsSet('config/welcomeImage', { imageUrl, updatedAt: Date.now() });
+}
+
+export function listenWelcomeImage(cb) {
+  if (!firebaseAvailable()) return () => {};
+  return fsListen('config/welcomeImage', (data) => cb(data?.imageUrl || null));
+}

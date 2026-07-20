@@ -1,4 +1,4 @@
-name: Deploy Poly Reducer 3D to GitHub Pages
+name: Deploy Poly Reducer 3D + Sudoku to GitHub Pages
 
 # Avvio solo manuale: la pubblicazione avviene tramite l'impostazione
 # "Deploy from a branch" di GitHub Pages, quindi questo workflow non serve
@@ -24,19 +24,38 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout main
         uses: actions/checkout@v4
+        with:
+          path: main-src
+
+      # sudoku/ vive solo su questo branch (non è mai stato unito a main),
+      # quindi lo prendiamo con un secondo checkout separato, senza toccare
+      # nient'altro su main.
+      - name: Checkout branch sudoku
+        uses: actions/checkout@v4
+        with:
+          ref: claude/sudoku-android-app-33i8qh
+          path: sudoku-src
 
       - name: Configura Pages (abilita automaticamente)
         uses: actions/configure-pages@v5
         with:
           enablement: true
 
-      # Pubblica solo la cartella dell'app come radice del sito
-      - name: Carica l'app 3D
+      # Radice del sito = 3d-reducer (invariato, stessi URL di sempre); sudoku/
+      # viene aggiunta come sotto-percorso in più, senza toccare nulla di esistente.
+      - name: Preparo la cartella combinata
+        run: |
+          mkdir -p pages-build
+          cp -r main-src/3d-reducer/. pages-build/
+          mkdir -p pages-build/sudoku
+          cp -r sudoku-src/sudoku/. pages-build/sudoku/
+
+      - name: Carica il sito (3D reducer + sudoku)
         uses: actions/upload-pages-artifact@v3
         with:
-          path: ./3d-reducer
+          path: ./pages-build
 
       - name: Deploy su Pages
         id: deployment

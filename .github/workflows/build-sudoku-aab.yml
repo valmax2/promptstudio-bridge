@@ -1,0 +1,88 @@
+name: Build Sudoku AAB (release firmato)
+
+# Compila l'Android App Bundle FIRMATO per Google Play. Solo su richiesta
+# manuale (mai in automatico), perché usa la chiave di firma reale.
+# Richiede questi Secrets del repository (Settings → Secrets and variables →
+# Actions): SUDOKU_KEYSTORE_BASE64, SUDOKU_KEYSTORE_PASSWORD, SUDOKU_KEY_ALIAS,
+# SUDOKU_KEY_PASSWORD.
+on:
+  workflow_dispatch:
+    inputs:
+      version_code:
+        description: 'versionCode (intero, deve aumentare ad ogni upload su Play)'
+        required: true
+        default: '1'
+      version_name:
+        description: 'versionName (es. 1.0.0)'
+        required: true
+        default: '1.0.0'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Imposta JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Imposta Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Installa e configura l'Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Installa i pacchetti Android SDK richiesti
+        run: sdkmanager --install "platform-tools" "platforms;android-34" "build-tools;34.0.0"
+
+      - name: Decodifico il keystore dal Secret
+        working-directory: sudoku
+        run: echo "${{ secrets.SUDOKU_KEYSTORE_BASE64 }}" | base64 -d > release.keystore
+
+      - name: Compilo l'AAB firmato
+        working-directory: sudoku
+        env:
+          KEYSTORE_PATH: ${{ github.workspace }}/sudoku/release.keystore
+          KEYSTORE_PASSWORD: ${{ secrets.SUDOKU_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.SUDOKU_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.SUDOKU_KEY_PASSWORD }}
+          VERSION_CODE: ${{ inputs.version_code }}
+          VERSION_NAME: ${{ inputs.version_name }}
+        run: bash build-aab-ci.sh
+
+      - name: Carica l'AAB come artifact (privato, solo per te)
+        uses: actions/upload-artifact@v4
+        with:
+          name: sudoku-release-aab-${{ inputs.version_code }}
+          path: sudoku/.capacitor-build-release/android/app/build/outputs/bundle/release/app-release.aab
+          retention-days: 30
+
+      # Il download degli artifact passa da uno storage esterno (Azure blob) che
+      # alcune reti bloccano; questo branch dedicato rende l'AAB scaricabile
+      # anche via semplice git.
+      - name: Pubblico l'AAB anche sul branch sudoku-aab-download
+        run: |
+          AAB="$GITHUB_WORKSPACE/sudoku/.capacitor-build-release/android/app/build/outputs/bundle/release/app-release.aab"
+          TMP="$(mktemp -d)"
+          cd "$TMP"
+          git init -q -b sudoku-aab-download
+          cp "$AAB" "app-release-${{ inputs.version_name }}-code${{ inputs.version_code }}.aab"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .
+          git commit -q -m "AAB firmato v${{ inputs.version_name }} (versionCode ${{ inputs.version_code }})"
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" HEAD:sudoku-aab-download
+
+      - name: Rimuovo il keystore decodificato dal runner
+        if: always()
+        working-directory: sudoku
+        run: rm -f release.keystore

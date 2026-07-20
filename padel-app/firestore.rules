@@ -1,0 +1,118 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() { return request.auth != null; }
+    function isMe(uid) { return isSignedIn() && request.auth.uid == uid; }
+    // Solo questo account può gestire il catalogo condiviso di avatar/
+    // cornici custom (vedi js/admin.js) - tutti gli altri possono solo
+    // leggerlo, per mostrarlo come opzione nella schermata Premi.
+    function isAdmin() { return isSignedIn() && request.auth.uid == 'CAvv7ICUfYYpqcCRjA7s3ZhsoGo2'; }
+
+    // Ogni utente gestisce il proprio profilo; è leggibile da tutti gli
+    // utenti autenticati per poter cercare amici per codice personale.
+    match /users/{uid} {
+      allow read: if isSignedIn();
+      allow write: if isMe(uid);
+
+      match /friends/{friendUid} {
+        allow read: if isMe(uid);
+        allow write: if isMe(uid) || isMe(friendUid);
+      }
+    }
+
+    // I gruppi ("circles" nel codice) sono visibili solo ai membri; ci si
+    // può unire conoscendo il codice (id del documento) o essere aggiunti
+    // direttamente da un membro; un membro può anche rimuovere solo se
+    // stesso (uscire dal gruppo); solo il proprietario può eliminarlo.
+    match /circles/{circleId} {
+      allow read: if isSignedIn() && request.auth.uid in resource.data.memberIds;
+      allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
+      allow update: if isSignedIn() && request.resource.data.ownerId == resource.data.ownerId && (
+        request.auth.uid in request.resource.data.memberIds ||
+        (request.auth.uid in resource.data.memberIds
+          && resource.data.memberIds.removeAll([request.auth.uid]) == request.resource.data.memberIds)
+      );
+      allow delete: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+
+      // Chat di gruppo: un messaggio è visibile/scrivibile da chiunque sia
+      // attualmente membro del gruppo (stesso controllo di "circles" sopra,
+      // ripetuto qui perché le sottocollezioni non ereditano le regole del
+      // documento padre).
+      match /messages/{messageId} {
+        allow read: if isSignedIn() && request.auth.uid in get(/databases/$(database)/documents/circles/$(circleId)).data.memberIds;
+        allow create: if isSignedIn() && request.auth.uid in get(/databases/$(database)/documents/circles/$(circleId)).data.memberIds
+          && request.resource.data.senderId == request.auth.uid;
+      }
+    }
+
+    // Gli eventi sono leggibili da chi è stato invitato (host incluso); le
+    // risposte RSVP possono modificare solo la propria voce in
+    // "participants"; un invitato non-host può anche "uscire" (si rimuove
+    // da invitedIds/participants, senza toccare nient'altro né nessun altro
+    // invitato); solo l'organizzatore può modificare il resto o eliminarlo
+    // per tutti.
+    function leavingSelf() {
+      return resource.data.invitedIds.removeAll([request.auth.uid]) == request.resource.data.invitedIds
+        && !(request.auth.uid in request.resource.data.invitedIds);
+    }
+    match /events/{eventId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && request.resource.data.hostId == request.auth.uid;
+      allow update: if isSignedIn() && (
+        resource.data.hostId == request.auth.uid ||
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['participants']) ||
+        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['participants', 'invitedIds']) && leavingSelf())
+      );
+      allow delete: if isSignedIn() && resource.data.hostId == request.auth.uid;
+    }
+
+    // Catalogo condiviso di avatar custom caricati dall'admin, e vetrina
+    // "Premi" (max 5 elementi, applicato lato client in js/screens/admin.js)
+    // - leggibili da chiunque sia autenticato, scrivibili solo dall'admin.
+    match /customAvatars/{itemId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+    match /prizes/{itemId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    // Bacheca "Telecomandi compatibili" (nome + link affiliato) e immagine
+    // circolare della schermata iniziale - stesso schema di sopra: lettura
+    // per chiunque autenticato, scrittura solo admin.
+    match /compatibleRemotes/{itemId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+    match /config/{docId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    // Le partite sono private a chi le ha registrate.
+    match /matches/{matchId} {
+      allow read: if isSignedIn() && resource.data.createdBy == request.auth.uid;
+      allow create: if isSignedIn() && request.resource.data.createdBy == request.auth.uid;
+      allow update, delete: if isSignedIn() && resource.data.createdBy == request.auth.uid;
+    }
+
+    // Chat 1:1 tra due amici: id documento = i due uid ordinati e uniti da
+    // "_", quindi solo i due partecipanti possono leggerla/scriverla.
+    function isChatParticipant(chatId) {
+      return request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants;
+    }
+    match /chats/{chatId} {
+      allow read: if isSignedIn() && request.auth.uid in resource.data.participants;
+      allow create: if isSignedIn() && request.auth.uid in request.resource.data.participants;
+      allow update: if isSignedIn() && request.auth.uid in resource.data.participants;
+      allow delete: if isSignedIn() && request.auth.uid in resource.data.participants;
+
+      match /messages/{messageId} {
+        allow read: if isSignedIn() && isChatParticipant(chatId);
+        allow create: if isSignedIn() && isChatParticipant(chatId) && request.resource.data.senderId == request.auth.uid;
+      }
+    }
+  }
+}

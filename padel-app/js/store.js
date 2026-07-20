@@ -30,6 +30,10 @@ const DEFAULT_STATE = {
     // actions - including per single/double-click pattern - live in
     // remoteBindings above like any other device, not here.
     bleTags: [],
+    // Fino a 3 club preferiti salvati manualmente (nessuna ricerca
+    // automatica/API a pagamento) - array di { id, name, hours, phone }.
+    // Vedi js/screens/settings.js, categoria "Club".
+    favoriteClubs: [],
     // Scoreboard color scheme. `preset` picks one of COLOR_PRESETS (see
     // js/color-presets.js) or 'custom' to use the four fields below as-is;
     // they're kept in sync with the preset so switching to "custom" starts

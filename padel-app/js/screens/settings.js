@@ -9,11 +9,15 @@ import { toast } from '../app.js';
 import { COLOR_PRESETS } from '../color-presets.js';
 import { UI_ACCENT_PRESETS, applyUiAccent } from '../ui-accents.js';
 import { remoteSupported, bleTagSupported, disconnectBleTag } from '../ble-remote.js';
-import { BACK_ICON, BLUETOOTH_ICON, escapeHtml } from '../utils.js';
+import { BACK_ICON, BLUETOOTH_ICON, escapeHtml, uid as genId } from '../utils.js';
 import { APP_VERSION } from '../version.js';
 import { billingSupported, purchasePro, verifyProOnLaunch, isPro } from '../billing.js';
 
 let activeCategory = 'bluetooth';
+
+// Form "Aggiungi/modifica club": null quando chiuso, altrimenti l'oggetto
+// club in modifica (id null per un club nuovo).
+let clubForm = null;
 
 // Blocco anti-tentativi per il riscatto codice amico: 3 tentativi sbagliati
 // mettono in pausa il modulo per 10 minuti. Salvato in localStorage (non
@@ -52,6 +56,7 @@ const CATEGORIES = [
   { id: 'partita', icon: '🎾', label: 'Partita' },
   { id: 'colori', icon: '🖌️', label: 'Colori' },
   { id: 'bluetooth', icon: BLUETOOTH_ICON, label: 'Bluetooth' },
+  { id: 'club', icon: '🏟️', label: 'Club' },
   { id: 'cloud', icon: '☁️', label: 'Cloud' },
   { id: 'pro', icon: '⭐', label: 'Pro' },
 ];
@@ -63,8 +68,9 @@ const FONTS = [
   { id: "Verdana, Geneva, sans-serif", label: 'Verdana' },
 ];
 
-export async function renderSettings(el) {
-  activeCategory = 'bluetooth';
+export async function renderSettings(el, params = {}) {
+  activeCategory = params.category || 'bluetooth';
+  clubForm = null;
   paint(el);
 }
 
@@ -258,6 +264,45 @@ function paint(el) {
     </div>
     ` : ''}
 
+    ${activeCategory === 'club' ? `
+    <div class="card">
+      <h2>🏟️ I miei club</h2>
+      <p class="small">Salva fino a 3 club preferiti dove giochi di solito, con orari e telefono - inseriti a mano, nessuna ricerca automatica.</p>
+      ${(settings.favoriteClubs || []).map((c) => `
+        <div class="list-item">
+          <div>
+            <strong>${escapeHtml(c.name)}</strong>
+            ${c.hours ? `<p class="small mb0">🕒 ${escapeHtml(c.hours)}</p>` : ''}
+            ${c.phone ? `<p class="small mb0">📞 ${escapeHtml(c.phone)}</p>` : ''}
+          </div>
+          <div class="row">
+            ${c.phone ? `<a class="btn ghost small" href="tel:${escapeHtml(c.phone)}">📞</a>` : ''}
+            <a class="btn ghost small" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(c.name)}" target="_blank" rel="noopener">🗺️</a>
+            <button class="btn ghost small" data-club-edit="${c.id}">✏️</button>
+            <button class="btn ghost small" data-club-delete="${c.id}">🗑️</button>
+          </div>
+        </div>
+      `).join('') || '<p class="small">Nessun club salvato ancora.</p>'}
+
+      ${clubForm ? `
+      <div class="field mt">
+        <label>Nome del club</label>
+        <input type="text" id="club-name" value="${escapeHtml(clubForm.name || '')}" placeholder="Es. Padel Club Milano" maxlength="60">
+        <label class="mt">Orari</label>
+        <input type="text" id="club-hours" value="${escapeHtml(clubForm.hours || '')}" placeholder="Es. Lun-Dom 8:00-23:00" maxlength="60">
+        <label class="mt">Telefono</label>
+        <input type="tel" id="club-phone" value="${escapeHtml(clubForm.phone || '')}" placeholder="Es. 02 1234567" maxlength="30">
+        <div class="row mt">
+          <button class="btn primary" id="club-save">💾 Salva</button>
+          <button class="btn ghost" id="club-cancel">Annulla</button>
+        </div>
+      </div>
+      ` : (settings.favoriteClubs || []).length < 3 ? `
+      <button class="btn secondary block mt" id="club-add">➕ Aggiungi club</button>
+      ` : `<p class="small mt mb0">Hai già 3 club salvati (massimo). Cancellane uno per aggiungerne un altro.</p>`}
+    </div>
+    ` : ''}
+
     ${activeCategory === 'cloud' ? `
     <div class="card">
       <h2>☁️ Cloud</h2>
@@ -408,6 +453,35 @@ function paint(el) {
     paint(el);
   });
   el.querySelector('#open-welcome')?.addEventListener('click', () => navigate('welcome'));
+
+  el.querySelector('#club-add')?.addEventListener('click', () => {
+    clubForm = { id: null, name: '', hours: '', phone: '' };
+    paint(el);
+  });
+  el.querySelectorAll('[data-club-edit]').forEach((btn) => btn.addEventListener('click', () => {
+    const club = (settings.favoriteClubs || []).find((c) => c.id === btn.dataset.clubEdit);
+    if (club) { clubForm = { ...club }; paint(el); }
+  }));
+  el.querySelectorAll('[data-club-delete]').forEach((btn) => btn.addEventListener('click', () => {
+    if (!confirm('Cancellare questo club?')) return;
+    updateSettings({ favoriteClubs: (settings.favoriteClubs || []).filter((c) => c.id !== btn.dataset.clubDelete) });
+    syncSettings();
+    paint(el);
+  }));
+  el.querySelector('#club-cancel')?.addEventListener('click', () => { clubForm = null; paint(el); });
+  el.querySelector('#club-save')?.addEventListener('click', () => {
+    const name = el.querySelector('#club-name').value.trim().slice(0, 60);
+    if (!name) { toast('Inserisci il nome del club'); return; }
+    const hours = el.querySelector('#club-hours').value.trim().slice(0, 60);
+    const phone = el.querySelector('#club-phone').value.trim().slice(0, 30);
+    const existing = settings.favoriteClubs || [];
+    const club = { id: clubForm.id || genId(), name, hours, phone };
+    const next = clubForm.id ? existing.map((c) => (c.id === club.id ? club : c)) : [...existing, club];
+    updateSettings({ favoriteClubs: next });
+    syncSettings();
+    clubForm = null;
+    paint(el);
+  });
 
   el.querySelector('#cloud-sync')?.addEventListener('change', (e) => { updateSettings({ cloudSyncEnabled: e.target.checked }); syncSettings(); });
   el.querySelector('#sync-now')?.addEventListener('click', async () => {

@@ -27,7 +27,10 @@ export async function renderEvents(el) {
     el.innerHTML = `
       <div class="topbar">
         <div><h1>Eventi</h1><div class="subtitle">${cloud ? 'Sincronizzati' : 'Modalità locale'}</div></div>
-        <button class="btn primary small" id="new-event">${formOpen ? 'Annulla' : '+ Crea'}</button>
+        <div class="row">
+          <button class="btn ghost small" id="go-clubs">🏟️ I miei club</button>
+          <button class="btn primary small" id="new-event">${formOpen ? 'Annulla' : '+ Crea'}</button>
+        </div>
       </div>
 
       ${!cloud ? `<div class="card"><p>${firebaseAvailable() ? 'Accedi per invitare amici e ricevere conferme in tempo reale.' : 'Configura Firebase per gli eventi condivisi.'}</p>${firebaseAvailable() ? '<button class="btn primary block" id="go-login">Accedi</button>' : ''}</div>` : ''}
@@ -45,6 +48,7 @@ export async function renderEvents(el) {
       paint();
     });
     el.querySelector('#go-login')?.addEventListener('click', () => navigate('login'));
+    el.querySelector('#go-clubs')?.addEventListener('click', () => navigate('settings', { replace: true, params: { category: 'club' } }));
 
     el.querySelectorAll('[data-invite]').forEach((input) => input.addEventListener('change', (e) => {
       const id = input.dataset.invite;

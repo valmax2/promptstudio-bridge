@@ -34,6 +34,16 @@ const DEFAULT_STATE = {
     // automatica/API a pagamento) - array di { id, name, hours, phone }.
     // Vedi js/screens/settings.js, categoria "Club".
     favoriteClubs: [],
+    // Ultimi nomi usati in "Nuova partita" - null finché non si inizia la
+    // prima partita. Precompila i campi la volta dopo invece di farli
+    // ripartire vuoti/coi placeholder generici. Stessa forma di una voce di
+    // namePresets sotto (vedi js/screens/scoreboard.js).
+    lastMatchNames: null,
+    // Fino a 3 configurazioni nome squadra/giocatori salvate a mano
+    // dall'utente (es. "Io e Marco vs i soliti") - { id, label, mode,
+    // a, b, teamA, a1, a2, teamB, b1, b2 }, solo i campi del mode salvato
+    // sono valorizzati. Vedi js/screens/scoreboard.js.
+    namePresets: [],
     // Scoreboard color scheme. `preset` picks one of COLOR_PRESETS (see
     // js/color-presets.js) or 'custom' to use the four fields below as-is;
     // they're kept in sync with the preset so switching to "custom" starts

@@ -30,6 +30,10 @@ let setupServer = 'A';
 let setupServerPlayerIdx = 0;
 let setupFormat = 'classic';
 let setupTimeMinutes = 45;
+// Nomi da cui precompilare i campi al prossimo paintSetup() - impostato solo
+// quando si carica un preset (per passare da un mode all'altro e riempire i
+// campi nuovi in un colpo solo), poi azzerato subito dopo il primo paint.
+let pendingNameFill = null;
 let timeInterval = null;
 let stopHwKeys = () => {};
 let victoryModalOpen = false;
@@ -209,11 +213,38 @@ function victoryPhraseModal(settings) {
 
 // ===== New match setup =====
 
+// Legge i campi nome attualmente visibili nel form (dipende da setupMode) -
+// stessa forma di una voce namePresets/lastMatchNames, usata sia per
+// salvare un preset sia per ricordare gli ultimi nomi usati.
+function readNameFields(el) {
+  if (setupMode === 'singles') {
+    return {
+      a: el.querySelector('#name-a')?.value.trim().slice(0, 24) || '',
+      b: el.querySelector('#name-b')?.value.trim().slice(0, 24) || '',
+    };
+  }
+  return {
+    teamA: el.querySelector('#team-name-a')?.value.trim().slice(0, 24) || '',
+    a1: el.querySelector('#name-a1')?.value.trim().slice(0, 24) || '',
+    a2: el.querySelector('#name-a2')?.value.trim().slice(0, 24) || '',
+    teamB: el.querySelector('#team-name-b')?.value.trim().slice(0, 24) || '',
+    b1: el.querySelector('#name-b1')?.value.trim().slice(0, 24) || '',
+    b2: el.querySelector('#name-b2')?.value.trim().slice(0, 24) || '',
+  };
+}
+
 function paintSetup(el) {
   const singles = setupMode === 'singles';
   const { settings } = getState();
   const teamAColorName = nearestColorName(settings.teamAColor) || 'Squadra A';
   const teamBColorName = nearestColorName(settings.teamBColor) || 'Squadra B';
+  // Da dove precompilare i nomi: un preset appena caricato ha la precedenza
+  // (un tap deve riempire i campi anche se cambia mode), altrimenti gli
+  // ultimi nomi usati - solo se combaciano col mode attualmente selezionato.
+  const fill = (pendingNameFill && pendingNameFill.mode === setupMode) ? pendingNameFill
+    : (settings.lastMatchNames && settings.lastMatchNames.mode === setupMode) ? settings.lastMatchNames
+    : null;
+  const presets = settings.namePresets || [];
   el.innerHTML = `
     <div class="sb-root">
       <div class="sb-topbar">
@@ -229,14 +260,27 @@ function paintSetup(el) {
             <button data-mode="singles" class="${singles ? 'active' : ''}">🙋 Singolo</button>
           </div>
         </div>
+        ${presets.length ? `
+        <div class="card">
+          <label>⭐ Preset salvati</label>
+          <div class="row wrap">
+            ${presets.map((p) => `
+              <span class="row" style="gap:2px;">
+                <button class="btn secondary small" data-load-preset="${p.id}">${escapeHtml(p.label)}</button>
+                <button class="btn ghost small" data-delete-preset="${p.id}" aria-label="Elimina preset">🗑️</button>
+              </span>
+            `).join('')}
+          </div>
+        </div>
+        ` : ''}
         ${singles ? `
         <div class="card">
           <div class="field row" style="align-items:center;gap:8px;">
-            <input id="name-a" value="Giocatore 1" maxlength="24" style="flex:1;">
+            <input id="name-a" value="${escapeHtml(fill?.a || 'Giocatore 1')}" maxlength="24" style="flex:1;">
             <button type="button" class="btn-server-pick ${setupServer === 'A' ? 'active' : ''}" data-pick-server="A:0" aria-label="Fa servire per primo">🎾</button>
           </div>
           <div class="field mb0 row" style="align-items:center;gap:8px;">
-            <input id="name-b" value="Giocatore 2" maxlength="24" style="flex:1;">
+            <input id="name-b" value="${escapeHtml(fill?.b || 'Giocatore 2')}" maxlength="24" style="flex:1;">
             <button type="button" class="btn-server-pick ${setupServer === 'B' ? 'active' : ''}" data-pick-server="B:0" aria-label="Fa servire per primo">🎾</button>
           </div>
         </div>
@@ -245,14 +289,14 @@ function paintSetup(el) {
           <label>Squadra A</label>
           <div class="field">
             <label class="small">Nome squadra (facoltativo, default "${teamAColorName}")</label>
-            <input id="team-name-a" placeholder="${teamAColorName}" maxlength="24">
+            <input id="team-name-a" placeholder="${teamAColorName}" value="${escapeHtml(fill?.teamA || '')}" maxlength="24">
           </div>
           <div class="field row" style="align-items:center;gap:8px;">
-            <input id="name-a1" placeholder="Giocatore 1" maxlength="24" style="flex:1;">
+            <input id="name-a1" placeholder="Giocatore 1" value="${escapeHtml(fill?.a1 || '')}" maxlength="24" style="flex:1;">
             <button type="button" class="btn-server-pick ${setupServer === 'A' && setupServerPlayerIdx === 0 ? 'active' : ''}" data-pick-server="A:0" aria-label="Fa servire per primo">🎾</button>
           </div>
           <div class="field mb0 row" style="align-items:center;gap:8px;">
-            <input id="name-a2" placeholder="Giocatore 2" maxlength="24" style="flex:1;">
+            <input id="name-a2" placeholder="Giocatore 2" value="${escapeHtml(fill?.a2 || '')}" maxlength="24" style="flex:1;">
             <button type="button" class="btn-server-pick ${setupServer === 'A' && setupServerPlayerIdx === 1 ? 'active' : ''}" data-pick-server="A:1" aria-label="Fa servire per primo">🎾</button>
           </div>
         </div>
@@ -260,19 +304,21 @@ function paintSetup(el) {
           <label>Squadra B</label>
           <div class="field">
             <label class="small">Nome squadra (facoltativo, default "${teamBColorName}")</label>
-            <input id="team-name-b" placeholder="${teamBColorName}" maxlength="24">
+            <input id="team-name-b" placeholder="${teamBColorName}" value="${escapeHtml(fill?.teamB || '')}" maxlength="24">
           </div>
           <div class="field row" style="align-items:center;gap:8px;">
-            <input id="name-b1" placeholder="Giocatore 3" maxlength="24" style="flex:1;">
+            <input id="name-b1" placeholder="Giocatore 3" value="${escapeHtml(fill?.b1 || '')}" maxlength="24" style="flex:1;">
             <button type="button" class="btn-server-pick ${setupServer === 'B' && setupServerPlayerIdx === 0 ? 'active' : ''}" data-pick-server="B:0" aria-label="Fa servire per primo">🎾</button>
           </div>
           <div class="field mb0 row" style="align-items:center;gap:8px;">
-            <input id="name-b2" placeholder="Giocatore 4" maxlength="24" style="flex:1;">
+            <input id="name-b2" placeholder="Giocatore 4" value="${escapeHtml(fill?.b2 || '')}" maxlength="24" style="flex:1;">
             <button type="button" class="btn-server-pick ${setupServer === 'B' && setupServerPlayerIdx === 1 ? 'active' : ''}" data-pick-server="B:1" aria-label="Fa servire per primo">🎾</button>
           </div>
         </div>
         <p class="small" style="text-align:center;margin:-6px 0 14px;">🎾 Tocca la racchetta per scegliere chi serve per primo/a</p>
         `}
+        <button class="btn ghost small block" id="save-name-preset" ${presets.length >= 3 ? 'disabled' : ''}>💾 Salva questi nomi come preset${presets.length >= 3 ? ' (massimo 3 raggiunto)' : ''}</button>
+
         <div class="card">
           <label>Formato partita</label>
           <div class="segmented">
@@ -327,12 +373,42 @@ function paintSetup(el) {
 
     ${victoryModalOpen ? victoryPhraseModal(settings) : ''}
   `;
+  pendingNameFill = null;
 
   el.querySelector('#sb-back').addEventListener('click', () => navigate('home'));
   el.querySelectorAll('[data-mode]').forEach((btn) => btn.addEventListener('click', () => {
     setupMode = btn.dataset.mode;
     paintSetup(el);
   }));
+  el.querySelectorAll('[data-load-preset]').forEach((btn) => btn.addEventListener('click', () => {
+    const preset = (getState().settings.namePresets || []).find((p) => p.id === btn.dataset.loadPreset);
+    if (!preset) return;
+    pendingNameFill = preset;
+    setupMode = preset.mode;
+    paintSetup(el);
+    toast(`Caricato: ${preset.label}`);
+  }));
+  el.querySelectorAll('[data-delete-preset]').forEach((btn) => btn.addEventListener('click', () => {
+    if (!confirm('Eliminare questo preset?')) return;
+    const { settings } = getState();
+    updateSettings({ namePresets: (settings.namePresets || []).filter((p) => p.id !== btn.dataset.deletePreset) });
+    paintSetup(el);
+  }));
+  el.querySelector('#save-name-preset')?.addEventListener('click', () => {
+    const { settings } = getState();
+    const current = settings.namePresets || [];
+    if (current.length >= 3) return;
+    const label = (prompt('Nome del preset (es. "Io e Marco vs i soliti")') || '').trim().slice(0, 30);
+    if (!label) return;
+    const names = readNameFields(el);
+    updateSettings({ namePresets: [...current, { id: genId(), label, mode: setupMode, ...names }] });
+    toast('Preset salvato');
+    // Il salvataggio ridisegna il form (per aggiornare l'elenco preset): senza
+    // questo, i nomi appena scritti sparirebbero perché non ancora presenti
+    // in lastMatchNames, l'unica fonte da cui il form si precompila di norma.
+    pendingNameFill = { mode: setupMode, ...names };
+    paintSetup(el);
+  });
   el.querySelectorAll('[data-pick-server]').forEach((btn) => btn.addEventListener('click', () => {
     const [team, idx] = btn.dataset.pickServer.split(':');
     setupServer = team;
@@ -399,6 +475,7 @@ function paintSetup(el) {
   });
   el.querySelector('#start-match').addEventListener('click', () => {
     const { settings } = getState();
+    updateSettings({ lastMatchNames: { mode: setupMode, ...readNameFields(el) } });
     let teamAName, teamBName, teamAPlayers, teamBPlayers;
     if (singles) {
       teamAName = el.querySelector('#name-a').value.trim().slice(0, 24) || 'Giocatore 1';

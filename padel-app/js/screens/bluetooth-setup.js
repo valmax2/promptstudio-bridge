@@ -11,6 +11,9 @@ import {
 import { escapeHtml, uid as genId, BACK_ICON } from '../utils.js';
 import { isLiteMode } from '../lite-mode.js';
 import { canUseRemote } from '../gate-config.js';
+import { APP_VERSION } from '../version.js';
+
+const SUPPORT_EMAIL = 'VStudioApps@gmail.com';
 
 let bleScanResults = [];
 let bleScanning = false;
@@ -98,6 +101,7 @@ function paint(el) {
       ${isLiteMode() ? '' : `<p class="small">Premi un pulsante sul dispositivo appena collegato: se il telefono lo riceve, lo vedrai comparire qui sotto <strong>subito</strong>.</p>`}
       <div id="bt-live-log"></div>
       ${lastConnectDiagnostics ? '<button class="btn ghost small block mt" id="bt-diagnostics">🔍 Diagnostica ultimo tag collegato</button>' : ''}
+      <button class="btn ghost small block mt" id="bt-send-log">📧 Invia log a supporto</button>
     </div>
     ${diagnosticsOpen ? diagnosticsModal() : ''}
 
@@ -273,6 +277,36 @@ function groupedRemoteRows(bindings) {
   `).join('');
 }
 
+// Testo semplice (nessun formato speciale, va nel corpo di una mailto:) con
+// tutto il necessario per capire da fuori perché un telecomando/tag non
+// funziona come dovrebbe: log grezzo delle pressioni ricevute in questa
+// schermata più i servizi/caratteristiche GATT dell'ultimo tag collegato -
+// stessa informazione già visibile a schermo in "Test dal vivo"/"Diagnostica",
+// solo raccolta in un testo spedibile invece che da leggere a voce al telefono.
+function buildDiagnosticReport() {
+  const lines = [`Padel App ${APP_VERSION}`, ''];
+  lines.push('--- Log pressioni (Test dal vivo) ---');
+  if (liveLog.length) {
+    liveLog.slice().reverse().forEach((e) => {
+      lines.push(`${new Date(e.time).toLocaleTimeString('it-IT')} · ${e.deviceName} · ${e.label}`);
+    });
+  } else {
+    lines.push('(nessuna pressione ricevuta in questa schermata)');
+  }
+  lines.push('');
+  lines.push('--- Diagnostica ultimo tag collegato ---');
+  if (lastConnectDiagnostics && lastConnectDiagnostics.length) {
+    lines.push(`Caratteristiche notificabili attivate: ${lastConnectSubscribed}`);
+    lastConnectDiagnostics.forEach((s) => {
+      lines.push(`Servizio ${s.uuid}`);
+      (s.characteristics || []).forEach((c) => lines.push(`  ${c.uuid}${c.notify ? ' (notify)' : ''}`));
+    });
+  } else {
+    lines.push('(nessun tag collegato in questa schermata)');
+  }
+  return lines.join('\n');
+}
+
 function renderLiveLog(el) {
   const box = el.querySelector('#bt-live-log');
   if (!box) return;
@@ -374,6 +408,10 @@ function wireEvents(el) {
     syncSettings();
   }));
 
+  el.querySelector('#bt-send-log')?.addEventListener('click', () => {
+    const body = buildDiagnosticReport();
+    window.location.href = `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent('Padel App - Problema telecomando/tag')}&body=${encodeURIComponent(body)}`;
+  });
   el.querySelector('#bt-diagnostics')?.addEventListener('click', () => { diagnosticsOpen = true; paint(el); });
   el.querySelector('#bt-diagnostics-close')?.addEventListener('click', () => { diagnosticsOpen = false; paint(el); });
   el.querySelector('#bt-diagnostics-done')?.addEventListener('click', () => { diagnosticsOpen = false; paint(el); });

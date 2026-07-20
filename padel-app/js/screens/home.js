@@ -3,6 +3,12 @@ import { navigate } from '../router.js';
 import { firebaseAvailable } from '../firebase.js';
 import { escapeHtml } from '../utils.js';
 import { avatarSvg } from '../avatars.js';
+import { t } from '../i18n.js';
+
+const DATE_LOCALES = { it: 'it-IT', en: 'en-US', fr: 'fr-FR' };
+function dateLocale() {
+  return DATE_LOCALES[getState().settings.appLanguage] || 'it-IT';
+}
 
 export async function renderHome(el) {
   const { profile, matches, events } = getState();
@@ -17,62 +23,62 @@ export async function renderHome(el) {
   el.innerHTML = `
     <div class="center" style="margin-bottom:18px;">
       <div class="avatar xxl" style="margin:0 auto 10px;">${avatarContent(profile)}</div>
-      <h1 class="mb0">Ciao, ${escapeHtml(profile.name)} 👋</h1>
-      <div class="subtitle">${authed ? 'Sincronizzato con il cloud' : firebaseAvailable() ? 'Non hai ancora effettuato l\'accesso' : 'Modalità locale'}</div>
+      <h1 class="mb0">${t('homeGreeting')}, ${escapeHtml(profile.name)} 👋</h1>
+      <div class="subtitle">${authed ? t('homeSyncedCloud') : firebaseAvailable() ? t('homeNotLoggedIn') : t('homeLocalMode')}</div>
     </div>
 
     ${!authed ? `
     <div class="card row between">
       <div>
-        <strong>Accedi per sbloccare Community, Eventi e Sync cloud</strong>
-        <p class="mb0">Il segnapunti funziona già offline.</p>
+        <strong>${t('homeLoginTitle')}</strong>
+        <p class="mb0">${t('homeLoginDesc')}</p>
       </div>
-      <button class="btn primary small" id="go-login">Accedi</button>
+      <button class="btn primary small" id="go-login">${t('homeLoginBtn')}</button>
     </div>` : ''}
 
     <div class="card">
       <div class="row between">
-        <h2>🎾 Nuova partita</h2>
-        <button class="btn ghost small" id="go-gamemodes">📖 Modalità</button>
+        <h2>${t('homeNewMatch')}</h2>
+        <button class="btn ghost small" id="go-gamemodes">${t('homeModesBtn')}</button>
       </div>
-      <p>Avvia il segnapunti remoto con annuncio vocale del punteggio.</p>
-      <button class="btn primary block" id="go-scoreboard">Doppio / Singolo</button>
+      <p>${t('homeNewMatchDesc')}</p>
+      <button class="btn primary block" id="go-scoreboard">${t('homeDoublesSingles')}</button>
       <div class="grid-2 mt">
-        <button class="btn secondary" id="go-americano">🔄 Americano</button>
-        <button class="btn secondary" id="go-killer">🔪 Killer</button>
+        <button class="btn secondary" id="go-americano">${t('homeAmericano')}</button>
+        <button class="btn secondary" id="go-killer">${t('homeKiller')}</button>
       </div>
     </div>
 
     <button class="lite-mode-btn" id="go-lite-mode">
       <span class="lite-mode-btn-icon">⚡</span>
       <span>
-        <strong>Modalità Interfaccia Light</strong>
-        <small>Solo partita e Bluetooth, senza Community ed Eventi</small>
+        <strong>${t('homeLiteTitle')}</strong>
+        <small>${t('homeLiteDesc')}</small>
       </span>
     </button>
 
     <div class="card">
       <div class="row between">
-        <h2>Prossimi eventi</h2>
-        <button class="btn ghost small" id="go-events">Vedi tutti</button>
+        <h2>${t('homeUpcomingEvents')}</h2>
+        <button class="btn ghost small" id="go-events">${t('homeSeeAll')}</button>
       </div>
-      ${upcoming.length ? upcoming.map(eventRow).join('') : emptyRow('Nessun evento in programma')}
+      ${upcoming.length ? upcoming.map(eventRow).join('') : emptyRow(t('homeNoEvents'))}
     </div>
 
     <div class="card">
       <div class="row between">
-        <h2>Ultime partite</h2>
-        <button class="btn ghost small" id="go-stats">Statistiche</button>
+        <h2>${t('homeRecentMatches')}</h2>
+        <button class="btn ghost small" id="go-stats">${t('homeStats')}</button>
       </div>
-      ${recent.length ? recent.map(matchRow).join('') : emptyRow('Nessuna partita registrata')}
+      ${recent.length ? recent.map(matchRow).join('') : emptyRow(t('homeNoMatches'))}
     </div>
 
     <div class="card row between">
       <div>
-        <strong>🎁 Premi</strong>
-        <p class="mb0 small">${wins} vittorie totali</p>
+        <strong>${t('homeRewards')}</strong>
+        <p class="mb0 small">${wins} ${t('homeTotalWins')}</p>
       </div>
-      <button class="btn ghost small" id="go-gami">Vedi</button>
+      <button class="btn ghost small" id="go-gami">${t('homeSee')}</button>
     </div>
   `;
 
@@ -80,13 +86,7 @@ export async function renderHome(el) {
   el.querySelector('#go-gamemodes').addEventListener('click', () => navigate('gamemodes'));
   el.querySelector('#go-scoreboard').addEventListener('click', () => navigate('scoreboard'));
   el.querySelector('#go-lite-mode').addEventListener('click', () => {
-    const ok = confirm(
-      "Attivare la Modalità Interfaccia Light?\n\n"
-      + "L'app si riduce al minimo indispensabile: solo Nuova partita e configurazione Bluetooth "
-      + "(telecomandi e casse). Community, Eventi, Statistiche e le altre sezioni vengono nascoste.\n\n"
-      + "Potrai tornare all'interfaccia completa in qualsiasi momento con il pulsante "
-      + "\"Esci da Modalità Light\".",
-    );
+    const ok = confirm(t('homeLiteConfirm'));
     if (!ok) return;
     updateSettings({ liteModeUser: true });
     navigate('scoreboard');
@@ -106,9 +106,10 @@ function avatarContent(profile) {
 function eventRow(e) {
   const d = new Date(e.dateTime);
   const count = Object.values(e.participants || {}).filter((v) => v === 'yes').length;
+  const locale = dateLocale();
   return `<div class="list-item">
     <div class="avatar">📅</div>
-    <div class="meta"><strong>${escapeHtml(e.title)}</strong><span>${d.toLocaleDateString('it-IT')} · ${d.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })} · ${count}/${e.maxPlayers || 4} giocatori</span></div>
+    <div class="meta"><strong>${escapeHtml(e.title)}</strong><span>${d.toLocaleDateString(locale)} · ${d.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })} · ${count}/${e.maxPlayers || 4} ${t('homePlayers')}</span></div>
   </div>`;
 }
 

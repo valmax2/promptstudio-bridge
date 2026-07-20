@@ -29,6 +29,7 @@ import { renderAdmin } from './screens/admin.js';
 import { renderRemoteBoard } from './screens/remote-board.js';
 import { LITE_MODE, isLiteMode } from './lite-mode.js';
 import { NAV_ICONS } from './nav-icons.js';
+import { t } from './i18n.js';
 
 const appEl = document.getElementById('app');
 const navEl = document.getElementById('bottom-nav');
@@ -37,6 +38,22 @@ const bannerEl = document.getElementById('offline-banner');
 navEl.querySelectorAll('[data-icon]').forEach((el) => {
   el.innerHTML = NAV_ICONS[el.dataset.icon] || '';
 });
+
+// Etichette della barra di navigazione in basso: markup statico in
+// index.html (mai ridisegnato da uno screen), quindi va aggiornato qui a
+// mano quando cambia la lingua invece che tramite il normale re-render di
+// uno screen.
+const NAV_LABEL_KEYS = {
+  home: 'navHome', scoreboard: 'navScoreboard', community: 'navCommunity',
+  settings: 'navSettings', events: 'navEvents', stats: 'navStats', profile: 'navProfile',
+};
+function applyNavLabels() {
+  navEl.querySelectorAll('.nav-btn').forEach((btn) => {
+    const key = NAV_LABEL_KEYS[btn.dataset.route];
+    const label = btn.querySelector('.nav-label');
+    if (key && label) label.textContent = t(key);
+  });
+}
 
 function applyTheme() {
   const { settings } = getState();
@@ -50,6 +67,7 @@ function applyTheme() {
   });
   applyColorsToDom(settings);
   applyUiAccent(settings.uiAccent);
+  applyNavLabels();
 }
 
 function updateBanner() {

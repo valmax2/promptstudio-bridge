@@ -1,0 +1,48 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Storage non permette di unire un wildcard a testo fisso nello stesso
+    // segmento di percorso (niente "{uid}.jpg") - il confronto va fatto nel
+    // corpo della regola invece che nel pattern del match.
+    match /avatars/{fileName} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && fileName == request.auth.uid + '.jpg'
+        && request.resource.size < 5 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+    }
+
+    // Catalogo condiviso di avatar custom e vetrina "Premi" (vedi
+    // js/admin.js e firestore.rules) - le immagini vere e proprie vivono
+    // qui in Storage, separate dai metadati (label, url) in Firestore;
+    // solo l'admin può caricarle, tutti gli utenti autenticati possono
+    // leggerle.
+    match /admin-customAvatars/{itemId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == 'CAvv7ICUfYYpqcCRjA7s3ZhsoGo2'
+        && request.resource.size < 5 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+    }
+    match /admin-prizes/{itemId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == 'CAvv7ICUfYYpqcCRjA7s3ZhsoGo2'
+        && request.resource.size < 5 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+    }
+    // Immagine circolare della schermata iniziale, sostituibile solo
+    // dall'admin (vedi js/screens/admin.js e js/screens/welcome.js).
+    match /admin-config/{fileName} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == 'CAvv7ICUfYYpqcCRjA7s3ZhsoGo2'
+        && request.resource.size < 5 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+    }
+    // Immagini per la bacheca "Telecomandi compatibili" (vedi js/screens/
+    // admin.js e js/screens/remote-board.js).
+    match /admin-compatibleRemotes/{itemId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == 'CAvv7ICUfYYpqcCRjA7s3ZhsoGo2'
+        && request.resource.size < 5 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+    }
+  }
+}

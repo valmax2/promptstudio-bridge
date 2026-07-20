@@ -2,15 +2,16 @@
 // Le pubblicità si attivano SOLO nell'app nativa (Android via Capacitor).
 // Sul web / PWA tutte le funzioni non fanno nulla → nessun impatto.
 //
-// PRIMA DELLA PUBBLICAZIONE: sostituisci gli ID di TEST con i tuoi ID AdMob reali
-// e metti TESTING = false. Vedi PLAY_ADMOB.md.
+// App AdMob: com.polyreducer.app → ca-app-pub-2590590501208291~8345014556
+// PRIMA DELLA PUBBLICAZIONE REALE: metti TESTING = false (dopo aver verificato
+// che tutto funzioni sul telefono con gli ID reali sotto). Vedi PLAY_ADMOB.md.
 
 const AD_IDS = {
-  // ID di TEST ufficiali di Google (mostrano annunci finti, sicuri in sviluppo)
-  interstitial: 'ca-app-pub-3940256099942544/1033173712',
-  rewarded:     'ca-app-pub-3940256099942544/5224354917',
+  // ID reali di Poly Reducer 3D (Google AdMob)
+  interstitial: 'ca-app-pub-2590590501208291/1643874838',
+  rewarded:     'ca-app-pub-2590590501208291/6525646366',
 };
-const TESTING = true;               // ⚠️ metti false con gli ID reali in produzione
+const TESTING = true;               // ⚠️ metti false SOLO dopo aver verificato che funziona sul telefono
 // Strategia scelta: interstitial al massimo 1 volta per sessione (non ad ogni export)
 // per non infastidire chi elabora più file di fila — l'app è uno strumento veloce,
 // non un gioco. Il rewarded (volontario) e il Pro restano le leve principali.

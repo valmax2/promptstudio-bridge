@@ -463,7 +463,7 @@ function paint(el) {
     if (club) { clubForm = { ...club }; paint(el); }
   }));
   el.querySelectorAll('[data-club-delete]').forEach((btn) => btn.addEventListener('click', () => {
-    if (!confirm('Cancellare questo club?')) return;
+    if (!confirm('Eliminare questo club?')) return;
     updateSettings({ favoriteClubs: (settings.favoriteClubs || []).filter((c) => c.id !== btn.dataset.clubDelete) });
     syncSettings();
     paint(el);

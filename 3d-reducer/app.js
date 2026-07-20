@@ -661,7 +661,7 @@ el.fileInput.addEventListener('change', (e) => { if (e.target.files[0]) handleFi
 viewport.addEventListener('drop', (e) => { const f = e.dataTransfer.files[0]; if (f) handleFile(f); });
 
 // ─── Versione app (per verificare gli aggiornamenti) ────────────────────────
-const APP_VERSION = 'v15';
+const APP_VERSION = 'v16';
 if (el.appVer) el.appVer.textContent = 'Poly Reducer 3D · ' + APP_VERSION;
 
 // ─── Service worker (offline / installazione PWA) ───────────────────────────────

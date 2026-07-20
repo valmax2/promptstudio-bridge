@@ -11,7 +11,9 @@ const AD_IDS = {
   rewarded:     'ca-app-pub-3940256099942544/5224354917',
 };
 const TESTING = true;               // ⚠️ metti false con gli ID reali in produzione
-const EXPORTS_PER_AD = 3;           // interstitial ogni N esportazioni
+// Strategia scelta: interstitial al massimo 1 volta per sessione (non ad ogni export)
+// per non infastidire chi elabora più file di fila — l'app è uno strumento veloce,
+// non un gioco. Il rewarded (volontario) e il Pro restano le leve principali.
 
 function admob() {
   const C = (typeof window !== 'undefined') ? window.Capacitor : null;
@@ -41,15 +43,14 @@ export async function initAds() {
   } catch (e) { /* se AdMob non parte, l'app funziona comunque senza ads */ }
 }
 
-let exportCount = 0;
+let interstitialShownThisSession = false;
 export async function adAfterExport() {
   const A = admob();
-  if (!A || !ready || isPro()) return;
-  exportCount++;
-  if (exportCount % EXPORTS_PER_AD !== 0) return;
+  if (!A || !ready || isPro() || interstitialShownThisSession) return;
   try {
     await A.prepareInterstitial({ adId: AD_IDS.interstitial, isTesting: TESTING });
     await A.showInterstitial();
+    interstitialShownThisSession = true; // al massimo una volta finché l'app resta aperta
   } catch (e) { /* ignora */ }
 }
 

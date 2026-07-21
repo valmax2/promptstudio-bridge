@@ -22,8 +22,12 @@ enum class RelativeSubjectView {
 /**
  * Stato geometrico della Director Map (§3). Tutti gli angoli in gradi, la
  * distanza in metri "di scena" (unità arbitraria coerente col prompt, non
- * metrica reale). `zoomPercent` e `cameraDistanceMeters` sono tenuti in
- * sincronia dal livello che possiede lo stato (feature-director-map), non qui.
+ * metrica reale). `zoomPercent`, `cameraDistanceMeters` e `relativeView` sono
+ * *derivati* da `subjectPosition`/`cameraPosition`/`subjectFacingDegrees`
+ * tramite [DirectorMapGeometry] — restano campi propri (non calcolati al volo
+ * a ogni lettura) perché vanno persistiti così come sono stati generati, ma è
+ * responsabilità di chi muove lo stato ricalcolarli con la geometria, mai a
+ * mano, per non disallinearli dalla posizione reale dei due nodi.
  */
 @Serializable
 data class DirectorMapState(
@@ -39,17 +43,31 @@ data class DirectorMapState(
     val schemaVersion: Int = 1,
 ) {
     companion object {
-        val Default = DirectorMapState(
-            subjectPosition = OffsetRatio(0.5f, 0.5f),
-            cameraPosition = OffsetRatio(0.5f, 0.85f),
-            subjectFacingDegrees = 0f,
-            cameraHeightDegrees = 0f,
-            cameraRollDegrees = 0f,
-            cameraDistanceMeters = 3f,
-            zoomPercent = 100,
-            movement = CameraMovement.Static,
-            relativeView = RelativeSubjectView.Front,
-        )
+        // Soggetto al centro, camera più in basso e rivolta verso di lui: una
+        // ripresa frontale a distanza media, l'inquadratura "neutra" più utile
+        // come punto di partenza.
+        private val DefaultSubjectPosition = OffsetRatio(0.5f, 0.5f)
+        private val DefaultCameraPosition = OffsetRatio(0.5f, 0.85f)
+        private const val DEFAULT_SUBJECT_FACING_DEGREES = 180f
+
+        val Default: DirectorMapState = run {
+            val distance = DirectorMapGeometry.distanceNormalized(DefaultSubjectPosition, DefaultCameraPosition)
+            DirectorMapState(
+                subjectPosition = DefaultSubjectPosition,
+                cameraPosition = DefaultCameraPosition,
+                subjectFacingDegrees = DEFAULT_SUBJECT_FACING_DEGREES,
+                cameraHeightDegrees = 0f,
+                cameraRollDegrees = 0f,
+                cameraDistanceMeters = DirectorMapGeometry.distanceMeters(distance),
+                zoomPercent = 100,
+                movement = CameraMovement.Static,
+                relativeView = DirectorMapGeometry.relativeView(
+                    DEFAULT_SUBJECT_FACING_DEGREES,
+                    DefaultSubjectPosition,
+                    DefaultCameraPosition,
+                ),
+            )
+        }
     }
 }
 

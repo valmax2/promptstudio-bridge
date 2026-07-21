@@ -27,9 +27,9 @@ Riferimento alle fasi di §14 del master prompt:
 | — | Skeleton app compilabile (walking skeleton): navigazione a 4 sezioni, tema dark | ✅ |
 | — | Workflow CI per build APK | ✅ (`.github/workflows/build-promptforge-apk.yml`) |
 | 4 | Database e repository (Room): Libreria + Preset, export/import JSON | 🟡 scritta, non compilabile qui (modulo Android) |
-| 5 | Traduzione e dettatura (interfacce sostituibili) | ⬜ non iniziata |
-| 6 | Director Map in Compose Canvas con gesture e test matematici | ⬜ non iniziata |
-| 7 | Tutte le schermate (Builder, Libreria, Preset, Impostazioni) | ⬜ solo placeholder |
+| 5 | Traduzione e dettatura (interfacce sostituibili) | 🟡 solo dizionario di fallback (traduzione on-device/LibreTranslate/Ollama mancano); dettatura non iniziata |
+| 6 | Director Map: geometria e gesture | ✅ geometria (51 test locali) — 🟡 Compose UI scritta, non compilabile qui |
+| 7 | Tutte le schermate (Builder, Libreria, Preset, Impostazioni) | ⬜ solo placeholder — Director Map è pronta ma non ancora agganciata al Builder |
 | 8 | Esportazione e client ComfyUI | ⬜ non iniziata |
 | 9-10 | Test/lint/build completi, APK funzionante | 🟡 solo lo skeleton è verificato in CI |
 | 11 | Istruzioni build/firma/installazione | ⬜ da scrivere quando l'APK avrà contenuto reale |

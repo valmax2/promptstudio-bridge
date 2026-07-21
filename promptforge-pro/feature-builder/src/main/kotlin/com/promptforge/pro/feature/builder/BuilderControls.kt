@@ -1,13 +1,17 @@
 package com.promptforge.pro.feature.builder
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.material3.Button
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -15,7 +19,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.promptforge.pro.coreui.PromptForgeColors
 
 /** Controlli condivisi tra gli step del Builder. */
 @Composable
@@ -24,8 +30,20 @@ internal fun <T : Enum<T>> EnumDropdown(label: String, selected: T, options: Lis
 
     Column {
         Text(label, style = MaterialTheme.typography.labelMedium)
-        Button(onClick = { expanded = true }) {
-            Text(selected.name)
+        OutlinedCard(
+            onClick = { expanded = true },
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.outlinedCardColors(containerColor = PromptForgeColors.SurfaceVariant),
+            border = BorderStroke(1.dp, PromptForgeColors.Border),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(selected.name, style = MaterialTheme.typography.bodyMedium)
+                Text("▾", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
         }
         DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
             options.forEach { option ->

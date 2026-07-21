@@ -6,13 +6,14 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -20,10 +21,12 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.promptforge.pro.coreui.PromptForgeButton
+import com.promptforge.pro.coreui.PromptForgeGradients
 import com.promptforge.pro.feature.builder.steps.CameraStepContent
 import com.promptforge.pro.feature.builder.steps.CharacterStepContent
 import com.promptforge.pro.feature.builder.steps.LightingStepContent
@@ -81,18 +84,18 @@ private fun BuilderStepHeader(uiState: BuilderUiState, onStepClick: (BuilderStep
         Row(modifier = Modifier.fillMaxWidth().padding(top = 10.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             steps.forEachIndexed { index, step ->
                 val reachedOrCurrent = index <= currentIndex
+                val brush = if (reachedOrCurrent) {
+                    PromptForgeGradients.PrimaryButton
+                } else {
+                    SolidColor(MaterialTheme.colorScheme.surfaceVariant)
+                }
                 Box(
                     modifier = Modifier
                         .weight(1f)
-                        .clip(CircleShape),
-                ) {
-                    Surface(
-                        color = if (reachedOrCurrent) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Box(modifier = Modifier.padding(vertical = 3.dp)) {}
-                    }
-                }
+                        .height(4.dp)
+                        .clip(CircleShape)
+                        .background(brush),
+                )
             }
         }
     }

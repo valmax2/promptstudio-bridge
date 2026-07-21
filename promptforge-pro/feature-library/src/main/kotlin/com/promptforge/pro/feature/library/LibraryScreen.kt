@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -22,6 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.promptforge.pro.coremodel.LibraryItem
+import com.promptforge.pro.coreui.PromptForgeCard
 
 @Composable
 fun LibraryScreen(viewModel: LibraryViewModel = hiltViewModel()) {
@@ -51,8 +51,8 @@ fun LibraryScreen(viewModel: LibraryViewModel = hiltViewModel()) {
 
 @Composable
 private fun LibraryItemCard(item: LibraryItem, onToggleFavorite: () -> Unit, onDelete: () -> Unit) {
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+    PromptForgeCard(modifier = Modifier.fillMaxWidth()) {
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(
                 item.draft.italianText.ifBlank { item.draft.englishText },
                 style = MaterialTheme.typography.titleMedium,

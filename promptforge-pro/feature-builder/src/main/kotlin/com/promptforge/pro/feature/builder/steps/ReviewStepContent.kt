@@ -4,8 +4,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -17,14 +15,15 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
 import com.promptforge.pro.coremodel.GeneratedPrompt
 import com.promptforge.pro.coreui.PromptForgeButton
+import com.promptforge.pro.coreui.PromptForgeCard
 import com.promptforge.pro.feature.builder.BuilderUiState
 import com.promptforge.pro.feature.builder.BuilderViewModel
 
 @Composable
 fun ReviewStepContent(uiState: BuilderUiState, viewModel: BuilderViewModel) {
     Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        Card(modifier = Modifier.fillMaxWidth()) {
-            Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        PromptForgeCard(modifier = Modifier.fillMaxWidth()) {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text("Riepilogo", style = MaterialTheme.typography.titleMedium)
                 SummaryLine("Soggetto", uiState.englishText.ifBlank { "—" })
                 if (uiState.characterEnabled) {
@@ -70,8 +69,8 @@ private fun SummaryLine(label: String, value: String) {
 private fun GeneratedPromptCard(generated: GeneratedPrompt) {
     val clipboard = LocalClipboardManager.current
 
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+    PromptForgeCard(modifier = Modifier.fillMaxWidth()) {
+        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Text("Variante ${generated.variantIndex + 1} · seed ${generated.seedUsed}", style = MaterialTheme.typography.labelMedium)
                 TextButton(onClick = { clipboard.setText(AnnotatedString(generated.positivePrompt)) }) {

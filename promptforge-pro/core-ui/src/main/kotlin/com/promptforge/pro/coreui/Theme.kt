@@ -46,6 +46,7 @@ fun PromptForgeTheme(
     MaterialTheme(
         colorScheme = colorScheme,
         typography = PromptForgeTypography,
+        shapes = PromptForgeShapes,
         content = content,
     )
 }

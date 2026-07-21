@@ -129,17 +129,28 @@ che qui non ho potuto fare.
 
 ## Cosa provare sul telefono in questa fase
 
-Il percorso davvero funzionante, di punta a coda:
+Il Builder è un percorso guidato a 6 step (non più un'unica schermata con
+tutto in fila — la prima versione lo era, ed era confusa: la Director Map
+appariva in mezzo a un elenco di campi senza spiegazione. Riprogettata dopo
+feedback diretto sull'APK):
 
-1. **Builder** → scrivi una descrizione in italiano, premi "Traduci" (bozza col
-   dizionario di fallback — imprecisa, modificala pure a mano nel campo
-   inglese).
-2. Regola stile, mood, modello di destinazione, numero di varianti.
-3. **Camera**: vista dall'alto per orbitare intorno al soggetto, vista
-   laterale per l'altezza, zoom/rollio/movimento sotto.
-4. "Genera prompt" → escono le varianti con prompt positivo/negativo, copiabili.
-5. "Salva in libreria" → passa alla tab **Libreria** per ritrovarlo (sopravvive
-   al riavvio dell'app, è su Room).
+1. **Soggetto** → descrizione in italiano, "Traduci" (bozza col dizionario di
+   fallback — imprecisa, modificala pure a mano), quanti soggetti nella scena.
+2. **Personaggio** (facoltativo, si può saltare) → nome + foto di riferimento
+   (Photo Picker di sistema, con anteprima) per mantenere lo stesso volto tra
+   le varianti.
+3. **Camera** → le due viste con una spiegazione di cosa fare prima del
+   canvas; trascini solo toccando vicino a un pallino, altrove lo scroll
+   della pagina funziona normalmente (era un bug: prima qualunque tocco sul
+   canvas spostava il nodo più vicino, anche a schermate di distanza).
+4. **Luce e ambiente** → illuminazione, momento della giornata, ambientazione.
+5. **Stile e output** → stile visivo, mood, generatore di destinazione,
+   numero di varianti, aspect ratio.
+6. **Riepilogo** → vedi un riassunto di tutte le scelte, generi, copi,
+   salvi in libreria, o riparti con "Nuovo prompt".
+
+Passi avanti/indietro con i pulsanti in basso; i pallini in alto mostrano a
+che punto sei.
 
 Quello che **non c'è ancora** in questo giro: Preset e Impostazioni (solo
 placeholder), consistenza personaggio, dettatura vocale, traduzione

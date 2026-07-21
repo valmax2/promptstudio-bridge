@@ -1,7 +1,9 @@
 package com.promptforge.pro.feature.directormap
 
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.drag
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.MaterialTheme
@@ -13,6 +15,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import com.promptforge.pro.coremodel.DirectorMapInteractions
 import com.promptforge.pro.coremodel.DirectorMapState
@@ -20,11 +23,19 @@ import com.promptforge.pro.coreui.PromptForgeColors
 import kotlin.math.cos
 import kotlin.math.sin
 
+/** Raggio minimo di tocco per afferrare un nodo, in dp (area tattile accessibile). */
+private const val HIT_RADIUS_DP = 28
+
 /**
  * Vista dall'alto della Director Map (§3): orbita e distanza. Gestisce il
- * trascinamento indipendente di soggetto (verde) e camera (arancione); qual
- * dei due nodi si sta trascinando si decide, ad ogni gesture, in base a quale
- * dei due è più vicino al punto di inizio del tocco.
+ * trascinamento indipendente di soggetto (verde) e camera (arancione).
+ *
+ * Il tocco trascina un nodo **solo se inizia vicino a quel nodo** (raggio
+ * [HIT_RADIUS_DP]): un tocco altrove sul canvas non viene consumato, così lo
+ * scroll della pagina che lo contiene continua a funzionare normalmente. La
+ * versione precedente trascinava sempre il nodo più vicino ovunque si
+ * toccasse, anche a schermate intere di distanza — bug reale, segnalato
+ * dall'utente ("dove metti il dito rimane bloccata lì").
  *
  * Tutta la matematica (bearing, distanza, vista relativa, clamping ai bordi)
  * vive in [DirectorMapInteractions]/`core-model` — qui c'è solo disegno e
@@ -42,22 +53,30 @@ fun TopDownDirectorMap(
     val subjectColor = PromptForgeColors.Green
     val cameraColor = PromptForgeColors.Orange
     val lineColor = MaterialTheme.colorScheme.outline
+    val hitRadiusPx = with(LocalDensity.current) { HIT_RADIUS_DP.dp.toPx() }
 
     Canvas(
         modifier = modifier
             .fillMaxWidth()
             .aspectRatio(1f)
             .pointerInput(Unit) {
-                var draggingSubject = false
+                awaitEachGesture {
+                    val down = awaitFirstDown(requireUnconsumed = false)
+                    val s = currentState.value
+                    val subjectPx = Offset(s.subjectPosition.x * size.width, s.subjectPosition.y * size.height)
+                    val cameraPx = Offset(s.cameraPosition.x * size.width, s.cameraPosition.y * size.height)
+                    val distanceToSubject = (down.position - subjectPx).getDistance()
+                    val distanceToCamera = (down.position - cameraPx).getDistance()
 
-                detectDragGestures(
-                    onDragStart = { offset ->
-                        val s = currentState.value
-                        val subjectPx = Offset(s.subjectPosition.x * size.width, s.subjectPosition.y * size.height)
-                        val cameraPx = Offset(s.cameraPosition.x * size.width, s.cameraPosition.y * size.height)
-                        draggingSubject = (offset - subjectPx).getDistance() <= (offset - cameraPx).getDistance()
-                    },
-                    onDrag = { change, _ ->
+                    if (distanceToSubject > hitRadiusPx && distanceToCamera > hitRadiusPx) {
+                        // Tocco lontano da entrambi i nodi: non consumiamo nulla,
+                        // il genitore (scroll della pagina) gestisce il gesto.
+                        return@awaitEachGesture
+                    }
+
+                    val draggingSubject = distanceToSubject <= distanceToCamera
+                    down.consume()
+                    drag(down.id) { change ->
                         change.consume()
                         val ratioX = change.position.x / size.width
                         val ratioY = change.position.y / size.height
@@ -67,8 +86,8 @@ fun TopDownDirectorMap(
                             DirectorMapInteractions.moveCamera(currentState.value, ratioX, ratioY)
                         }
                         currentOnStateChange.value(next)
-                    },
-                )
+                    }
+                }
             },
     ) {
         val subjectPx = Offset(state.subjectPosition.x * size.width, state.subjectPosition.y * size.height)

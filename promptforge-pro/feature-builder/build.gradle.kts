@@ -44,6 +44,8 @@ dependencies {
     implementation(libs.hilt.android)
     kapt(libs.hilt.compiler)
     implementation(libs.kotlinx.coroutines.android)
+    implementation(libs.androidx.activity.compose)
+    implementation(libs.coil.compose)
 
     testImplementation(libs.junit)
     testImplementation(libs.mockk)

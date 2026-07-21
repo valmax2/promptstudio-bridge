@@ -3,11 +3,16 @@ package com.promptforge.pro.feature.builder
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.promptforge.pro.coredatabase.LibraryRepository
+import com.promptforge.pro.coremodel.CharacterConsistencyMethod
+import com.promptforge.pro.coremodel.CharacterReferenceConfig
 import com.promptforge.pro.coremodel.DirectorMapState
+import com.promptforge.pro.coremodel.EnvironmentConfig
 import com.promptforge.pro.coremodel.LibraryItem
+import com.promptforge.pro.coremodel.LightingConfig
 import com.promptforge.pro.coremodel.OutputConfig
 import com.promptforge.pro.coremodel.PromptDraft
 import com.promptforge.pro.coremodel.PromptRequest
+import com.promptforge.pro.coremodel.SubjectMode
 import com.promptforge.pro.coremodel.TargetModel
 import com.promptforge.pro.coremodel.VisualStyle
 import com.promptforge.pro.promptengine.PromptEngine
@@ -32,6 +37,39 @@ class BuilderViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(BuilderUiState())
     val uiState: StateFlow<BuilderUiState> = _uiState.asStateFlow()
 
+    // --- Navigazione tra step -------------------------------------------------
+
+    fun goToNextStep() {
+        val state = _uiState.value
+        if (!state.canLeaveStep(state.currentStep)) return
+        val steps = BuilderStep.entries
+        val nextIndex = steps.indexOf(state.currentStep) + 1
+        if (nextIndex < steps.size) {
+            _uiState.update { it.copy(currentStep = steps[nextIndex]) }
+        }
+    }
+
+    fun goToPreviousStep() {
+        val steps = BuilderStep.entries
+        val previousIndex = steps.indexOf(_uiState.value.currentStep) - 1
+        if (previousIndex >= 0) {
+            _uiState.update { it.copy(currentStep = steps[previousIndex]) }
+        }
+    }
+
+    fun goToStep(step: BuilderStep) {
+        // Si può saltare avanti solo fino allo step successivo a quello raggiunto
+        // finora, non oltre — evita di finire al Riepilogo senza aver scritto nulla.
+        val steps = BuilderStep.entries
+        val targetIndex = steps.indexOf(step)
+        val currentIndex = steps.indexOf(_uiState.value.currentStep)
+        if (targetIndex <= currentIndex || _uiState.value.canLeaveStep(_uiState.value.currentStep)) {
+            _uiState.update { it.copy(currentStep = step) }
+        }
+    }
+
+    // --- Step 1: Soggetto -------------------------------------------------
+
     fun onItalianTextChange(text: String) {
         // una nuova dettatura/modifica dell'italiano non deve invalidare una
         // traduzione inglese già corretta a mano dall'utente (§4): qui ci
@@ -40,19 +78,9 @@ class BuilderViewModel @Inject constructor(
         _uiState.update { it.copy(italianText = text) }
     }
 
-    fun onEnglishTextChange(text: String) {
-        _uiState.update { it.copy(englishText = text) }
-    }
+    fun onEnglishTextChange(text: String) = _uiState.update { it.copy(englishText = text) }
 
-    fun onMoodChange(mood: String) = _uiState.update { it.copy(mood = mood) }
-
-    fun onVisualStyleChange(style: VisualStyle) = _uiState.update { it.copy(visualStyle = style) }
-
-    fun onTargetModelChange(model: TargetModel) = _uiState.update { it.copy(targetModel = model) }
-
-    fun onVariantCountChange(count: Int) = _uiState.update { it.copy(variantCount = count.coerceIn(1, 8)) }
-
-    fun onDirectorMapChange(state: DirectorMapState) = _uiState.update { it.copy(directorMap = state) }
+    fun onSubjectModeChange(mode: SubjectMode) = _uiState.update { it.copy(subjectMode = mode) }
 
     fun translate() {
         val italianText = _uiState.value.italianText
@@ -71,20 +99,79 @@ class BuilderViewModel @Inject constructor(
         }
     }
 
+    // --- Step 2: Personaggio -------------------------------------------------
+
+    fun onCharacterEnabledChange(enabled: Boolean) = _uiState.update { it.copy(characterEnabled = enabled) }
+
+    fun onCharacterNameChange(name: String) = _uiState.update { it.copy(characterName = name) }
+
+    fun onCharacterImageSelected(uri: String?) = _uiState.update { it.copy(characterImageUri = uri) }
+
+    fun onCharacterMethodChange(method: CharacterConsistencyMethod) = _uiState.update { it.copy(characterMethod = method) }
+
+    fun onCharacterSimilarityChange(value: Float) = _uiState.update { it.copy(characterSimilarity = value) }
+
+    // --- Step 3: Camera -------------------------------------------------
+
+    fun onDirectorMapChange(state: DirectorMapState) = _uiState.update { it.copy(directorMap = state) }
+
+    // --- Step 4: Luce e ambiente -------------------------------------------------
+
+    fun onLightingStyleChange(value: String) = _uiState.update { it.copy(lightingStyle = value) }
+    fun onTimeOfDayChange(value: String) = _uiState.update { it.copy(timeOfDay = value) }
+    fun onEnvironmentSettingChange(value: String) = _uiState.update { it.copy(environmentSetting = value) }
+    fun onEnvironmentWeatherChange(value: String) = _uiState.update { it.copy(environmentWeather = value) }
+    fun onEnvironmentColorGradingChange(value: String) = _uiState.update { it.copy(environmentColorGrading = value) }
+
+    // --- Step 5: Stile e output -------------------------------------------------
+
+    fun onVisualStyleChange(style: VisualStyle) = _uiState.update { it.copy(visualStyle = style) }
+    fun onMoodChange(mood: String) = _uiState.update { it.copy(mood = mood) }
+    fun onTargetModelChange(model: TargetModel) = _uiState.update { it.copy(targetModel = model) }
+    fun onVariantCountChange(count: Int) = _uiState.update { it.copy(variantCount = count.coerceIn(1, 8)) }
+    fun onAspectRatioChange(value: String) = _uiState.update { it.copy(aspectRatio = value) }
+
+    // --- Step 6: Riepilogo -------------------------------------------------
+
     fun generate() {
         val state = _uiState.value
         if (!state.canGenerate) return
+
+        val characterReferences = if (state.characterEnabled && state.characterImageUri != null) {
+            listOf(
+                CharacterReferenceConfig(
+                    characterName = state.characterName,
+                    imageUri = state.characterImageUri,
+                    method = state.characterMethod,
+                    similarityStrength = state.characterSimilarity,
+                ),
+            )
+        } else {
+            emptyList()
+        }
 
         val request = PromptRequest(
             draft = PromptDraft(
                 italianText = state.italianText,
                 englishText = state.englishText,
                 englishManuallyEdited = true,
+                subjectMode = state.subjectMode,
             ),
+            characterReferences = characterReferences,
             visualStyle = state.visualStyle,
             mood = state.mood,
             directorMap = state.directorMap,
-            output = OutputConfig(targetModel = state.targetModel, variantCount = state.variantCount),
+            lighting = LightingConfig(style = state.lightingStyle, timeOfDay = state.timeOfDay),
+            environment = EnvironmentConfig(
+                setting = state.environmentSetting,
+                weather = state.environmentWeather,
+                colorGrading = state.environmentColorGrading,
+            ),
+            output = OutputConfig(
+                targetModel = state.targetModel,
+                variantCount = state.variantCount,
+                aspectRatio = state.aspectRatio,
+            ),
         )
 
         val results = promptEngine.generate(request)
@@ -104,6 +191,7 @@ class BuilderViewModel @Inject constructor(
                         italianText = state.italianText,
                         englishText = state.englishText,
                         englishManuallyEdited = true,
+                        subjectMode = state.subjectMode,
                     ),
                     generatedPrompts = state.generatedPrompts,
                     createdAtEpochMillis = now,
@@ -117,4 +205,9 @@ class BuilderViewModel @Inject constructor(
     fun consumeSavedMessage() = _uiState.update { it.copy(savedMessage = null) }
 
     fun consumeErrorMessage() = _uiState.update { it.copy(errorMessage = null) }
+
+    /** Ricomincia da capo dopo aver salvato, per generarne un altro senza riaprire lo schermo. */
+    fun startNewPrompt() {
+        _uiState.update { BuilderUiState() }
+    }
 }

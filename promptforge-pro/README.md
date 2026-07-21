@@ -29,7 +29,7 @@ Riferimento alle fasi di §14 del master prompt:
 | 4 | Database e repository (Room): Libreria + Preset, export/import JSON | 🟡 scritta, non compilabile qui (modulo Android) |
 | 5 | Traduzione e dettatura (interfacce sostituibili) | 🟡 solo dizionario di fallback (traduzione on-device/LibreTranslate/Ollama mancano); dettatura non iniziata |
 | 6 | Director Map: geometria e gesture | ✅ geometria (51 test locali) — 🟡 Compose UI scritta, non compilabile qui |
-| 7 | Tutte le schermate (Builder, Libreria, Preset, Impostazioni) | ⬜ solo placeholder — Director Map è pronta ma non ancora agganciata al Builder |
+| 7 | Schermate | 🟡 **Builder e Libreria funzionanti end-to-end** (traduzione bozza → genera → salva → rivedi in libreria), agganciate alla navigazione reale. Preset e Impostazioni restano placeholder |
 | 8 | Esportazione e client ComfyUI | ⬜ non iniziata |
 | 9-10 | Test/lint/build completi, APK funzionante | 🟡 solo lo skeleton è verificato in CI |
 | 11 | Istruzioni build/firma/installazione | ⬜ da scrivere quando l'APK avrà contenuto reale |
@@ -126,6 +126,25 @@ Quando lavori da PC la sera, aprire questo progetto in Android Studio e
 lasciargli fare il primo sync è il modo più veloce per scoprire eventuali
 errori di questa fase 1 (versioni di dipendenze incompatibili, ecc.) — cosa
 che qui non ho potuto fare.
+
+## Cosa provare sul telefono in questa fase
+
+Il percorso davvero funzionante, di punta a coda:
+
+1. **Builder** → scrivi una descrizione in italiano, premi "Traduci" (bozza col
+   dizionario di fallback — imprecisa, modificala pure a mano nel campo
+   inglese).
+2. Regola stile, mood, modello di destinazione, numero di varianti.
+3. **Camera**: vista dall'alto per orbitare intorno al soggetto, vista
+   laterale per l'altezza, zoom/rollio/movimento sotto.
+4. "Genera prompt" → escono le varianti con prompt positivo/negativo, copiabili.
+5. "Salva in libreria" → passa alla tab **Libreria** per ritrovarlo (sopravvive
+   al riavvio dell'app, è su Room).
+
+Quello che **non c'è ancora** in questo giro: Preset e Impostazioni (solo
+placeholder), consistenza personaggio, dettatura vocale, traduzione
+on-device/LibreTranslate/Ollama (solo il dizionario base), esportazione
+TXT/JSON e client ComfyUI.
 
 ## Come compilare
 

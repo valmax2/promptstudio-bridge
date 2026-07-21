@@ -22,12 +22,13 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.promptforge.pro.feature.builder.BuilderScreen
+import com.promptforge.pro.feature.library.LibraryScreen
 
 /**
- * Scaffold di navigazione con le 4 destinazioni principali. Ogni schermata è per
- * ora un placeholder: le implementazioni reali (feature-builder, feature-library,
- * feature-presets, feature-settings) arrivano nelle fasi successive del roadmap
- * (vedi promptforge-pro/README.md).
+ * Scaffold di navigazione con le 4 destinazioni principali. Builder e Libreria
+ * sono collegate alle rispettive feature; Preset e Impostazioni restano
+ * placeholder (vedi promptforge-pro/README.md per la roadmap).
  */
 @Composable
 fun PromptForgeApp(navController: NavHostController = rememberNavController()) {
@@ -39,11 +40,10 @@ fun PromptForgeApp(navController: NavHostController = rememberNavController()) {
             startDestination = PromptForgeDestination.Builder.route,
             modifier = Modifier.padding(innerPadding),
         ) {
-            PromptForgeDestination.entries.forEach { destination ->
-                composable(destination.route) {
-                    PlaceholderScreen(destination)
-                }
-            }
+            composable(PromptForgeDestination.Builder.route) { BuilderScreen() }
+            composable(PromptForgeDestination.Library.route) { LibraryScreen() }
+            composable(PromptForgeDestination.Presets.route) { PlaceholderScreen(PromptForgeDestination.Presets) }
+            composable(PromptForgeDestination.Settings.route) { PlaceholderScreen(PromptForgeDestination.Settings) }
         }
     }
 }

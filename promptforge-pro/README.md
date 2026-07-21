@@ -31,7 +31,7 @@ Riferimento alle fasi di §14 del master prompt:
 | 6 | Director Map: geometria e gesture | ✅ geometria (51 test locali) — 🟡 Compose UI scritta, non compilabile qui |
 | 7 | Schermate | 🟡 **Builder e Libreria funzionanti end-to-end** (traduzione bozza → genera → salva → rivedi in libreria), agganciate alla navigazione reale. Preset e Impostazioni restano placeholder |
 | 8 | Esportazione e client ComfyUI | ⬜ non iniziata |
-| 9-10 | Test/lint/build completi, APK funzionante | 🟡 solo lo skeleton è verificato in CI |
+| 9-10 | Test/lint/build completi, APK funzionante | ✅ build verde in CI, APK debug installabile con Builder+Libreria funzionanti |
 | 11 | Istruzioni build/firma/installazione | ⬜ da scrivere quando l'APK avrà contenuto reale |
 | — | Pubblicazione su Play Store | ⬜ non iniziata (vedi sotto) |
 

@@ -16,6 +16,7 @@ import com.promptforge.pro.coremodel.SubjectMode
 import com.promptforge.pro.coremodel.TargetModel
 import com.promptforge.pro.coremodel.VisualStyle
 import com.promptforge.pro.promptengine.PromptEngine
+import com.promptforge.pro.speech.SpeechRecognitionEngine
 import com.promptforge.pro.translation.TranslationEngine
 import com.promptforge.pro.translation.TranslationResult
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -32,10 +33,19 @@ class BuilderViewModel @Inject constructor(
     private val promptEngine: PromptEngine,
     private val translationEngine: TranslationEngine,
     private val libraryRepository: LibraryRepository,
+    private val speechRecognitionEngine: SpeechRecognitionEngine,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(BuilderUiState())
     val uiState: StateFlow<BuilderUiState> = _uiState.asStateFlow()
+
+    init {
+        viewModelScope.launch {
+            speechRecognitionEngine.state.collect { speechState ->
+                _uiState.update { it.copy(speechState = speechState) }
+            }
+        }
+    }
 
     // --- Navigazione tra step -------------------------------------------------
 
@@ -81,6 +91,20 @@ class BuilderViewModel @Inject constructor(
     fun onEnglishTextChange(text: String) = _uiState.update { it.copy(englishText = text) }
 
     fun onSubjectModeChange(mode: SubjectMode) = _uiState.update { it.copy(subjectMode = mode) }
+
+    /** §5: "inserire testo parziale e finale senza duplicazioni" — qui accumuliamo
+     * solo il risultato finale di ogni sessione di dettatura, appendendolo al testo
+     * già presente invece di sovrascriverlo, così più dettature si sommano. */
+    fun startDictation() {
+        speechRecognitionEngine.startListening { recognizedText ->
+            val existing = _uiState.value.italianText
+            val combined = if (existing.isBlank()) recognizedText else "$existing $recognizedText"
+            _uiState.update { it.copy(italianText = combined) }
+            translate()
+        }
+    }
+
+    fun stopDictation() = speechRecognitionEngine.stopListening()
 
     fun translate() {
         val italianText = _uiState.value.italianText
@@ -209,5 +233,10 @@ class BuilderViewModel @Inject constructor(
     /** Ricomincia da capo dopo aver salvato, per generarne un altro senza riaprire lo schermo. */
     fun startNewPrompt() {
         _uiState.update { BuilderUiState() }
+    }
+
+    override fun onCleared() {
+        speechRecognitionEngine.stopListening()
+        super.onCleared()
     }
 }

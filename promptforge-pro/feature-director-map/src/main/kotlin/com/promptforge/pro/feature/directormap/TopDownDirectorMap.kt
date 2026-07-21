@@ -1,15 +1,18 @@
 package com.promptforge.pro.feature.directormap
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.drag
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
@@ -20,8 +23,13 @@ import androidx.compose.ui.unit.dp
 import com.promptforge.pro.coremodel.DirectorMapInteractions
 import com.promptforge.pro.coremodel.DirectorMapState
 import com.promptforge.pro.coreui.PromptForgeColors
+import com.promptforge.pro.coreui.PromptForgeGradients
 import kotlin.math.cos
 import kotlin.math.sin
+
+/** Raggio del bagliore attorno ai nodi, in dp: il "palco" prende luce da loro. */
+private const val GLOW_RADIUS_DP = 34
+private const val NODE_RADIUS_DP = 11
 
 /** Raggio minimo di tocco per afferrare un nodo, in dp (area tattile accessibile). */
 private const val HIT_RADIUS_DP = 28
@@ -59,6 +67,8 @@ fun TopDownDirectorMap(
         modifier = modifier
             .fillMaxWidth()
             .aspectRatio(1f)
+            .clip(RoundedCornerShape(20.dp))
+            .background(PromptForgeGradients.StageBackground)
             .pointerInput(Unit) {
                 awaitEachGesture {
                     val down = awaitFirstDown(requireUnconsumed = false)
@@ -104,9 +114,16 @@ fun TopDownDirectorMap(
         drawCameraCone(from = cameraPx, towards = subjectPx, color = cameraColor)
         drawFacingArrow(at = subjectPx, facingDegrees = state.subjectFacingDegrees, color = subjectColor)
 
-        drawCircle(color = cameraColor, radius = 12.dp.toPx(), center = cameraPx)
-        drawCircle(color = subjectColor, radius = 12.dp.toPx(), center = subjectPx)
+        drawNodeWithGlow(center = cameraPx, color = cameraColor)
+        drawNodeWithGlow(center = subjectPx, color = subjectColor)
     }
+}
+
+/** Nodo "luminoso": alone radiale soffuso dietro un cerchio pieno, come una fonte di luce sul set. */
+private fun DrawScope.drawNodeWithGlow(center: Offset, color: Color) {
+    drawCircle(brush = PromptForgeGradients.radialGlow(color), radius = GLOW_RADIUS_DP.dp.toPx(), center = center)
+    drawCircle(color = color, radius = NODE_RADIUS_DP.dp.toPx(), center = center)
+    drawCircle(color = Color.White.copy(alpha = 0.85f), radius = (NODE_RADIUS_DP * 0.35f).dp.toPx(), center = center)
 }
 
 /** Cono visivo semplificato: due segmenti dalla camera che si allargano verso il soggetto. */

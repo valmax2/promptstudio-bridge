@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -24,6 +23,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.promptforge.pro.coreui.PromptForgeButton
 import com.promptforge.pro.feature.builder.steps.CameraStepContent
 import com.promptforge.pro.feature.builder.steps.CharacterStepContent
 import com.promptforge.pro.feature.builder.steps.LightingStepContent
@@ -113,12 +113,11 @@ private fun BuilderBottomNav(uiState: BuilderUiState, viewModel: BuilderViewMode
         }
 
         if (!isLastStep) {
-            Button(
+            PromptForgeButton(
+                text = if (uiState.currentStep == BuilderStep.Character && !uiState.characterEnabled) "Salta" else "Avanti",
                 onClick = viewModel::goToNextStep,
                 enabled = uiState.canLeaveStep(uiState.currentStep),
-            ) {
-                Text(if (uiState.currentStep == BuilderStep.Character && !uiState.characterEnabled) "Salta" else "Avanti")
-            }
+            )
         }
     }
 }

@@ -1,6 +1,8 @@
 plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.kotlin.kapt)
+    alias(libs.plugins.hilt.android.gradle)
 }
 
 // Modulo Android (non Compose): usa android.speech.SpeechRecognizer, quindi
@@ -22,6 +24,9 @@ android {
 dependencies {
     implementation(project(":core-model"))
     implementation(libs.kotlinx.coroutines.android)
+
+    implementation(libs.hilt.android)
+    kapt(libs.hilt.compiler)
 
     testImplementation(libs.junit)
     testImplementation(libs.mockk)

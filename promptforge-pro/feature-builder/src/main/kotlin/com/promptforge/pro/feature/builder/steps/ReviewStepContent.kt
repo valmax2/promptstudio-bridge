@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -17,6 +16,7 @@ import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
 import com.promptforge.pro.coremodel.GeneratedPrompt
+import com.promptforge.pro.coreui.PromptForgeButton
 import com.promptforge.pro.feature.builder.BuilderUiState
 import com.promptforge.pro.feature.builder.BuilderViewModel
 
@@ -36,9 +36,7 @@ fun ReviewStepContent(uiState: BuilderUiState, viewModel: BuilderViewModel) {
             }
         }
 
-        Button(onClick = viewModel::generate, enabled = uiState.canGenerate) {
-            Text("Genera prompt")
-        }
+        PromptForgeButton(text = "Genera prompt", onClick = viewModel::generate, enabled = uiState.canGenerate)
 
         uiState.generatedPrompts.forEach { generated -> GeneratedPromptCard(generated) }
 

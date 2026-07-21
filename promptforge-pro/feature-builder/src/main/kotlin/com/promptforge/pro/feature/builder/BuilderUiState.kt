@@ -6,6 +6,7 @@ import com.promptforge.pro.coremodel.GeneratedPrompt
 import com.promptforge.pro.coremodel.SubjectMode
 import com.promptforge.pro.coremodel.TargetModel
 import com.promptforge.pro.coremodel.VisualStyle
+import com.promptforge.pro.speech.SpeechState
 
 data class BuilderUiState(
     val currentStep: BuilderStep = BuilderStep.Subject,
@@ -15,6 +16,7 @@ data class BuilderUiState(
     val englishText: String = "",
     val isTranslating: Boolean = false,
     val subjectMode: SubjectMode = SubjectMode.Single,
+    val speechState: SpeechState = SpeechState.Idle,
 
     // Step 2: Personaggio (facoltativo)
     val characterEnabled: Boolean = false,

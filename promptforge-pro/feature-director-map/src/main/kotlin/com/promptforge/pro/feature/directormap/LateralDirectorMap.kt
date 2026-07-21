@@ -1,20 +1,25 @@
 package com.promptforge.pro.feature.directormap
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import com.promptforge.pro.coremodel.DirectorMapGeometry
 import com.promptforge.pro.coremodel.DirectorMapInteractions
 import com.promptforge.pro.coremodel.DirectorMapState
 import com.promptforge.pro.coreui.PromptForgeColors
+import com.promptforge.pro.coreui.PromptForgeGradients
 
 /**
  * Vista laterale della Director Map: l'aggiunta chiesta esplicitamente per
@@ -44,6 +49,8 @@ fun LateralDirectorMap(
         modifier = modifier
             .fillMaxWidth()
             .height(160.dp)
+            .clip(RoundedCornerShape(20.dp))
+            .background(PromptForgeGradients.StageBackground)
             .pointerInput(Unit) {
                 detectDragGestures(
                     onDrag = { change, _ ->
@@ -75,8 +82,10 @@ fun LateralDirectorMap(
             strokeWidth = 1.dp.toPx(),
         )
 
-        // sagoma soggetto: testa a centerY, corpo verso il basso
-        drawCircle(color = subjectColor, radius = 8.dp.toPx(), center = Offset(subjectX, centerY - 8.dp.toPx()))
+        // sagoma soggetto: testa a centerY (con un piccolo alone), corpo verso il basso
+        val headCenter = Offset(subjectX, centerY - 8.dp.toPx())
+        drawCircle(brush = PromptForgeGradients.radialGlow(subjectColor), radius = 22.dp.toPx(), center = headCenter)
+        drawCircle(color = subjectColor, radius = 8.dp.toPx(), center = headCenter)
         drawLine(
             color = subjectColor,
             start = Offset(subjectX, centerY),
@@ -96,6 +105,9 @@ fun LateralDirectorMap(
             end = Offset(cameraX, cameraY),
             strokeWidth = 1.5.dp.toPx(),
         )
-        drawCircle(color = cameraColor, radius = 12.dp.toPx(), center = Offset(cameraX, cameraY))
+        val cameraCenter = Offset(cameraX, cameraY)
+        drawCircle(brush = PromptForgeGradients.radialGlow(cameraColor), radius = 30.dp.toPx(), center = cameraCenter)
+        drawCircle(color = cameraColor, radius = 11.dp.toPx(), center = cameraCenter)
+        drawCircle(color = Color.White.copy(alpha = 0.85f), radius = 4.dp.toPx(), center = cameraCenter)
     }
 }

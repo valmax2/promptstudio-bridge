@@ -27,12 +27,13 @@ Riferimento alle fasi di §14 del master prompt:
 | — | Skeleton app compilabile (walking skeleton): navigazione a 4 sezioni, tema dark | ✅ |
 | — | Workflow CI per build APK | ✅ (`.github/workflows/build-promptforge-apk.yml`) |
 | 4 | Database e repository (Room): Libreria + Preset, export/import JSON | 🟡 scritta, non compilabile qui (modulo Android) |
-| 5 | Traduzione e dettatura (interfacce sostituibili) | 🟡 solo dizionario di fallback (traduzione on-device/LibreTranslate/Ollama mancano); dettatura non iniziata |
+| 5 | Traduzione e dettatura (interfacce sostituibili) | 🟡 dettatura ✅ (SpeechRecognizer di sistema, it-IT) — traduzione solo dizionario di fallback (on-device/LibreTranslate/Ollama mancano) |
 | 6 | Director Map: geometria e gesture | ✅ geometria (51 test locali) — 🟡 Compose UI scritta, non compilabile qui |
-| 7 | Schermate | 🟡 **Builder e Libreria funzionanti end-to-end** (traduzione bozza → genera → salva → rivedi in libreria), agganciate alla navigazione reale. Preset e Impostazioni restano placeholder |
+| 7 | Schermate | 🟡 **Builder (wizard a 6 step) e Libreria funzionanti end-to-end**, agganciate alla navigazione reale. Preset e Impostazioni restano placeholder |
 | 8 | Esportazione e client ComfyUI | ⬜ non iniziata |
 | 9-10 | Test/lint/build completi, APK funzionante | ✅ build verde in CI, APK debug installabile con Builder+Libreria funzionanti |
 | 11 | Istruzioni build/firma/installazione | ⬜ da scrivere quando l'APK avrà contenuto reale |
+| — | Design system (gradienti, glow, palco camera) | 🟡 introdotto su azioni primarie e Director Map, non ancora esteso a tutta l'app |
 | — | Pubblicazione su Play Store | ⬜ non iniziata (vedi sotto) |
 
 Le fasi rimanenti si affrontano una alla volta, in sessioni successive (anche a
@@ -134,8 +135,10 @@ tutto in fila — la prima versione lo era, ed era confusa: la Director Map
 appariva in mezzo a un elenco di campi senza spiegazione. Riprogettata dopo
 feedback diretto sull'APK):
 
-1. **Soggetto** → descrizione in italiano, "Traduci" (bozza col dizionario di
-   fallback — imprecisa, modificala pure a mano), quanti soggetti nella scena.
+1. **Soggetto** → descrizione in italiano (scritta o **dettata a voce**, §5:
+   riconoscimento di sistema in it-IT, richiede il permesso microfono al
+   primo utilizzo), "Traduci" (bozza col dizionario di fallback — imprecisa,
+   modificala pure a mano), quanti soggetti nella scena.
 2. **Personaggio** (facoltativo, si può saltare) → nome + foto di riferimento
    (Photo Picker di sistema, con anteprima) per mantenere lo stesso volto tra
    le varianti.

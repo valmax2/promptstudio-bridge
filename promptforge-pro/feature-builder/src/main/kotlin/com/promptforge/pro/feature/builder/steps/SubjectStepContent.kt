@@ -1,22 +1,31 @@
 package com.promptforge.pro.feature.builder.steps
 
+import android.Manifest
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.promptforge.pro.coremodel.SubjectMode
+import com.promptforge.pro.coreui.PromptForgeButton
 import com.promptforge.pro.feature.builder.BuilderUiState
 import com.promptforge.pro.feature.builder.BuilderViewModel
 import com.promptforge.pro.feature.builder.EnumDropdown
+import com.promptforge.pro.speech.SpeechState
 
 @Composable
 fun SubjectStepContent(uiState: BuilderUiState, viewModel: BuilderViewModel) {
+    val requestMicPermission = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission(),
+    ) { granted -> if (granted) viewModel.startDictation() }
+
     Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         OutlinedTextField(
             value = uiState.italianText,
@@ -27,9 +36,17 @@ fun SubjectStepContent(uiState: BuilderUiState, viewModel: BuilderViewModel) {
             minLines = 3,
         )
 
-        Button(onClick = viewModel::translate, enabled = uiState.italianText.isNotBlank() && !uiState.isTranslating) {
-            Text(if (uiState.isTranslating) "Traduzione…" else "Traduci (bozza)")
-        }
+        DictationButton(
+            speechState = uiState.speechState,
+            onStart = { requestMicPermission.launch(Manifest.permission.RECORD_AUDIO) },
+            onStop = viewModel::stopDictation,
+        )
+
+        PromptForgeButton(
+            text = if (uiState.isTranslating) "Traduzione…" else "Traduci (bozza)",
+            onClick = viewModel::translate,
+            enabled = uiState.italianText.isNotBlank() && !uiState.isTranslating,
+        )
 
         Text(
             "La traduzione è una bozza col dizionario di base, non un motore di traduzione vero — " +
@@ -63,6 +80,25 @@ fun SubjectStepContent(uiState: BuilderUiState, viewModel: BuilderViewModel) {
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.error,
             )
+        }
+    }
+}
+
+@Composable
+private fun DictationButton(speechState: SpeechState, onStart: () -> Unit, onStop: () -> Unit) {
+    Column {
+        when (speechState) {
+            is SpeechState.Idle -> OutlinedButton(onClick = onStart) { Text("🎤 Detta la descrizione") }
+            is SpeechState.Listening -> OutlinedButton(onClick = onStop) { Text("🎤 In ascolto… tocca per fermare") }
+            is SpeechState.Processing -> OutlinedButton(onClick = {}, enabled = false) { Text("Elaborazione…") }
+            is SpeechState.Error -> {
+                OutlinedButton(onClick = onStart) { Text("🎤 Detta la descrizione") }
+                Text(
+                    speechState.message,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
         }
     }
 }

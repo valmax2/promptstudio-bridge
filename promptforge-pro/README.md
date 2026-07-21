@@ -23,20 +23,35 @@ Riferimento alle fasi di §14 del master prompt:
 |---|---|---|
 | 1 | Albero del progetto e decisioni architetturali | ✅ (questo file) |
 | 2 | File Gradle e catalogo versioni | ✅ |
-| 3 | Modelli (`core-model`) e motore prompt (`prompt-engine`) con test | ✅ — 15 test, vedi sotto |
+| 3 | Modelli (`core-model`) e motore prompt (`prompt-engine`) con test | ✅ — 19 test, vedi sotto |
 | — | Skeleton app compilabile (walking skeleton): navigazione a 4 sezioni, tema dark | ✅ |
 | — | Workflow CI per build APK | ✅ (`.github/workflows/build-promptforge-apk.yml`) |
-| 4 | Database e repository (Room) | ⬜ non iniziata |
+| 4 | Database e repository (Room): Libreria + Preset, export/import JSON | 🟡 scritta, non compilabile qui (modulo Android) |
 | 5 | Traduzione e dettatura (interfacce sostituibili) | ⬜ non iniziata |
 | 6 | Director Map in Compose Canvas con gesture e test matematici | ⬜ non iniziata |
 | 7 | Tutte le schermate (Builder, Libreria, Preset, Impostazioni) | ⬜ solo placeholder |
 | 8 | Esportazione e client ComfyUI | ⬜ non iniziata |
 | 9-10 | Test/lint/build completi, APK funzionante | 🟡 solo lo skeleton è verificato in CI |
 | 11 | Istruzioni build/firma/installazione | ⬜ da scrivere quando l'APK avrà contenuto reale |
+| — | Pubblicazione su Play Store | ⬜ non iniziata (vedi sotto) |
 
 Le fasi rimanenti si affrontano una alla volta, in sessioni successive (anche a
 distanza di giorni, da cellulare o da PC — vedi `CLAUDE.md` alla radice del
 repo per il flusso di lavoro).
+
+### Pubblicazione su Play Store (obiettivo futuro)
+
+L'app, così com'è (senza la parte omessa di §6), non contiene nulla che ne
+impedisca la pubblicazione. Quando si arriva a quel punto serviranno, sul
+modello di `3d-reducer/` e `padel-app/` (vedi i loro `PLAY_STORE.md` e le
+pipeline `build-aab.sh`):
+
+- icone reali dell'app (ora c'è solo un'icona di sistema segnaposto);
+- una build **AAB firmata** (ora la CI genera solo un APK debug non firmato);
+- una privacy policy;
+- il `targetSdk` aggiornato a quanto richiesto da Google Play al momento della
+  submission (oggi impostato a 34; Google alza il minimo periodicamente, va
+  verificato quando ci si avvicina alla pubblicazione, non prima).
 
 ## Decisioni architetturali
 
@@ -94,13 +109,18 @@ GitHub (da cui `services.gradle.org` reindirizza per scaricare Gradle
 stesso). Concretamente questo significa:
 
 - `core-model` e `prompt-engine` (moduli Kotlin puri, dipendenze solo da Maven
-  Central) **sono stati compilati e testati davvero**, con 15 test verdi.
+  Central) **sono stati compilati e testati davvero**, con 19 test verdi.
 - Tutti i moduli `com.android.library`/`com.android.application` (compreso
-  `app`) **non sono mai stati compilati in questo ambiente** — sintassi e
-  struttura sono corrette per quanto ho potuto verificare a mano, ma la prima
-  vera prova sarà il workflow GitHub Actions (`build-promptforge-apk.yml`) o
-  una build locale sul tuo PC di casa, dove l'Android SDK è disponibile
-  normalmente.
+  `app` e, dalla Fase 4, `core-database`) **non sono mai stati compilati in
+  questo ambiente** — sintassi e struttura sono corrette per quanto ho potuto
+  verificare a mano, ma la prima vera prova sarà il workflow GitHub Actions
+  (`build-promptforge-apk.yml`) o una build locale sul tuo PC di casa, dove
+  l'Android SDK è disponibile normalmente. In particolare le entità Room di
+  `core-database` (`LibraryItemEntity`, `PromptPresetEntity`) e i relativi
+  mapper verso/da `core-model` non hanno test propri: la logica di
+  serializzazione JSON che usano è la stessa già coperta dai test di
+  `core-model` (stesso `PromptForgeJson`), ma il collegamento con Room
+  (annotazioni, DAO, query SQL) resta da verificare in CI.
 
 Quando lavori da PC la sera, aprire questo progetto in Android Studio e
 lasciargli fare il primo sync è il modo più veloce per scoprire eventuali

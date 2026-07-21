@@ -9,8 +9,17 @@ Mono-repo con più progetti indipendenti:
   Build APK/AAB: `3d-reducer/build-apk.sh`, `3d-reducer/build-aab.sh`.
 - **`padel-app/`** — App Android (Capacitor) per gestire partite di padel, con backend
   Firebase opzionale. Vedi `padel-app/README.md` per build APK via GitHub Actions.
+- **`promptforge-pro/`** — "PromptForge Pro", app Android **nativa** (Kotlin + Jetpack
+  Compose, non Capacitor) per costruire prompt professionali per generatori di immagini
+  a partire da descrizioni in italiano. Multi-modulo Gradle, in sviluppo a fasi — vedi
+  `promptforge-pro/README.md` per architettura, stato di avanzamento e come compilare
+  (build via GitHub Actions, `build-promptforge-apk.yml`, dato che l'Android SDK non è
+  disponibile in tutti gli ambienti di sviluppo). **Nota:** la sezione "modalità adulti"
+  del documento di specifica originale (contenuti sessuali espliciti) non è stata
+  implementata, per scelta.
 
-Nessun progetto ha una suite di test o un linter configurato al momento.
+Gli altri progetti (`server-cloud.js`, `3d-reducer/`, `padel-app/`) non hanno una
+suite di test o un linter configurato al momento.
 
 ## Flusso di lavoro: cellulare fuori casa + PC locale la sera
 

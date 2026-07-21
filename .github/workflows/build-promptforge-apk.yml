@@ -1,0 +1,61 @@
+name: Build PromptForge Pro APK (debug, per test)
+
+# Compila un APK di TEST (non firmato per il Play Store) di PromptForge Pro,
+# scaricabile come artifact del workflow. Nessun requisito locale: basta
+# lanciare questo workflow da GitHub (tab "Actions" → questo workflow →
+# "Run workflow") e scaricare l'APK dal telefono o dal PC al termine.
+#
+# Serve anche da verifica di compilazione reale: in locale (sandbox di
+# sviluppo) non è disponibile l'Android SDK, quindi questo è il primo punto
+# in cui l'intera toolchain (AGP, Compose, Hilt, Room) viene messa alla prova.
+on:
+  workflow_dispatch: {}
+  push:
+    branches:
+      - 'claude/mobile-local-work-**'
+    paths:
+      - 'promptforge-pro/**'
+      - '.github/workflows/build-promptforge-apk.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Imposta JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Installa e configura l'Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Installa i pacchetti Android SDK richiesti
+        run: sdkmanager --install "platform-tools" "platforms;android-34" "build-tools;34.0.0"
+
+      - name: Compilo l'APK di debug
+        working-directory: promptforge-pro
+        run: ./gradlew :app:assembleDebug --stacktrace
+
+      - name: Eseguo i test unitari (moduli Kotlin puri e Android)
+        working-directory: promptforge-pro
+        run: ./gradlew test --stacktrace
+
+      - name: Rinomino l'APK con un numero di versione progressivo (V<n>)
+        working-directory: promptforge-pro
+        run: |
+          APK_DIR="app/build/outputs/apk/debug"
+          mv "$APK_DIR/app-debug.apk" "$APK_DIR/PromptForgePro-V${{ github.run_number }}.apk"
+
+      - name: Carica l'APK come artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: promptforge-pro-debug-apk
+          path: promptforge-pro/app/build/outputs/apk/debug/PromptForgePro-V${{ github.run_number }}.apk
+          retention-days: 30

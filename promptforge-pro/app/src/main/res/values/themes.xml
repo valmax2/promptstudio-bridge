@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Tema di sistema minimo: il tema reale (dark premium) vive in Compose,
+         vedi core-ui/PromptForgeTheme.kt. Questo serve solo come splash/manifest theme. -->
+    <style name="Theme.PromptForgePro" parent="android:Theme.Material.NoActionBar" />
+</resources>

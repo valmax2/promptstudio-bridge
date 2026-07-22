@@ -1,0 +1,71 @@
+name: Build AI Creator Offline APK (debug, per test)
+
+# Compila l'app Android nativa (Kotlin/Compose, progetto Gradle indipendente
+# in ai-creator-offline/) su GitHub, dove c'è accesso di rete completo per
+# scaricare AGP/Gradle/dipendenze — cosa non disponibile nell'ambiente di
+# generazione del codice. Nessun requisito locale: "Actions" → questo
+# workflow → "Run workflow", poi scarica l'APK come artifact.
+on:
+  workflow_dispatch: {}
+  push:
+    branches:
+      - 'claude/ai-creator-offline-**'
+    paths:
+      - 'ai-creator-offline/**'
+      - '.github/workflows/build-ai-creator-offline.yml'
+  pull_request:
+    paths:
+      - 'ai-creator-offline/**'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Imposta JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Installa e configura l'Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Installa i pacchetti Android SDK richiesti
+        run: sdkmanager --install "platform-tools" "platforms;android-36" "build-tools;36.0.0"
+
+      - name: Genera il wrapper Gradle mancante
+        # gradle/wrapper/gradle-wrapper.jar non è nel repo: l'ambiente che ha
+        # scritto il codice non aveva accesso di rete per scaricarlo (vedi
+        # ai-creator-offline/gradle/wrapper/WRAPPER_JAR_MANCANTE.md). Qui su
+        # GitHub la rete c'è, quindi lo generiamo al volo prima di usare ./gradlew.
+        working-directory: ai-creator-offline
+        run: gradle wrapper --gradle-version 8.13 --distribution-type bin
+
+      - name: Compilo l'APK di debug
+        working-directory: ai-creator-offline
+        run: ./gradlew assembleOfflineDebug --stacktrace
+
+      - name: Eseguo i test unitari
+        working-directory: ai-creator-offline
+        run: ./gradlew testOfflineDebugUnitTest --stacktrace
+
+      - name: Carica l'APK come artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ai-creator-offline-debug-apk
+          path: ai-creator-offline/app/build/outputs/apk/offline/debug/*.apk
+          retention-days: 30
+
+      - name: Carica i report dei test
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ai-creator-offline-test-reports
+          path: ai-creator-offline/app/build/reports/tests/
+          retention-days: 30

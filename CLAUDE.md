@@ -9,8 +9,14 @@ Mono-repo con più progetti indipendenti:
   Build APK/AAB: `3d-reducer/build-apk.sh`, `3d-reducer/build-aab.sh`.
 - **`padel-app/`** — App Android (Capacitor) per gestire partite di padel, con backend
   Firebase opzionale. Vedi `padel-app/README.md` per build APK via GitHub Actions.
+- **`ai-creator-offline/`** — "AI Creator Offline", app Android nativa (Kotlin + Jetpack
+  Compose, MVVM) per generare immagini AI interamente on-device, senza server/cloud/telemetria.
+  Progetto Gradle indipendente (non Capacitor). Nessun modello AI incluso: va importato
+  dall'utente (vedi `ai-creator-offline/docs/MODEL_CONVERSION.md`). Build/apertura in Android
+  Studio: vedi `ai-creator-offline/README.md`. Stato e parti mancanti: `ai-creator-offline/docs/TODO.md`.
 
-Nessun progetto ha una suite di test o un linter configurato al momento.
+Nessun progetto ha una suite di test o un linter configurato al momento, tranne
+`ai-creator-offline/` che ha test JUnit in `app/src/test/`.
 
 ## Flusso di lavoro: cellulare fuori casa + PC locale la sera
 

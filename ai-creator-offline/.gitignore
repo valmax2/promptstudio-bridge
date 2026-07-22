@@ -1,0 +1,27 @@
+*.iml
+.gradle/
+/local.properties
+.idea/
+.DS_Store
+/build
+/captures
+.externalNativeBuild
+.cxx
+local.properties
+
+# Wrapper: la jar viene generata localmente (vedi gradle/wrapper/WRAPPER_JAR_MANCANTE.md)
+# se assente; se presente va invece versionata normalmente, quindi NON la ignoriamo qui.
+
+# Firma release: mai versionare keystore o password reali.
+*.jks
+*.keystore
+keystore.properties
+
+# Modelli AI importati dall'utente: mai nel repository (peso elevato + copyright).
+app/src/main/assets/models/
+*.onnx
+*.tflite
+*.bin
+*.safetensors
+*.ckpt
+*.gguf

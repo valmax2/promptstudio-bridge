@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+        Tema "classico" usato solo prima che Compose prenda il controllo del
+        rendering (finestra, splash, status bar). Tutto il resto della UI usa
+        Material 3 in Compose (vedi ui/theme/Theme.kt), non queste risorse XML.
+    -->
+    <style name="Theme.AiCreatorOffline" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+    </style>
+
+    <style name="Theme.AiCreatorOffline.Splash" parent="Theme.AiCreatorOffline">
+        <item name="android:windowBackground">@color/splash_background</item>
+    </style>
+</resources>

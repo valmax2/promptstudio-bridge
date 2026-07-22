@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    android:allowBackup="false" nel manifest è già la protezione primaria.
+    Questo file è una seconda barriera esplicita: anche se allowBackup
+    cambiasse in futuro, database, preferenze e file restano esclusi da
+    backup cloud e trasferimento dispositivo, coerente con "nessun dato
+    lascia il dispositivo".
+-->
+<data-extraction-rules>
+    <cloud-backup disableIfNoEncryptionCapability="true">
+        <exclude domain="database" />
+        <exclude domain="sharedpref" />
+        <exclude domain="file" />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="database" />
+        <exclude domain="sharedpref" />
+        <exclude domain="file" />
+    </device-transfer>
+</data-extraction-rules>

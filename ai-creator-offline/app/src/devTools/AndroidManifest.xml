@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!--
+        SOLO per il flavor di sviluppo "devTools": consente di scaricare manualmente
+        pesi di modelli di prova durante lo sviluppo. Non e' presente nel flavor
+        "offline", che e' quello da compilare per l'uso reale e la pubblicazione.
+        Anche con questo permesso concesso, l'app non effettua alcuna chiamata di rete
+        automatica: nessun codice del progetto invia prompt, foto o immagini generate
+        altrove. Vedi docs/FEASIBILITY.md.
+    -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
+</manifest>

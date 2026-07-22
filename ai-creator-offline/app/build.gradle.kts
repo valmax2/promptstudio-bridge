@@ -92,6 +92,13 @@ android {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
+        // SQLCipher (net.zetetic:sqlcipher-android) carica una libreria nativa (libsqlcipher.so):
+        // con il packaging "compresso" di default alcuni dispositivi falliscono a caricarla a
+        // runtime (UnsatisfiedLinkError, crash immediato all'avvio). useLegacyPackaging la
+        // estrae/allinea come le versioni precedenti di AGP, evitando il problema.
+        jniLibs {
+            useLegacyPackaging = true
+        }
     }
 
     testOptions {

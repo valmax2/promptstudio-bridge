@@ -16,6 +16,7 @@ import com.aicreator.offline.data.local.db.entities.ModelEntity
 import com.aicreator.offline.data.local.db.entities.PresetEntity
 import com.aicreator.offline.domain.security.CryptoManager
 import net.zetetic.database.sqlcipher.SupportOpenHelperFactory
+import java.util.concurrent.atomic.AtomicBoolean
 
 @Database(
     entities = [ModelEntity::class, LoraEntity::class, PresetEntity::class, HistoryEntity::class, CharacterEntity::class],
@@ -35,12 +36,29 @@ abstract class AppDatabase : RoomDatabase() {
     companion object {
         private const val DATABASE_NAME = "aicreator_offline.db"
 
+        private val nativeLibraryLoaded = AtomicBoolean(false)
+
+        /**
+         * La libreria net.zetetic:sqlcipher-android (quella corrente, non la
+         * deprecata android-database-sqlcipher) NON carica da sola la propria
+         * libreria nativa: è l'app a doverlo fare esplicitamente con
+         * System.loadLibrary("sqlcipher") prima di aprire qualunque database,
+         * altrimenti si ha UnsatisfiedLinkError su nativeOpen (crash all'avvio).
+         * Requisito documentato nel README ufficiale della libreria.
+         */
+        private fun ensureNativeLibraryLoaded() {
+            if (nativeLibraryLoaded.compareAndSet(false, true)) {
+                System.loadLibrary("sqlcipher")
+            }
+        }
+
         /**
          * Il database è cifrato con SQLCipher: la passphrase viene generata e
          * conservata tramite Android Keystore (vedi CryptoManager), mai in chiaro.
          * Soddisfa il requisito "Database locale cifrato quando possibile".
          */
         fun build(context: Context, cryptoManager: CryptoManager): AppDatabase {
+            ensureNativeLibraryLoaded()
             val passphrase = cryptoManager.getOrCreateDatabasePassphrase()
             val factory = SupportOpenHelperFactory(passphrase)
             return Room.databaseBuilder(context.applicationContext, AppDatabase::class.java, DATABASE_NAME)

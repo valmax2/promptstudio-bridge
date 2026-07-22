@@ -17,6 +17,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
@@ -221,6 +222,7 @@ private fun SavePresetInline(onSave: (String) -> Unit, onDismiss: () -> Unit) {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ModelDropdown(models: List<com.aicreator.offline.domain.model.AiModel>, selectedId: String?, onSelected: (String) -> Unit) {
     var expanded by remember { mutableStateOf(false) }
@@ -242,6 +244,7 @@ private fun ModelDropdown(models: List<com.aicreator.offline.domain.model.AiMode
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun SchedulerDropdown(selected: SchedulerType, onSelected: (SchedulerType) -> Unit) {
     var expanded by remember { mutableStateOf(false) }

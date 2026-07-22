@@ -15,7 +15,7 @@ import com.aicreator.offline.data.local.db.entities.LoraEntity
 import com.aicreator.offline.data.local.db.entities.ModelEntity
 import com.aicreator.offline.data.local.db.entities.PresetEntity
 import com.aicreator.offline.domain.security.CryptoManager
-import net.zetetic.database.sqlcipher.SupportFactory
+import net.zetetic.database.sqlcipher.SupportOpenHelperFactory
 
 @Database(
     entities = [ModelEntity::class, LoraEntity::class, PresetEntity::class, HistoryEntity::class, CharacterEntity::class],
@@ -42,7 +42,7 @@ abstract class AppDatabase : RoomDatabase() {
          */
         fun build(context: Context, cryptoManager: CryptoManager): AppDatabase {
             val passphrase = cryptoManager.getOrCreateDatabasePassphrase()
-            val factory = SupportFactory(passphrase)
+            val factory = SupportOpenHelperFactory(passphrase)
             return Room.databaseBuilder(context.applicationContext, AppDatabase::class.java, DATABASE_NAME)
                 .openHelperFactory(factory)
                 .build()

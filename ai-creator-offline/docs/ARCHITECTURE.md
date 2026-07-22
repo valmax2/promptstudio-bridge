@@ -122,6 +122,6 @@ collegamento — scelta deliberata, non un'omissione.
 
 Room da solo non cifra il database SQLite sottostante. Il requisito
 "database locale cifrato quando possibile" è soddisfatto passando a Room una
-`SupportFactory` di SQLCipher (`net.zetetic:sqlcipher-android`), con la
+`SupportOpenHelperFactory` di SQLCipher (`net.zetetic:sqlcipher-android`), con la
 chiave di cifratura generata e conservata tramite Android Keystore
 (`CryptoManager`), mai in chiaro nel codice o nelle preferenze.

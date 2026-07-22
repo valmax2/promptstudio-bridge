@@ -16,7 +16,9 @@ object DatabaseModule {
     @Provides
     @Singleton
     fun provideDatabase(@ApplicationContext context: Context): PromptForgeDatabase =
-        Room.databaseBuilder(context, PromptForgeDatabase::class.java, PromptForgeDatabase.FILE_NAME).build()
+        Room.databaseBuilder(context, PromptForgeDatabase::class.java, PromptForgeDatabase.FILE_NAME)
+            .addMigrations(MIGRATION_1_2)
+            .build()
 
     @Provides
     fun provideLibraryDao(database: PromptForgeDatabase): LibraryDao = database.libraryDao()
@@ -25,10 +27,17 @@ object DatabaseModule {
     fun providePresetDao(database: PromptForgeDatabase): PresetDao = database.presetDao()
 
     @Provides
+    fun provideCharacterDao(database: PromptForgeDatabase): CharacterDao = database.characterDao()
+
+    @Provides
     @Singleton
     fun provideLibraryRepository(dao: LibraryDao): LibraryRepository = RoomLibraryRepository(dao)
 
     @Provides
     @Singleton
     fun providePresetRepository(dao: PresetDao): PresetRepository = RoomPresetRepository(dao)
+
+    @Provides
+    @Singleton
+    fun provideCharacterRepository(dao: CharacterDao): CharacterRepository = RoomCharacterRepository(dao)
 }

@@ -92,4 +92,25 @@ class PromptForgeJsonRoundTripTest {
 
         assertEquals(preset, decoded)
     }
+
+    @Test
+    fun `CharacterProfile con Character Pack sopravvive al round-trip`() {
+        val profile = CharacterProfile(
+            id = "char1",
+            name = "Elena",
+            referenceImageUris = listOf("content://x/1", "content://x/2"),
+            faceDescription = "viso ovale, occhi verdi",
+            characterPack = listOf(
+                CharacterPackImage(view = CharacterPackView.FrontNeutral, imageUri = "content://out/1", generatedAtEpochMillis = 1L),
+                CharacterPackImage(view = CharacterPackView.LeftProfile),
+            ),
+            createdAtEpochMillis = 1_700_000_000_000L,
+            updatedAtEpochMillis = 1_700_000_001_000L,
+        )
+
+        val encoded = json.encodeToString(profile)
+        val decoded = json.decodeFromString<CharacterProfile>(encoded)
+
+        assertEquals(profile, decoded)
+    }
 }

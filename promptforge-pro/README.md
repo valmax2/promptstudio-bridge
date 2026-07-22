@@ -8,12 +8,28 @@ in fasi verificabili come richiesto dal documento stesso (§14).
 
 ## Un punto importante prima di tutto
 
-Il master prompt include, alla sezione §6 ("Modalità adulti 18+"), una richiesta
-di generare lessico per contenuti sessuali espliciti (nudità, intimità esplicita,
+Il master prompt (e la sua evoluzione v7, vedi sotto) include una richiesta di
+generare lessico per contenuti sessuali espliciti (nudità, intimità esplicita,
 dinamiche dominanti, pose provocanti, fetish) da inviare ai generatori di
-immagini. **Questa parte non è stata implementata.** `AdultModeConfig` esiste
-solo come toggle minimale (`enabled: Boolean`), senza tassonomia di intensità o
-concetti. Tutto il resto del master prompt è stato seguito.
+immagini. **Questa parte non è stata implementata, in nessuna versione.**
+`AdultModeConfig` esiste solo come toggle minimale (`enabled: Boolean`), senza
+tassonomia di intensità o concetti. Tutto il resto del master prompt è stato
+seguito.
+
+## Evoluzione v7
+
+Il progetto è nato dal documento originale (`PromptForge_Pro_Android_Master_Prompt.md`)
+ed è stato esteso con un secondo documento molto più ampio ("v7"), basato su un
+prototipo HTML funzionante fornito dall'utente (che uso come riferimento tecnico,
+non come sorgente da portare 1:1 — è vanilla JS cresciuto per versioni successive,
+con duplicazioni note). v7 aggiunge: Character Studio con Character Pack (6 viste
+standard), Postura Pro (analisi posa da foto), Light Director (rig luci a due
+viste come la camera), Studio Video separato dallo Studio Immagine, libreria
+workflow ComfyUI con invio diretto (REST + Bridge opzionale), destinazioni
+multiple (ComfyUI/ChatGPT/Gemini/Meta AI/Leonardo). La geometria della Director
+Map già costruita in questo progetto è risultata architetturalmente identica a
+quella del prototipo v7 (stesso calcolo di bearing/vista relativa) — non è stata
+buttata via, è la base su cui v7 si costruisce sopra.
 
 ## Stato attuale (fasi completate)
 
@@ -30,10 +46,12 @@ Riferimento alle fasi di §14 del master prompt:
 | 5 | Traduzione e dettatura (interfacce sostituibili) | 🟡 dettatura ✅ (SpeechRecognizer di sistema, it-IT) — traduzione solo dizionario di fallback (on-device/LibreTranslate/Ollama mancano) |
 | 6 | Director Map: geometria e gesture | ✅ geometria (51 test locali) — 🟡 Compose UI scritta, non compilabile qui |
 | 7 | Schermate | 🟡 **Builder (wizard a 6 step) e Libreria funzionanti end-to-end**, agganciate alla navigazione reale. Preset e Impostazioni restano placeholder |
-| 8 | Esportazione e client ComfyUI | ⬜ non iniziata |
+| 8 | Esportazione e client ComfyUI | ⬜ non iniziata (v7: serve sia REST diretta sia Bridge, vedi sopra) |
 | 9-10 | Test/lint/build completi, APK funzionante | ✅ build verde in CI, APK debug installabile con Builder+Libreria funzionanti |
 | 11 | Istruzioni build/firma/installazione | ⬜ da scrivere quando l'APK avrà contenuto reale |
-| — | Design system (gradienti, glow, palco camera) | 🟡 introdotto su azioni primarie e Director Map, non ancora esteso a tutta l'app |
+| — | Design system (gradienti, glow, palco camera) | ✅ esteso a tutta l'app (Shapes di tema, PromptForgeCard, menu a tendina coerenti) |
+| — | **v7: Character Studio + Character Pack** | 🟡 scheda personaggio completa (foto multiple, campi identità, parametri consistenza, stato 6 viste) e libreria persistente; generazione effettiva del Character Pack non ancora collegata a ComfyUI |
+| — | v7: Postura Pro, Light Director, Studio Video, libreria workflow | ⬜ non iniziate |
 | — | Pubblicazione su Play Store | ⬜ non iniziata (vedi sotto) |
 
 Le fasi rimanenti si affrontano una alla volta, in sessioni successive (anche a

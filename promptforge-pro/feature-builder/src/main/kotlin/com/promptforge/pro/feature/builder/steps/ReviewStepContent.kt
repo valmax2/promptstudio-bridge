@@ -14,29 +14,14 @@ import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
 import com.promptforge.pro.coremodel.GeneratedPrompt
-import com.promptforge.pro.coreui.PromptForgeButton
 import com.promptforge.pro.coreui.PromptForgeCard
 import com.promptforge.pro.feature.builder.BuilderUiState
 import com.promptforge.pro.feature.builder.BuilderViewModel
 
+/** Elenco risultati generati (§Output della pagina unica) — il pulsante Genera vive nel pannello Output. */
 @Composable
 fun ReviewStepContent(uiState: BuilderUiState, viewModel: BuilderViewModel) {
     Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        PromptForgeCard(modifier = Modifier.fillMaxWidth()) {
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text("Riepilogo", style = MaterialTheme.typography.titleMedium)
-                SummaryLine("Soggetto", uiState.englishText.ifBlank { "—" })
-                if (uiState.characterEnabled) {
-                    SummaryLine("Personaggio", uiState.characterName.ifBlank { "(senza nome)" })
-                }
-                SummaryLine("Camera", "${uiState.directorMap.relativeView} · ${uiState.directorMap.movement}")
-                SummaryLine("Luce", "${uiState.lightingStyle}, ${uiState.timeOfDay}")
-                SummaryLine("Stile", "${uiState.visualStyle} · ${uiState.targetModel} · ${uiState.variantCount} varianti")
-            }
-        }
-
-        PromptForgeButton(text = "Genera prompt", onClick = viewModel::generate, enabled = uiState.canGenerate)
-
         uiState.generatedPrompts.forEach { generated -> GeneratedPromptCard(generated) }
 
         if (uiState.canSave) {
@@ -54,15 +39,6 @@ fun ReviewStepContent(uiState: BuilderUiState, viewModel: BuilderViewModel) {
             Text(it, color = MaterialTheme.colorScheme.secondary, style = MaterialTheme.typography.bodyMedium)
         }
     }
-}
-
-@Composable
-private fun SummaryLine(label: String, value: String) {
-    Text(
-        "$label: $value",
-        style = MaterialTheme.typography.bodyMedium,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-    )
 }
 
 @Composable

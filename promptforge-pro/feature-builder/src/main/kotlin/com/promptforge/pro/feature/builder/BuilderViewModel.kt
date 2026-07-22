@@ -47,37 +47,6 @@ class BuilderViewModel @Inject constructor(
         }
     }
 
-    // --- Navigazione tra step -------------------------------------------------
-
-    fun goToNextStep() {
-        val state = _uiState.value
-        if (!state.canLeaveStep(state.currentStep)) return
-        val steps = BuilderStep.entries
-        val nextIndex = steps.indexOf(state.currentStep) + 1
-        if (nextIndex < steps.size) {
-            _uiState.update { it.copy(currentStep = steps[nextIndex]) }
-        }
-    }
-
-    fun goToPreviousStep() {
-        val steps = BuilderStep.entries
-        val previousIndex = steps.indexOf(_uiState.value.currentStep) - 1
-        if (previousIndex >= 0) {
-            _uiState.update { it.copy(currentStep = steps[previousIndex]) }
-        }
-    }
-
-    fun goToStep(step: BuilderStep) {
-        // Si può saltare avanti solo fino allo step successivo a quello raggiunto
-        // finora, non oltre — evita di finire al Riepilogo senza aver scritto nulla.
-        val steps = BuilderStep.entries
-        val targetIndex = steps.indexOf(step)
-        val currentIndex = steps.indexOf(_uiState.value.currentStep)
-        if (targetIndex <= currentIndex || _uiState.value.canLeaveStep(_uiState.value.currentStep)) {
-            _uiState.update { it.copy(currentStep = step) }
-        }
-    }
-
     // --- Step 1: Soggetto -------------------------------------------------
 
     fun onItalianTextChange(text: String) {

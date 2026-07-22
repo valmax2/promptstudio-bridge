@@ -35,7 +35,7 @@ fun <T : Enum<T>> EnumDropdown(label: String, selected: T, options: List<T>, onS
         OutlinedCard(
             onClick = { expanded = true },
             modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.outlinedCardColors(containerColor = PromptForgeColors.SurfaceVariant),
+            colors = CardDefaults.outlinedCardColors(containerColor = PromptForgeColors.Card),
             border = BorderStroke(1.dp, PromptForgeColors.Border),
         ) {
             Row(

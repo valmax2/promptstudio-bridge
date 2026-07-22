@@ -67,8 +67,8 @@ fun TopDownDirectorMap(
         modifier = modifier
             .fillMaxWidth()
             .aspectRatio(1f)
-            .clip(RoundedCornerShape(20.dp))
-            .background(PromptForgeGradients.StageBackground)
+            .clip(RoundedCornerShape(12.dp))
+            .background(PromptForgeColors.Background)
             .pointerInput(Unit) {
                 awaitEachGesture {
                     val down = awaitFirstDown(requireUnconsumed = false)
@@ -100,6 +100,8 @@ fun TopDownDirectorMap(
                 }
             },
     ) {
+        drawGridLines()
+
         val subjectPx = Offset(state.subjectPosition.x * size.width, state.subjectPosition.y * size.height)
         val cameraPx = Offset(state.cameraPosition.x * size.width, state.cameraPosition.y * size.height)
 
@@ -116,6 +118,22 @@ fun TopDownDirectorMap(
 
         drawNodeWithGlow(center = cameraPx, color = cameraColor)
         drawNodeWithGlow(center = subjectPx, color = subjectColor)
+    }
+}
+
+/** Griglia di sfondo 40dp, come il pattern `directorGrid` dell'HTML di riferimento. */
+private fun DrawScope.drawGridLines() {
+    val step = 40.dp.toPx()
+    val gridColor = PromptForgeColors.Border
+    var x = 0f
+    while (x <= size.width) {
+        drawLine(gridColor, Offset(x, 0f), Offset(x, size.height), strokeWidth = 1f)
+        x += step
+    }
+    var y = 0f
+    while (y <= size.height) {
+        drawLine(gridColor, Offset(0f, y), Offset(size.width, y), strokeWidth = 1f)
+        y += step
     }
 }
 

@@ -45,11 +45,11 @@ Riferimento alle fasi di §14 del master prompt:
 | 4 | Database e repository (Room): Libreria + Preset, export/import JSON | 🟡 scritta, non compilabile qui (modulo Android) |
 | 5 | Traduzione e dettatura (interfacce sostituibili) | 🟡 dettatura ✅ (SpeechRecognizer di sistema, it-IT) — traduzione solo dizionario di fallback (on-device/LibreTranslate/Ollama mancano) |
 | 6 | Director Map: geometria e gesture | ✅ geometria (51 test locali) — 🟡 Compose UI scritta, non compilabile qui |
-| 7 | Schermate | 🟡 **Builder (wizard a 6 step) e Libreria funzionanti end-to-end**, agganciate alla navigazione reale. Preset e Impostazioni restano placeholder |
+| 7 | Schermate | 🟡 **Builder (pagina unica scrollabile, fedele all'HTML v7.1) e Libreria funzionanti end-to-end**, agganciate alla navigazione reale. Preset e Impostazioni restano placeholder |
 | 8 | Esportazione e client ComfyUI | ⬜ non iniziata (v7: serve sia REST diretta sia Bridge, vedi sopra) |
 | 9-10 | Test/lint/build completi, APK funzionante | ✅ build verde in CI, APK debug installabile con Builder+Libreria funzionanti |
 | 11 | Istruzioni build/firma/installazione | ⬜ da scrivere quando l'APK avrà contenuto reale |
-| — | Design system (gradienti, glow, palco camera) | ✅ esteso a tutta l'app (Shapes di tema, PromptForgeCard, menu a tendina coerenti) |
+| — | Design system piatto, fedele all'HTML v7.1 (colori, raggi, chip) | 🟡 token base + componente Chip pronti; griglie complete di camera/luce/ambiente/output ancora da collegare (vedi sotto) |
 | — | **v7: Character Studio + Character Pack** | 🟡 scheda personaggio completa (foto multiple, campi identità, parametri consistenza, stato 6 viste) e libreria persistente; generazione effettiva del Character Pack non ancora collegata a ComfyUI |
 | — | v7: Postura Pro, Light Director, Studio Video, libreria workflow | ⬜ non iniziate |
 | — | Pubblicazione su Play Store | ⬜ non iniziata (vedi sotto) |
@@ -148,35 +148,46 @@ che qui non ho potuto fare.
 
 ## Cosa provare sul telefono in questa fase
 
-Il Builder è un percorso guidato a 6 step (non più un'unica schermata con
-tutto in fila — la prima versione lo era, ed era confusa: la Director Map
-appariva in mezzo a un elenco di campi senza spiegazione. Riprogettata dopo
-feedback diretto sull'APK):
+**Svolta importante (luglio 2026):** dopo aver visto l'APK con lo step
+wizard e il design "premium" (gradienti/glow), l'utente ha respinto tutto
+("cancella tutto... non mi piace nulla") e ha fornito il vero HTML che usa
+ogni giorno (`PromptForge_Pro_v7.1_Guided_Studio.html`), chiedendo un
+porting fedele e non una reinterpretazione. Di conseguenza:
 
-1. **Soggetto** → descrizione in italiano (scritta o **dettata a voce**, §5:
-   riconoscimento di sistema in it-IT, richiede il permesso microfono al
-   primo utilizzo), "Traduci" (bozza col dizionario di fallback — imprecisa,
-   modificala pure a mano), quanti soggetti nella scena.
-2. **Personaggio** (facoltativo, si può saltare) → nome + foto di riferimento
+- Il Builder **non è più uno step wizard**: è tornato a essere un'unica
+  pagina scrollabile con pannelli in sequenza, come nell'HTML.
+- Il design system è **piatto**, non più a gradienti/glow: colori identici
+  all'HTML (sfondo quasi nero `#0a0a0c`, pannelli `#18181b`, viola
+  `#7c6af7`, raggi 6/8/12px), bottoni a colore pieno, chip on/off con bordo
+  colorato invece di sfondo acceso.
+
+Pannelli disponibili oggi, nello stesso ordine dell'HTML:
+
+1. **Soggetto / Scena** → descrizione in italiano (scritta o **dettata a
+   voce**, §5: riconoscimento di sistema in it-IT), "Traduci" (bozza col
+   dizionario di fallback — imprecisa, modificala pure a mano), quanti
+   soggetti nella scena.
+2. **Consistenza personaggio** (facoltativo) → nome + foto di riferimento
    (Photo Picker di sistema, con anteprima) per mantenere lo stesso volto tra
    le varianti.
-3. **Camera** → le due viste con una spiegazione di cosa fare prima del
-   canvas; trascini solo toccando vicino a un pallino, altrove lo scroll
-   della pagina funziona normalmente (era un bug: prima qualunque tocco sul
-   canvas spostava il nodo più vicino, anche a schermate di distanza).
-4. **Luce e ambiente** → illuminazione, momento della giornata, ambientazione.
-5. **Stile e output** → stile visivo, mood, generatore di destinazione,
-   numero di varianti, aspect ratio.
-6. **Riepilogo** → vedi un riassunto di tutte le scelte, generi, copi,
-   salvi in libreria, o riparti con "Nuovo prompt".
+3. **Stile e mood** → stile visivo, mood.
+4. **Sistema camera** → le due viste (alto/laterale) della Director Map;
+   trascini solo toccando vicino a un pallino, altrove lo scroll della
+   pagina funziona normalmente.
+5. **Luce e ambiente** → illuminazione, momento della giornata, ambientazione.
+6. **Output e generazione** → generatore di destinazione, numero di
+   varianti, aspect ratio, pulsante "Genera prompt".
+7. **Risultati** (appare dopo aver generato) → varianti, copia, salva in
+   libreria o riparti con "Nuovo prompt".
 
-Passi avanti/indietro con i pulsanti in basso; i pallini in alto mostrano a
-che punto sei.
-
-Quello che **non c'è ancora** in questo giro: Preset e Impostazioni (solo
-placeholder), consistenza personaggio, dettatura vocale, traduzione
+Quello che **non c'è ancora** in questo giro, e che l'HTML di riferimento ha
+in modo molto più ricco: le griglie complete di shot-type/movimento/lens/
+DOF/velocità/stabilizzazione/composizione del "Sistema Camera Pro", i tipi
+di luce/ora del giorno/meteo/color grading/pellicola a chip, qualità/seed
+nel pannello Output, Preset e Impostazioni (solo placeholder), traduzione
 on-device/LibreTranslate/Ollama (solo il dizionario base), esportazione
-TXT/JSON e client ComfyUI.
+TXT/JSON e client ComfyUI — arriveranno in fasi successive seguendo
+l'ordine dei pannelli dell'HTML.
 
 ## Come compilare
 

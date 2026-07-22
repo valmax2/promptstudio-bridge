@@ -8,9 +8,13 @@ import com.promptforge.pro.coremodel.TargetModel
 import com.promptforge.pro.coremodel.VisualStyle
 import com.promptforge.pro.speech.SpeechState
 
+/**
+ * Il Builder è un'unica pagina scrollabile (come l'HTML di riferimento
+ * dell'utente), non più un wizard a step: questi commenti "Step N" restano
+ * solo come riferimento a quale pannello dell'HTML originale copre ciascun
+ * gruppo di campi.
+ */
 data class BuilderUiState(
-    val currentStep: BuilderStep = BuilderStep.Subject,
-
     // Step 1: Soggetto
     val italianText: String = "",
     val englishText: String = "",
@@ -49,9 +53,4 @@ data class BuilderUiState(
 ) {
     val canGenerate: Boolean get() = englishText.isNotBlank()
     val canSave: Boolean get() = generatedPrompts.isNotEmpty()
-
-    fun canLeaveStep(step: BuilderStep): Boolean = when (step) {
-        BuilderStep.Subject -> englishText.isNotBlank()
-        else -> true
-    }
 }

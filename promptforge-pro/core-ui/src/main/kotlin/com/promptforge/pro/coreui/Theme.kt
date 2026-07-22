@@ -8,16 +8,16 @@ import androidx.compose.runtime.Composable
 
 private val DarkColors = darkColorScheme(
     primary = PromptForgeColors.Violet,
-    primaryContainer = PromptForgeColors.VioletContainer,
+    primaryContainer = PromptForgeColors.VioletDark,
     secondary = PromptForgeColors.Green,
     tertiary = PromptForgeColors.Orange,
     background = PromptForgeColors.Background,
-    surface = PromptForgeColors.Surface,
-    surfaceVariant = PromptForgeColors.SurfaceVariant,
-    onBackground = PromptForgeColors.OnSurface,
-    onSurface = PromptForgeColors.OnSurface,
-    onSurfaceVariant = PromptForgeColors.OnSurfaceMuted,
-    outline = PromptForgeColors.Border,
+    surface = PromptForgeColors.Card,
+    surfaceVariant = PromptForgeColors.Card2,
+    onBackground = PromptForgeColors.Text,
+    onSurface = PromptForgeColors.Text,
+    onSurfaceVariant = PromptForgeColors.Muted2,
+    outline = PromptForgeColors.Border2,
     error = PromptForgeColors.Error,
 )
 

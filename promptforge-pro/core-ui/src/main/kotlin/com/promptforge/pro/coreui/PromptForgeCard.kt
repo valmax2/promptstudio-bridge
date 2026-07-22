@@ -21,7 +21,7 @@ fun PromptForgeCard(
 ) {
     OutlinedCard(
         modifier = modifier,
-        colors = CardDefaults.outlinedCardColors(containerColor = PromptForgeColors.SurfaceVariant),
+        colors = CardDefaults.outlinedCardColors(containerColor = PromptForgeColors.Card),
         border = BorderStroke(1.dp, PromptForgeColors.Border),
     ) {
         Column(modifier = Modifier.padding(16.dp), content = content)

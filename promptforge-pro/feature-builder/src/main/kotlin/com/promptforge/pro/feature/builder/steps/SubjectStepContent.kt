@@ -76,7 +76,7 @@ fun SubjectStepContent(uiState: BuilderUiState, viewModel: BuilderViewModel) {
 
         if (uiState.englishText.isBlank()) {
             Text(
-                "Scrivi almeno il prompt in inglese per continuare.",
+                "Scrivi almeno il prompt in inglese per poter generare.",
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.error,
             )

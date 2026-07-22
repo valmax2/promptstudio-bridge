@@ -42,7 +42,7 @@ fun CharacterStepContent(uiState: BuilderUiState, viewModel: BuilderViewModel) {
         }
 
         Text(
-            "Facoltativo: se non ti interessa, premi \"Salta\" qui sotto per andare alla camera. " +
+            "Facoltativo: lascia pure disattivato se non ti serve per questo prompt. " +
                 "La foto resta solo su questo telefono, non viene mai caricata da nessuna parte.",
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,

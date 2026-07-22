@@ -49,8 +49,8 @@ fun LateralDirectorMap(
         modifier = modifier
             .fillMaxWidth()
             .height(160.dp)
-            .clip(RoundedCornerShape(20.dp))
-            .background(PromptForgeGradients.StageBackground)
+            .clip(RoundedCornerShape(12.dp))
+            .background(PromptForgeColors.Background)
             .pointerInput(Unit) {
                 detectDragGestures(
                     onDrag = { change, _ ->
@@ -73,6 +73,20 @@ fun LateralDirectorMap(
     ) {
         val centerY = size.height / 2f
         val subjectX = size.width * 0.15f
+
+        run {
+            val step = 25.dp.toPx()
+            var gx = 0f
+            while (gx <= size.width) {
+                drawLine(PromptForgeColors.Border, Offset(gx, 0f), Offset(gx, size.height), strokeWidth = 1f)
+                gx += step
+            }
+            var gy = 0f
+            while (gy <= size.height) {
+                drawLine(PromptForgeColors.Border, Offset(0f, gy), Offset(size.width, gy), strokeWidth = 1f)
+                gy += step
+            }
+        }
 
         // linea "altezza occhi" (riferimento orizzontale)
         drawLine(

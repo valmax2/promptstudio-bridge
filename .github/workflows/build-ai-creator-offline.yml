@@ -43,9 +43,19 @@ jobs:
         # gradle/wrapper/gradle-wrapper.jar non è nel repo: l'ambiente che ha
         # scritto il codice non aveva accesso di rete per scaricarlo (vedi
         # ai-creator-offline/gradle/wrapper/WRAPPER_JAR_MANCANTE.md). Qui su
-        # GitHub la rete c'è, quindi lo generiamo al volo prima di usare ./gradlew.
-        working-directory: ai-creator-offline
-        run: gradle wrapper --gradle-version 8.13 --distribution-type bin
+        # GitHub la rete c'è, ma il Gradle di sistema del runner è troppo
+        # recente (9.x) per CONFIGURARE questo progetto (AGP 8.13 usa API
+        # interne di Gradle rimosse in 9.6+) solo per generare il wrapper.
+        # Soluzione: generiamo il wrapper in una cartella scratch isolata
+        # (nessun build.gradle.kts da valutare) e copiamo solo il jar
+        # risultante nel progetto: da lì in poi ./gradlew scarica ed usa
+        # Gradle 8.13 (compatibile con AGP 8.13) in autonomia.
+        run: |
+          mkdir -p /tmp/wrapper-gen
+          cd /tmp/wrapper-gen
+          echo 'rootProject.name = "wrapper-gen"' > settings.gradle.kts
+          gradle wrapper --gradle-version 8.13 --distribution-type bin
+          cp gradle/wrapper/gradle-wrapper.jar "$GITHUB_WORKSPACE/ai-creator-offline/gradle/wrapper/gradle-wrapper.jar"
 
       - name: Compilo l'APK di debug
         working-directory: ai-creator-offline

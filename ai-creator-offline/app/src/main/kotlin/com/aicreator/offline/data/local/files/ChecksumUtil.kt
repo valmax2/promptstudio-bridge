@@ -25,15 +25,24 @@ object ChecksumUtil {
      * (ordinati per percorso relativo) in un unico digest. Usato per validare
      * pacchetti modello multi-file dove `manifest.json` dichiara un solo
      * checksum complessivo.
+     *
+     * [excludeFileNames] elenca i nomi di file (solo il nome, non il percorso)
+     * da NON includere nel calcolo. È indispensabile escludere il file di
+     * manifest stesso: il manifest deve contenere il checksum del pacchetto,
+     * quindi non può a sua volta rientrare nell'impronta che dichiara
+     * (altrimenti il valore non sarebbe mai calcolabile né verificabile).
+     * L'algoritmo è replicato identico in tools/make_model_package.py, che
+     * genera i pacchetti lato PC.
      */
-    fun sha256Directory(directory: File): String {
+    fun sha256Directory(directory: File, excludeFileNames: Set<String> = emptySet()): String {
         require(directory.isDirectory) { "${directory.path} non è una cartella" }
         val digest = MessageDigest.getInstance("SHA-256")
         directory.walkTopDown()
-            .filter { it.isFile }
-            .sortedBy { it.relativeTo(directory).path }
+            .filter { it.isFile && it.name !in excludeFileNames }
+            .sortedBy { it.relativeTo(directory).path.replace(File.separatorChar, '/') }
             .forEach { file ->
-                digest.update(file.relativeTo(directory).path.toByteArray(Charsets.UTF_8))
+                val relativePath = file.relativeTo(directory).path.replace(File.separatorChar, '/')
+                digest.update(relativePath.toByteArray(Charsets.UTF_8))
                 digest.update(sha256File(file).toByteArray(Charsets.UTF_8))
             }
         return digest.digest().toHexString()

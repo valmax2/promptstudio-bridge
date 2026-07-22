@@ -35,7 +35,12 @@ class ModelRepositoryImpl(
                 throw IllegalStateException("Copia del pacchetto non riuscita: ${it.message}", it)
             }
 
-            val actualChecksum = ChecksumUtil.sha256Directory(destination)
+            // Il checksum in manifest.json copre tutti i file del pacchetto TRANNE
+            // manifest.json stesso (che non può contenere la propria impronta).
+            val actualChecksum = ChecksumUtil.sha256Directory(
+                destination,
+                excludeFileNames = setOf(ModelPackageReader.MANIFEST_FILE_NAME),
+            )
             if (!actualChecksum.equals(manifest.checksumSha256, ignoreCase = true)) {
                 storage.deleteModelDirectory(manifest.id)
                 throw IllegalArgumentException(

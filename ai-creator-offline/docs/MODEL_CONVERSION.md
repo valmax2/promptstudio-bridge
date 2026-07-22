@@ -44,26 +44,63 @@ Campi obbligatori: `id`, `displayName`, `engine`, `sizeBytes`, `minRamMb`,
 `checksumSha256`. Il Model Manager rifiuta l'import se mancano o se il
 checksum calcolato non corrisponde.
 
-## 2. Motore "mediapipe-image-generator" (consigliato)
+> **Nota sul checksum.** Il valore `checksumSha256` copre **tutti i file del
+> pacchetto tranne `manifest.json` stesso** (il manifest non può contenere la
+> propria impronta). L'algoritmo esatto è in `ChecksumUtil.sha256Directory`
+> ed è replicato in `tools/make_model_package.py`: non calcolarlo a mano, usa
+> lo script (vedi sotto), che genera direttamente un `manifest.json` valido.
 
-MediaPipe richiede un modello di diffusion convertito nel proprio formato
-bundle. Il percorso ufficiale Google (MediaPipe Model Maker / script di
-conversione forniti nella documentazione MediaPipe "Image Generation") parte
-tipicamente da un checkpoint Stable Diffusion 1.5-class in formato
-Diffusers/PyTorch e produce i file richiesti dal runtime MediaPipe. Passi ad
-alto livello (da eseguire su PC, **non nell'app**, con gli strumenti ufficiali
-MediaPipe):
+## 2. Motore "mediapipe-image-generator" — procedura verificata
 
-1. Procurati un checkpoint SD 1.5-class di cui possiedi i diritti d'uso.
-2. Segui la guida ufficiale MediaPipe "Image generation task" per la
-   conversione del checkpoint nel bundle richiesto (il processo esatto e gli
-   script cambiano con le versioni di MediaPipe: fai riferimento sempre alla
-   documentazione della versione che usi, dichiarata in
-   `gradle/libs.versions.toml` → `mediapipeImageGenerator`).
-3. Copia il bundle risultante nella cartella `model/` del pacchetto.
-4. Calcola lo SHA-256 del bundle (l'app lo rifà comunque in fase di import,
-   ma serve per compilare `manifest.json`).
-5. Importa la cartella dall'app: Modelli → Importa → seleziona la cartella.
+MediaPipe richiede un modello Stable Diffusion **1.5** convertito con lo script
+ufficiale Google. Tutto quanto segue si fa **su PC**, non nell'app. Requisiti
+realistici: Python 3, diversi GB di spazio libero, e — per generare comodamente
+sul telefono — idealmente 8 GB di RAM sul dispositivo (vedi la schermata
+Diagnostica dell'app).
+
+### 2.1 Procurati un checkpoint SD 1.5
+
+Serve un file checkpoint PyTorch `.ckpt` in formato EMA-only compatibile con
+`stable-diffusion-v1-5` (di cui possiedi i diritti d'uso). Non SDXL, non SD2/3,
+non FLUX.
+
+### 2.2 Converti con lo script ufficiale MediaPipe
+
+Script: `tools/image_generator_converter/convert.py` del repo
+[google-ai-edge/mediapipe-samples](https://github.com/google-ai-edge/mediapipe-samples/tree/main/tools/image_generator_converter).
+
+```
+pip install torch typing_extensions numpy Pillow requests pytorch_lightning absl-py
+python3 convert.py --ckpt_path /percorso/al/modello.ckpt --output_path ./bins
+```
+
+Produce la cartella `./bins/` con i file convertiti (una serie di `.bin`).
+
+### 2.3 Impacchetta per l'app
+
+Usa lo script incluso in questo repo, che crea la cartella nella struttura
+richiesta e genera un `manifest.json` con il **checksum corretto**:
+
+```
+python3 tools/make_model_package.py \
+    --model-dir ./bins \
+    --out ./SD15Mobile \
+    --id sd15-mobile \
+    --name "Stable Diffusion 1.5 (mobile)" \
+    --min-ram-mb 6000 \
+    --recommended-resolution 512 \
+    --max-steps 20
+```
+
+Risultato: `./SD15Mobile/` con dentro `model/` (i `.bin`) e `manifest.json`.
+
+### 2.4 Importa nell'app
+
+1. Copia la cartella `SD15Mobile/` sul telefono (via cavo USB, oppure
+   `adb push SD15Mobile /sdcard/Download/`).
+2. Nell'app: **Modelli → Importa modello da cartella** → seleziona `SD15Mobile/`.
+3. L'app verifica il checksum e, se tutto torna, il modello diventa attivo e
+   selezionabile in **Genera**.
 
 ## 3. Motore "onnx-runtime" (alternativo, predisposto ma non implementato)
 

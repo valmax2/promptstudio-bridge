@@ -5,6 +5,7 @@ import androidx.work.CoroutineWorker
 import androidx.work.Data
 import androidx.work.WorkerParameters
 import com.aicreator.offline.data.local.files.ChecksumUtil
+import com.aicreator.offline.data.local.files.ModelPackageReader
 import com.aicreator.offline.domain.repository.ModelRepository
 import java.io.File
 
@@ -37,7 +38,12 @@ class ChecksumWorker(
             return Result.failure(Data.Builder().putString(KEY_ERROR_MESSAGE, "File del modello non trovati sul dispositivo.").build())
         }
 
-        val actualChecksum = ChecksumUtil.sha256Directory(packageRoot)
+        // Stessa esclusione usata in fase di import: manifest.json non rientra
+        // nel checksum che esso stesso dichiara.
+        val actualChecksum = ChecksumUtil.sha256Directory(
+            packageRoot,
+            excludeFileNames = setOf(ModelPackageReader.MANIFEST_FILE_NAME),
+        )
         val matches = actualChecksum.equals(model.checksumSha256, ignoreCase = true)
 
         val output = Data.Builder()

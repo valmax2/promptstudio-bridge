@@ -38,13 +38,17 @@ class LoraRepositoryImpl(
                 throw IllegalStateException("Copia del LoRA non riuscita: ${it.message}", it)
             }
 
-            val actualChecksum = ChecksumUtil.sha256Directory(destination)
+            val actualChecksum = ChecksumUtil.sha256Directory(
+                destination,
+                excludeFileNames = setOf(ModelPackageReader.LORA_MANIFEST_FILE_NAME),
+            )
             if (!actualChecksum.equals(manifest.checksumSha256, ignoreCase = true)) {
                 storage.deleteLoraDirectory(manifest.id)
                 throw IllegalArgumentException("Checksum del LoRA non corrispondente: import annullato.")
             }
 
-            val weightsFile = destination.listFiles()?.firstOrNull { it.isFile }
+            val weightsFile = destination.listFiles()
+                ?.firstOrNull { it.isFile && it.name != ModelPackageReader.LORA_MANIFEST_FILE_NAME }
                 ?: throw IllegalArgumentException("Nessun file di pesi trovato nella cartella LoRA selezionata.")
 
             val lora = LoraAdapter(

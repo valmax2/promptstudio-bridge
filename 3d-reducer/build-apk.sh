@@ -37,7 +37,11 @@ cp -r "$HERE"/assets "$BUILD/www/assets"
 cd "$BUILD"
 
 echo "▶ Inizializzo il progetto npm e installo Capacitor"
-npm init -y >/dev/null
+# Nome esplicito: npm rifiuta un package "name" derivato da una cartella
+# che inizia con un punto (.capacitor-build), come farebbe "npm init -y".
+cat > package.json <<'EOF'
+{ "name": "polyreducer-capacitor-build", "version": "1.0.0", "private": true }
+EOF
 npm install @capacitor/core @capacitor/cli @capacitor/android >/dev/null
 npm install @capacitor/filesystem @capacitor/share >/dev/null
 

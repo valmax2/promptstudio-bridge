@@ -114,6 +114,12 @@ dependencies {
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.activity.compose)
+    // Pin esplicito: senza questa dichiarazione Gradle risolve androidx.fragment a una
+    // versione transitiva vecchia (via androidx.biometric), incompatibile con
+    // androidx.activity-compose per il calcolo dei requestCode di ActivityResultLauncher
+    // (crash "Can only use lower 16 bits for requestCode" su MainActivity, che estende
+    // FragmentActivity per ospitare BiometricPrompt).
+    implementation(libs.androidx.fragment.ktx)
 
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.ui)

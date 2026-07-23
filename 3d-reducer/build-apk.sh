@@ -39,6 +39,7 @@ cd "$BUILD"
 echo "▶ Inizializzo il progetto npm e installo Capacitor"
 npm init -y >/dev/null
 npm install @capacitor/core @capacitor/cli @capacitor/android >/dev/null
+npm install @capacitor/filesystem @capacitor/share >/dev/null
 
 echo "▶ Inizializzo Capacitor ($APP_ID)"
 npx cap init "$APP_NAME" "$APP_ID" --web-dir=www

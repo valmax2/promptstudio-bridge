@@ -47,13 +47,19 @@ class GenerateImageUseCase(
             return@flow
         }
 
-        val availableRam = hardwareAnalyzer.availableRamMb()
-        if (availableRam < model.minRamMb) {
+        // minRamMb (dal manifest.json del modello, vedi docs/MODEL_CONVERSION.md) indica la RAM
+        // TOTALE del dispositivo consigliata, non la RAM libera in questo istante: su Android la
+        // RAM "disponibile" riportata dal sistema è quasi sempre bassa anche su device con molta
+        // RAM totale, perché il resto è occupato da processi in cache riutilizzabili dal kernel.
+        // Confrontare minRamMb con la RAM libera istantanea bloccherebbe la generazione quasi
+        // sempre, anche su dispositivi ampiamente compatibili (stessa metrica usata dal badge di
+        // compatibilità nella schermata Modelli, vedi ModelCompatibility.kt).
+        val totalRam = hardwareAnalyzer.snapshot().totalRamMb
+        if (totalRam < model.minRamMb) {
             emit(
                 GenerationUpdate.Finished(
                     GenerationResult.Error(
-                        "Memoria disponibile insufficiente (~$availableRam MB liberi, ne servono almeno ${model.minRamMb} MB). " +
-                            "Chiudi altre app, riduci la risoluzione o passa al profilo Base.",
+                        "RAM del dispositivo insufficiente per questo modello (~$totalRam MB totali, ne servono almeno ${model.minRamMb} MB).",
                     ),
                 ),
             )

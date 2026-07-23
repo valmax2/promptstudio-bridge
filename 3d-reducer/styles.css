@@ -42,8 +42,8 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);
 .pill{padding:7px 14px;border-radius:999px;border:none;background:var(--pill);color:var(--text);
   font-size:13px;font-weight:600;cursor:pointer;transition:.2s}
 .pill[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
-.icon-btn{width:34px;height:34px;border-radius:999px;border:none;background:var(--pill);
-  color:var(--text);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.2s}
+.icon-btn{width:42px;height:42px;border-radius:999px;border:none;background:var(--pill);
+  color:var(--text);font-size:21px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.2s}
 .pill:active,.icon-btn:active{transform:scale(.92)}
 
 /* ─── Viewport 3D ──────────────────────────────────────────────────────────── */

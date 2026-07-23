@@ -22,23 +22,37 @@ class ModelImportWorker(
 ) : CoroutineWorker(context, params) {
 
     override suspend fun doWork(): Result {
-        val treeUriString = inputData.getString(KEY_TREE_URI) ?: return Result.failure(
-            errorData("Nessuna cartella selezionata."),
-        )
-        val kind = inputData.getString(KEY_IMPORT_KIND) ?: KIND_MODEL
-        val treeUri = Uri.parse(treeUriString)
+        // Tutto il corpo è protetto da questo try/catch: le repository già
+        // convertono i propri errori in Result.failure, ma qualunque eccezione
+        // che sfuggisse comunque (es. da DocumentFile/SAF) andrebbe altrimenti
+        // a produrre un WorkInfo FAILED senza outputData, mostrando nell'app
+        // solo un messaggio generico senza nessun dettaglio diagnosticabile.
+        return try {
+            val treeUriString = inputData.getString(KEY_TREE_URI) ?: return Result.failure(
+                errorData("Nessuna cartella selezionata."),
+            )
+            val kind = inputData.getString(KEY_IMPORT_KIND) ?: KIND_MODEL
+            val treeUri = Uri.parse(treeUriString)
 
-        val outcome = if (kind == KIND_LORA) {
-            loraRepository.importLora(treeUri).map { it.id }
-        } else {
-            modelRepository.importModel(treeUri).map { it.id }
+            val outcome = if (kind == KIND_LORA) {
+                loraRepository.importLora(treeUri).map { it.id }
+            } else {
+                modelRepository.importModel(treeUri).map { it.id }
+            }
+
+            outcome.fold(
+                onSuccess = { id -> Result.success(Data.Builder().putString(KEY_RESULT_ID, id).build()) },
+                onFailure = { error -> Result.failure(errorData(describe(error))) },
+            )
+        } catch (cancellation: kotlinx.coroutines.CancellationException) {
+            throw cancellation
+        } catch (error: Throwable) {
+            Result.failure(errorData(describe(error)))
         }
-
-        return outcome.fold(
-            onSuccess = { id -> Result.success(Data.Builder().putString(KEY_RESULT_ID, id).build()) },
-            onFailure = { error -> Result.failure(errorData(error.message ?: "Import non riuscito.")) },
-        )
     }
+
+    private fun describe(error: Throwable): String =
+        error.message ?: "${error::class.simpleName}: nessun dettaglio disponibile."
 
     private fun errorData(message: String) = Data.Builder().putString(KEY_ERROR_MESSAGE, message).build()
 

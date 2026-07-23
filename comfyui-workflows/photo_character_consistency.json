@@ -1,0 +1,363 @@
+{
+  "last_node_id": 17,
+  "last_link_id": 22,
+  "nodes": [
+    {
+      "id": 1,
+      "type": "CheckpointLoaderSimple",
+      "pos": [60, 100],
+      "size": {"0": 315, "1": 98},
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {"name": "MODEL",  "type": "MODEL", "links": [7],    "slot_index": 0},
+        {"name": "CLIP",   "type": "CLIP",  "links": [1, 2], "slot_index": 1},
+        {"name": "VAE",    "type": "VAE",   "links": [3],    "slot_index": 2}
+      ],
+      "properties": {"Node name for S&R": "CheckpointLoaderSimple"},
+      "widgets_values": ["dreamshaper_8.safetensors"]
+    },
+    {
+      "id": 2,
+      "type": "CLIPTextEncode",
+      "pos": [510, 50],
+      "size": {"0": 422, "1": 164},
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [
+        {"name": "clip", "type": "CLIP", "link": 1, "slot_index": 0}
+      ],
+      "outputs": [
+        {"name": "CONDITIONING", "type": "CONDITIONING", "links": [10, 13], "slot_index": 0}
+      ],
+      "properties": {"Node name for S&R": "CLIPTextEncode"},
+      "widgets_values": ["masterpiece, best quality, 1girl, detailed face, cinematic lighting, photorealistic"]
+    },
+    {
+      "id": 3,
+      "type": "CLIPTextEncode",
+      "pos": [510, 270],
+      "size": {"0": 422, "1": 164},
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [
+        {"name": "clip", "type": "CLIP", "link": 2, "slot_index": 0}
+      ],
+      "outputs": [
+        {"name": "CONDITIONING", "type": "CONDITIONING", "links": [11, 14], "slot_index": 0}
+      ],
+      "properties": {"Node name for S&R": "CLIPTextEncode"},
+      "widgets_values": ["lowres, bad anatomy, bad hands, text, error, blurry, watermark, ugly, deformed"]
+    },
+    {
+      "id": 4,
+      "type": "LoadImage",
+      "pos": [60, 470],
+      "size": {"0": 315, "1": 314},
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {"name": "IMAGE", "type": "IMAGE", "links": [6],   "slot_index": 0},
+        {"name": "MASK",  "type": "MASK",  "links": null,  "slot_index": 1}
+      ],
+      "properties": {"Node name for S&R": "LoadImage"},
+      "widgets_values": ["reference_photo.png", "image"]
+    },
+    {
+      "id": 5,
+      "type": "CLIPVisionLoader",
+      "pos": [60, 340],
+      "size": {"0": 315, "1": 58},
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {"name": "CLIP_VISION", "type": "CLIP_VISION", "links": [4], "slot_index": 0}
+      ],
+      "properties": {"Node name for S&R": "CLIPVisionLoader"},
+      "widgets_values": ["clip_vision_g.safetensors"]
+    },
+    {
+      "id": 6,
+      "type": "IPAdapterModelLoader",
+      "pos": [60, 830],
+      "size": {"0": 315, "1": 58},
+      "flags": {},
+      "order": 5,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {"name": "IPADAPTER", "type": "IPADAPTER", "links": [5], "slot_index": 0}
+      ],
+      "properties": {"Node name for S&R": "IPAdapterModelLoader"},
+      "widgets_values": ["ip-adapter-plus_sd15.bin"]
+    },
+    {
+      "id": 7,
+      "type": "IPAdapter",
+      "pos": [820, 380],
+      "size": {"0": 315, "1": 230},
+      "flags": {},
+      "order": 6,
+      "mode": 0,
+      "inputs": [
+        {"name": "model",       "type": "MODEL",       "link": 7,    "slot_index": 0},
+        {"name": "ipadapter",   "type": "IPADAPTER",   "link": 5,    "slot_index": 1},
+        {"name": "image",       "type": "IMAGE",        "link": 6,    "slot_index": 2},
+        {"name": "clip_vision", "type": "CLIP_VISION", "link": 4,    "slot_index": 3},
+        {"name": "attn_mask",   "type": "MASK",         "link": null, "slot_index": 4}
+      ],
+      "outputs": [
+        {"name": "MODEL", "type": "MODEL", "links": [8, 9], "slot_index": 0}
+      ],
+      "properties": {"Node name for S&R": "IPAdapter"},
+      "widgets_values": [1.0]
+    },
+    {
+      "id": 8,
+      "type": "EmptyLatentImage",
+      "pos": [820, 740],
+      "size": {"0": 315, "1": 106},
+      "flags": {},
+      "order": 7,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {"name": "LATENT", "type": "LATENT", "links": [12], "slot_index": 0}
+      ],
+      "properties": {"Node name for S&R": "EmptyLatentImage"},
+      "widgets_values": [512, 512, 1]
+    },
+    {
+      "id": 9,
+      "type": "EmptyLatentImage",
+      "pos": [820, 970],
+      "size": {"0": 315, "1": 106},
+      "flags": {},
+      "order": 8,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {"name": "LATENT", "type": "LATENT", "links": [16], "slot_index": 0}
+      ],
+      "properties": {"Node name for S&R": "EmptyLatentImage"},
+      "widgets_values": [512, 512, 16]
+    },
+    {
+      "id": 10,
+      "type": "KSampler",
+      "pos": [1200, 100],
+      "size": {"0": 315, "1": 262},
+      "flags": {},
+      "order": 9,
+      "mode": 0,
+      "inputs": [
+        {"name": "model",        "type": "MODEL",       "link": 8,  "slot_index": 0},
+        {"name": "positive",     "type": "CONDITIONING","link": 10, "slot_index": 1},
+        {"name": "negative",     "type": "CONDITIONING","link": 11, "slot_index": 2},
+        {"name": "latent_image", "type": "LATENT",      "link": 12, "slot_index": 3}
+      ],
+      "outputs": [
+        {"name": "LATENT", "type": "LATENT", "links": [18], "slot_index": 0}
+      ],
+      "properties": {"Node name for S&R": "KSampler"},
+      "widgets_values": [42, "randomize", 20, 7.0, "euler", "normal", 1.0]
+    },
+    {
+      "id": 11,
+      "type": "ADE_UniformContextOptions",
+      "pos": [820, 1130],
+      "size": {"0": 315, "1": 200},
+      "flags": {},
+      "order": 10,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {"name": "CONTEXT_OPTIONS", "type": "CONTEXT_OPTIONS", "links": [15], "slot_index": 0}
+      ],
+      "properties": {"Node name for S&R": "ADE_UniformContextOptions"},
+      "widgets_values": [16, 1, 4, "uniform", false]
+    },
+    {
+      "id": 12,
+      "type": "ADE_AnimateDiffLoaderWithContext",
+      "pos": [1200, 740],
+      "size": {"0": 315, "1": 170},
+      "flags": {},
+      "order": 11,
+      "mode": 0,
+      "inputs": [
+        {"name": "model",           "type": "MODEL",           "link": 9,  "slot_index": 0},
+        {"name": "context_options", "type": "CONTEXT_OPTIONS", "link": 15, "slot_index": 1}
+      ],
+      "outputs": [
+        {"name": "MODEL", "type": "MODEL", "links": [17], "slot_index": 0}
+      ],
+      "properties": {"Node name for S&R": "ADE_AnimateDiffLoaderWithContext"},
+      "widgets_values": ["mm_sd_v15_v2.ckpt"]
+    },
+    {
+      "id": 13,
+      "type": "KSampler",
+      "pos": [1580, 740],
+      "size": {"0": 315, "1": 262},
+      "flags": {},
+      "order": 12,
+      "mode": 0,
+      "inputs": [
+        {"name": "model",        "type": "MODEL",        "link": 17, "slot_index": 0},
+        {"name": "positive",     "type": "CONDITIONING", "link": 13, "slot_index": 1},
+        {"name": "negative",     "type": "CONDITIONING", "link": 14, "slot_index": 2},
+        {"name": "latent_image", "type": "LATENT",       "link": 16, "slot_index": 3}
+      ],
+      "outputs": [
+        {"name": "LATENT", "type": "LATENT", "links": [19], "slot_index": 0}
+      ],
+      "properties": {"Node name for S&R": "KSampler"},
+      "widgets_values": [42, "randomize", 20, 7.0, "euler", "normal", 1.0]
+    },
+    {
+      "id": 14,
+      "type": "ImpactSwitch",
+      "pos": [2200, 380],
+      "size": {"0": 315, "1": 170},
+      "flags": {},
+      "order": 13,
+      "mode": 0,
+      "inputs": [
+        {"name": "input1", "type": "*", "link": 18, "slot_index": 0},
+        {"name": "input2", "type": "*", "link": 19, "slot_index": 1}
+      ],
+      "outputs": [
+        {"name": "selected_opt", "type": "*", "links": [20], "slot_index": 0}
+      ],
+      "properties": {"Node name for S&R": "ImpactSwitch"},
+      "widgets_values": [1]
+    },
+    {
+      "id": 15,
+      "type": "VAEDecode",
+      "pos": [2580, 380],
+      "size": {"0": 210, "1": 46},
+      "flags": {},
+      "order": 14,
+      "mode": 0,
+      "inputs": [
+        {"name": "samples", "type": "LATENT", "link": 20, "slot_index": 0},
+        {"name": "vae",     "type": "VAE",    "link": 3,  "slot_index": 1}
+      ],
+      "outputs": [
+        {"name": "IMAGE", "type": "IMAGE", "links": [21, 22], "slot_index": 0}
+      ],
+      "properties": {"Node name for S&R": "VAEDecode"},
+      "widgets_values": []
+    },
+    {
+      "id": 16,
+      "type": "PreviewImage",
+      "pos": [2860, 180],
+      "size": {"0": 400, "1": 430},
+      "flags": {},
+      "order": 15,
+      "mode": 0,
+      "inputs": [
+        {"name": "images", "type": "IMAGE", "link": 21, "slot_index": 0}
+      ],
+      "outputs": [],
+      "properties": {"Node name for S&R": "PreviewImage"},
+      "widgets_values": []
+    },
+    {
+      "id": 17,
+      "type": "VHS_VideoCombine",
+      "pos": [2860, 660],
+      "size": {"0": 315, "1": 320},
+      "flags": {},
+      "order": 16,
+      "mode": 0,
+      "inputs": [
+        {"name": "images",      "type": "IMAGE",           "link": 22,   "slot_index": 0},
+        {"name": "audio",       "type": "AUDIO",           "link": null,  "slot_index": 1},
+        {"name": "meta_batch",  "type": "VHS_BatchManager","link": null,  "slot_index": 2}
+      ],
+      "outputs": [
+        {"name": "Filenames", "type": "VHS_FILENAMES", "links": [], "slot_index": 0}
+      ],
+      "properties": {"Node name for S&R": "VHS_VideoCombine"},
+      "widgets_values": [8, 0, "PS_Animation", "video/h264-mp4", false, true]
+    }
+  ],
+  "links": [
+    [1,  1,  1,  2,  0, "CLIP"],
+    [2,  1,  1,  3,  0, "CLIP"],
+    [3,  1,  2, 15,  1, "VAE"],
+    [4,  5,  0,  7,  3, "CLIP_VISION"],
+    [5,  6,  0,  7,  1, "IPADAPTER"],
+    [6,  4,  0,  7,  2, "IMAGE"],
+    [7,  1,  0,  7,  0, "MODEL"],
+    [8,  7,  0, 10,  0, "MODEL"],
+    [9,  7,  0, 12,  0, "MODEL"],
+    [10, 2,  0, 10,  1, "CONDITIONING"],
+    [11, 3,  0, 10,  2, "CONDITIONING"],
+    [12, 8,  0, 10,  3, "LATENT"],
+    [13, 2,  0, 13,  1, "CONDITIONING"],
+    [14, 3,  0, 13,  2, "CONDITIONING"],
+    [15, 11, 0, 12,  1, "CONTEXT_OPTIONS"],
+    [16, 9,  0, 13,  3, "LATENT"],
+    [17, 12, 0, 13,  0, "MODEL"],
+    [18, 10, 0, 14,  0, "LATENT"],
+    [19, 13, 0, 14,  1, "LATENT"],
+    [20, 14, 0, 15,  0, "LATENT"],
+    [21, 15, 0, 16,  0, "IMAGE"],
+    [22, 15, 0, 17,  0, "IMAGE"]
+  ],
+  "groups": [
+    {
+      "title": "📸 FOTO DI RIFERIMENTO — Coerenza Personaggio",
+      "bounding": [40, 280, 400, 620],
+      "color": "#8B5E3C",
+      "font_size": 14,
+      "locked": false
+    },
+    {
+      "title": "✍️ PROMPT Positivo / Negativo",
+      "bounding": [490, 30, 460, 430],
+      "color": "#3d5c2e",
+      "font_size": 14,
+      "locked": false
+    },
+    {
+      "title": "🎨 PATH A — Immagine Statica  (ImpactSwitch = 1)",
+      "bounding": [790, 710, 760, 280],
+      "color": "#1c3a5c",
+      "font_size": 14,
+      "locked": false
+    },
+    {
+      "title": "🎬 PATH B — Animazione AnimateDiff  (ImpactSwitch = 2)",
+      "bounding": [790, 940, 1150, 440],
+      "color": "#5c1c3a",
+      "font_size": 14,
+      "locked": false
+    },
+    {
+      "title": "🔀 INTERRUTTORE  →  1 = Immagine  |  2 = Animazione",
+      "bounding": [2170, 340, 390, 240],
+      "color": "#5c4a1c",
+      "font_size": 14,
+      "locked": false
+    }
+  ],
+  "config": {},
+  "extra": {
+    "ds": {"scale": 0.65, "offset": [0, 0]}
+  },
+  "version": 0.4
+}

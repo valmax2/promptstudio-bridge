@@ -616,12 +616,44 @@ el.ratio.addEventListener('input', () => {
 });
 
 // ─── Export ────────────────────────────────────────────────────────────────────
-function download(blob, filename) {
+function blobToBase64(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(String(reader.result).split(',')[1]);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
+
+// Nell'app nativa <a download> non funziona (il WebView di Android non ha un
+// download manager come Chrome): scriviamo il file con il plugin Filesystem e
+// apriamo il foglio "Condividi/Salva con…" di Android, così l'utente sceglie
+// davvero dove salvarlo (Drive, Download, un'altra app…). Sul web/PWA resta
+// il download del browser, invariato.
+async function download(blob, filename) {
+  if (isNative()) {
+    const FS = window.Capacitor.Plugins.Filesystem;
+    const ShareP = window.Capacitor.Plugins.Share;
+    if (!FS) { toast('Salvataggio non disponibile su questa build'); return; }
+    try {
+      const base64 = await blobToBase64(blob);
+      const written = await FS.writeFile({ path: filename, data: base64, directory: 'CACHE' });
+      if (ShareP) {
+        await ShareP.share({ title: filename, url: written.uri, dialogTitle: 'Salva ' + filename });
+      } else {
+        toast(filename + ' pronto — plugin Condividi non disponibile');
+      }
+    } catch (e) {
+      toast('Salvataggio non riuscito: ' + (e && e.message ? e.message : 'errore'));
+    }
+    return;
+  }
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url; a.download = filename;
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 4000);
+  toast(filename + ' salvato · ' + fmtBytes(blob.size));
 }
 function baseName() {
   const n = el.fileName.textContent.replace(/\.(obj|stl)$/i, '');
@@ -631,19 +663,17 @@ function baseName() {
 
 // esporta dalla geometria nelle coordinate originali (ignora la rotazione di visualizzazione)
 function exportMesh() { return new THREE.Mesh(currentGeometry); }
-el.exportStl.addEventListener('click', () => {
+el.exportStl.addEventListener('click', async () => {
   const dv = new STLExporter().parse(exportMesh(), { binary: true });
   const blob = new Blob([dv], { type: 'application/octet-stream' });
-  download(blob, baseName() + '.stl');
-  toast('STL salvato · ' + fmtBytes(blob.size));
+  await download(blob, baseName() + '.stl');
   adAfterExport();
 });
-el.exportObj.addEventListener('click', () => {
+el.exportObj.addEventListener('click', async () => {
   const txt = new OBJExporter().parse(exportMesh());
   // octet-stream: forza il download come vero file .obj (evita che Android lo salvi come .txt)
   const blob = new Blob([txt], { type: 'application/octet-stream' });
-  download(blob, baseName() + '.obj');
-  toast('OBJ salvato · ' + fmtBytes(blob.size));
+  await download(blob, baseName() + '.obj');
   adAfterExport();
 });
 
@@ -661,7 +691,7 @@ el.fileInput.addEventListener('change', (e) => { if (e.target.files[0]) handleFi
 viewport.addEventListener('drop', (e) => { const f = e.dataTransfer.files[0]; if (f) handleFile(f); });
 
 // ─── Versione app (per verificare gli aggiornamenti) ────────────────────────
-const APP_VERSION = 'v16';
+const APP_VERSION = 'v17';
 if (el.appVer) el.appVer.textContent = 'Poly Reducer 3D · ' + APP_VERSION;
 
 // ─── Service worker (offline / installazione PWA) ───────────────────────────────

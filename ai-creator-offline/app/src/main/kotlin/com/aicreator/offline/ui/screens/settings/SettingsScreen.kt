@@ -59,7 +59,9 @@ fun SettingsScreen(container: AppContainer) {
             SettingsSwitchRow("Blocca screenshot", settings.blockScreenshots, viewModel::setBlockScreenshots)
             SettingsSwitchRow("Nascondi anteprima nelle app recenti", settings.hideRecentsPreview, viewModel::setHideRecentsPreview)
             Text(
-                "Blocco screenshot e anteprima recenti usano la stessa protezione di sistema (FLAG_SECURE): attivarne uno protegge anche l'altro caso d'uso.",
+                "Blocco screenshot e anteprima recenti usano la stessa protezione di sistema (FLAG_SECURE): " +
+                    "basta attivarne uno per proteggere anche l'altro caso d'uso, ma per tornare a poter fare " +
+                    "screenshot devi disattivarli ENTRAMBI, altrimenti la protezione resta attiva.",
                 style = MaterialTheme.typography.bodyMedium,
             )
         }

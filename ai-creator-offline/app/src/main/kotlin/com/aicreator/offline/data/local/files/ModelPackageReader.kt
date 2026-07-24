@@ -53,6 +53,7 @@ class ModelPackageReader(private val context: Context) {
     private fun copyRecursive(source: DocumentFile, destinationDir: File) {
         for (child in source.listFiles()) {
             val name = child.name ?: continue
+            if (name in KNOWN_JUNK_FILE_NAMES) continue
             if (child.isDirectory) {
                 val subDir = File(destinationDir, name).apply { mkdirs() }
                 copyRecursive(child, subDir)
@@ -88,5 +89,15 @@ class ModelPackageReader(private val context: Context) {
         const val MANIFEST_FILE_NAME = "manifest.json"
         const val LORA_MANIFEST_FILE_NAME = "lora_manifest.json"
         const val MODEL_SUBDIRECTORY = "model"
+
+        /**
+         * File "spazzatura" che il sistema operativo del PC lascia spesso dentro le cartelle
+         * copiate via cavo/MTP (es. Esplora file di Windows in vista miniature, macOS Finder).
+         * Non facevano parte del pacchetto originale creato da make_model_package.py, quindi
+         * se finiscono copiati sul telefono il checksum calcolato non corrisponde più a quello
+         * dichiarato in manifest.json: li saltiamo in copia così non arrivano mai nello storage
+         * privato dell'app né nel calcolo del checksum.
+         */
+        val KNOWN_JUNK_FILE_NAMES = setOf("Thumbs.db", "ehthumbs.db", "desktop.ini", ".DS_Store", "Icon\r")
     }
 }

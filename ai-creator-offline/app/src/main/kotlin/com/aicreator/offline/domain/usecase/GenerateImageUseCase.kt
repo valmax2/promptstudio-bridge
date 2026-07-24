@@ -1,5 +1,6 @@
 package com.aicreator.offline.domain.usecase
 
+import com.aicreator.offline.data.local.datastore.SettingsDataStore
 import com.aicreator.offline.domain.conditioning.CharacterConditioningModule
 import com.aicreator.offline.domain.conditioning.ConditioningPlan
 import com.aicreator.offline.domain.engine.EnginePrepareResult
@@ -7,6 +8,7 @@ import com.aicreator.offline.domain.engine.GenerationUpdate
 import com.aicreator.offline.domain.engine.InferenceEngine
 import com.aicreator.offline.domain.engine.InferenceEngineFactory
 import com.aicreator.offline.domain.hardware.DeviceCapabilityAnalyzer
+import com.aicreator.offline.domain.hardware.DeviceProfileRecommender
 import com.aicreator.offline.domain.model.CharacterMode
 import com.aicreator.offline.domain.model.GenerationRequest
 import com.aicreator.offline.domain.model.GenerationResult
@@ -15,6 +17,7 @@ import com.aicreator.offline.domain.repository.LoraRepository
 import com.aicreator.offline.domain.repository.ModelRepository
 import com.aicreator.offline.domain.translation.OfflinePromptTranslator
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 
 /**
@@ -29,6 +32,7 @@ class GenerateImageUseCase(
     private val historyRepository: HistoryRepository,
     private val engineFactory: InferenceEngineFactory,
     private val hardwareAnalyzer: DeviceCapabilityAnalyzer,
+    private val settingsDataStore: SettingsDataStore,
     private val translator: OfflinePromptTranslator,
     private val faceConditioning: CharacterConditioningModule,
     private val fullBodyConditioning: CharacterConditioningModule,
@@ -70,7 +74,27 @@ class GenerateImageUseCase(
             return@flow
         }
 
-        val loras = loraRepository.getLoras(request.params.loraIds).filter { it.isEnabled }
+        // Il profilo di sicurezza (temperatura, batteria, RAM) calcolato da DeviceProfileRecommender
+        // era finora mostrato solo come testo in Home/Diagnostica ma mai applicato qui: un dispositivo
+        // in stato termico critico o quasi scarico poteva comunque essere spinto a passi/risoluzione
+        // massimi. Lo applichiamo davvero: se la generazione è disattivata (maxSteps 0) blocchiamo,
+        // altrimenti limitiamo passi e risoluzione richiesti al tetto raccomandato per lo stato attuale.
+        val recommendation = DeviceProfileRecommender.recommend(hardwareAnalyzer.snapshot())
+        if (recommendation.maxSteps <= 0) {
+            emit(GenerationUpdate.Finished(GenerationResult.Error(recommendation.reasoning)))
+            return@flow
+        }
+        val batterySaverPreferred = settingsDataStore.settings.first().batterySaverPreferred
+        val maxSteps = if (batterySaverPreferred) recommendation.maxSteps.coerceAtMost(10) else recommendation.maxSteps
+        val maxResolution = minOf(model.recommendedResolution, recommendation.maxResolution)
+        val cappedParams = request.params.copy(
+            steps = request.params.steps.coerceAtMost(maxSteps),
+            width = request.params.width.coerceAtMost(maxResolution),
+            height = request.params.height.coerceAtMost(maxResolution),
+        )
+        val cappedRequest = request.copy(params = cappedParams)
+
+        val loras = loraRepository.getLoras(cappedRequest.params.loraIds).filter { it.isEnabled }
         val engine = engineFactory.engineFor(model.engine)
         activeEngine = engine
 
@@ -82,10 +106,10 @@ class GenerateImageUseCase(
             is EnginePrepareResult.Ready -> prepared.capabilities
         }
 
-        val characterMode = request.params.characterMode
+        val characterMode = cappedRequest.params.characterMode
         if (characterMode != null) {
             val module = if (characterMode == CharacterMode.PORTRAIT) faceConditioning else fullBodyConditioning
-            val plan = module.plan(request.params.referenceImageUri, request.params.referenceStrength, request.params.faceConsistencyStrength)
+            val plan = module.plan(cappedRequest.params.referenceImageUri, cappedRequest.params.referenceStrength, cappedRequest.params.faceConsistencyStrength)
             if (plan is ConditioningPlan.Rejected) {
                 emit(GenerationUpdate.Finished(GenerationResult.Error(plan.reason)))
                 return@flow
@@ -109,15 +133,15 @@ class GenerateImageUseCase(
             }
         }
 
-        val translatedParams = if (request.params.translatePromptToEnglish) {
-            request.params.copy(
-                positivePrompt = translator.translate(request.params.positivePrompt),
-                negativePrompt = translator.translate(request.params.negativePrompt),
+        val translatedParams = if (cappedRequest.params.translatePromptToEnglish) {
+            cappedRequest.params.copy(
+                positivePrompt = translator.translate(cappedRequest.params.positivePrompt),
+                negativePrompt = translator.translate(cappedRequest.params.negativePrompt),
             )
         } else {
-            request.params
+            cappedRequest.params
         }
-        val finalRequest = request.copy(params = translatedParams)
+        val finalRequest = cappedRequest.copy(params = translatedParams)
         val startedAt = System.currentTimeMillis()
 
         engine.generate(finalRequest).collect { update ->

@@ -59,7 +59,7 @@ class AppContainer(context: Context) {
     val modelRepository: ModelRepository = ModelRepositoryImpl(database.modelDao(), packageReader, storage)
     val loraRepository: LoraRepository = LoraRepositoryImpl(database.loraDao(), packageReader, storage)
     val presetRepository: PresetRepository = PresetRepositoryImpl(database.presetDao())
-    val historyRepository: HistoryRepository = HistoryRepositoryImpl(database.historyDao())
+    val historyRepository: HistoryRepository = HistoryRepositoryImpl(database.historyDao(), storage)
     val galleryRepository: GalleryRepository = GalleryRepositoryImpl(database.historyDao(), storage)
     val characterRepository: CharacterRepository = CharacterRepositoryImpl(database.characterDao(), storage)
 
@@ -69,6 +69,7 @@ class AppContainer(context: Context) {
         historyRepository = historyRepository,
         engineFactory = engineFactory,
         hardwareAnalyzer = deviceCapabilityAnalyzer,
+        settingsDataStore = settingsDataStore,
         translator = translator,
         faceConditioning = faceConditioning,
         fullBodyConditioning = fullBodyConditioning,
@@ -82,6 +83,7 @@ class AppContainer(context: Context) {
         characterRepository = characterRepository,
         storage = storage,
         settingsDataStore = settingsDataStore,
+        database = database,
     )
     val importModelUseCase = ImportModelUseCase(appContext)
     val characterSelectionHolder = CharacterSelectionHolder()

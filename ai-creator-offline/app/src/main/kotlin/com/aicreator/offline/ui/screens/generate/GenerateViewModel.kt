@@ -165,10 +165,14 @@ class GenerateViewModel(
 
     private fun refreshMemoryEstimate() {
         val model = _state.value.selectedModel
+        val snapshot = hardwareAnalyzer.snapshot()
+        // Va confrontata con la RAM TOTALE del dispositivo, non quella libera in questo istante
+        // (quasi sempre bassa per design di Android anche su device capaci): stessa metrica usata
+        // dal gate reale in GenerateImageUseCase e dal badge di compatibilità in Modelli.
         _state.value = _state.value.copy(
-            availableRamMb = hardwareAnalyzer.availableRamMb(),
+            availableRamMb = snapshot.totalRamMb,
             estimatedRequiredRamMb = model?.minRamMb ?: 0,
-            thermalWarning = thermalWarningFor(hardwareAnalyzer.snapshot().thermalStatus),
+            thermalWarning = thermalWarningFor(snapshot.thermalStatus),
         )
     }
 

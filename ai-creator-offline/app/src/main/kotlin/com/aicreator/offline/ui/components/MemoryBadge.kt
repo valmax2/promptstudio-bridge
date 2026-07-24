@@ -31,9 +31,9 @@ fun MemoryEstimateBadge(availableRamMb: Int, requiredRamMb: Int, modifier: Modif
             )
             Text(
                 text = if (sufficient) {
-                    "Memoria stimata sufficiente: $requiredRamMb MB richiesti, $availableRamMb MB liberi"
+                    "RAM del dispositivo sufficiente: $requiredRamMb MB richiesti, $availableRamMb MB totali"
                 } else {
-                    "Memoria insufficiente: servono ~$requiredRamMb MB, ne sono liberi $availableRamMb MB"
+                    "RAM del dispositivo insufficiente: servono ~$requiredRamMb MB, il dispositivo ne ha $availableRamMb MB totali"
                 },
                 color = contentColor,
                 style = MaterialTheme.typography.bodyMedium,

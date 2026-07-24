@@ -3,15 +3,22 @@ package com.aicreator.offline.data.repository
 import com.aicreator.offline.data.local.db.dao.HistoryDao
 import com.aicreator.offline.data.local.db.entities.HistoryEntity
 import com.aicreator.offline.data.local.db.toDomain
+import com.aicreator.offline.data.local.files.PrivateStorageManager
 import com.aicreator.offline.domain.model.GenerationMetadata
 import com.aicreator.offline.domain.model.GenerationParams
 import com.aicreator.offline.domain.model.GenerationStatus
 import com.aicreator.offline.domain.model.HistoryEntry
 import com.aicreator.offline.domain.repository.HistoryRepository
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.withContext
 
-class HistoryRepositoryImpl(private val dao: HistoryDao) : HistoryRepository {
+class HistoryRepositoryImpl(
+    private val dao: HistoryDao,
+    private val storage: PrivateStorageManager,
+) : HistoryRepository {
 
     override fun observeHistory(): Flow<List<HistoryEntry>> = dao.observeAll().map { list -> list.map { it.toDomain() } }
 
@@ -31,9 +38,16 @@ class HistoryRepositoryImpl(private val dao: HistoryDao) : HistoryRepository {
 
     override suspend fun setFavorite(id: String, isFavorite: Boolean) = dao.setFavorite(id, isFavorite)
 
-    override suspend fun deleteEntry(id: String) = dao.deleteById(id)
+    override suspend fun deleteEntry(id: String) = withContext(Dispatchers.IO) {
+        val entry = dao.findById(id) ?: return@withContext
+        entry.resultImagePath?.let { storage.secureDelete(it) }
+        dao.deleteById(id)
+    }
 
-    override suspend fun clearAll() = dao.deleteAll()
+    override suspend fun clearAll() = withContext(Dispatchers.IO) {
+        dao.observeAll().first().forEach { entry -> entry.resultImagePath?.let { storage.secureDelete(it) } }
+        dao.deleteAll()
+    }
 
     private fun entityFor(
         requestId: String,

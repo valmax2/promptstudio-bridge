@@ -33,6 +33,16 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun historyDao(): HistoryDao
     abstract fun characterDao(): CharacterDao
 
+    /**
+     * Usato da "Cancella tutti i dati" dopo aver svuotato ogni tabella: le righe rimosse con
+     * DELETE restano fisicamente nelle pagine libere del file cifrato finché non vengono
+     * sovrascritte, quindi in teoria recuperabili con la stessa chiave finché il file non viene
+     * compattato. VACUUM riscrive il file compattandolo, eliminando questi residui.
+     */
+    fun vacuum() {
+        openHelper.writableDatabase.execSQL("VACUUM")
+    }
+
     companion object {
         private const val DATABASE_NAME = "aicreator_offline.db"
 

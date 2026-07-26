@@ -498,6 +498,7 @@ function paintSetup(el) {
       teamAName, teamBName, teamAPlayers, teamBPlayers,
       mode: setupMode,
       goldenPoint: settings.goldenPoint,
+      killerPointRule: !settings.goldenPoint && settings.killerPoint,
       superTiebreak3rdSet: settings.superTiebreak3rdSet,
       startingServer: setupServer,
       startingServerPlayerIdx: setupServerPlayerIdx,

@@ -16,6 +16,13 @@ const DEFAULT_STATE = {
     // of the chosen voice so announcements sound less robotic.
     ttsVoiceMode: 'natural',
     goldenPoint: true,
+    // Alternativa al punto d'oro (vedi js/scoring.js): sul 40 pari si gioca
+    // il vantaggio classico, ma se il vantaggio viene ripreso (vantaggio
+    // pari/ADV-ADV) il punto successivo chiude il game a prescindere da chi
+    // lo vince, invece di poter oscillare all'infinito. Ignorato se
+    // goldenPoint è attivo (il 40 pari decide già prima di arrivare al
+    // vantaggio).
+    killerPoint: false,
     superTiebreak3rdSet: true,
     cloudSyncEnabled: true,
     bleRemoteEnabled: false,

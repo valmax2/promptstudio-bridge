@@ -489,16 +489,18 @@ label { font-size: 0.85em; color: var(--text-dim); display: block; margin-bottom
   paint-order: stroke fill;
 }
 .sb-cap {
-  /* Scala col ➕ insieme al punteggio, così l'ingrandimento vale per tutto
-     il tabellone (punteggio + GAME + SET), non solo per il numero grande. */
-  font-size: calc(clamp(0.7rem, 2vw, 1.1rem) * var(--number-size-scale, 1));
+  /* NON scala più col ➕ (vedi .sb-mid sotto per il motivo): le righe di
+     GAME/SET nella griglia sono fisse e non crescono, quindi ingrandirli
+     insieme al punteggio li faceva tagliare/uscire su tablet larghi a
+     scala massima. Solo il punteggio grande (.sb-point sopra) cresce. */
+  font-size: clamp(0.7rem, 2vw, 1.1rem);
   font-weight: 700;
   letter-spacing: 0.12em;
   opacity: 0.85;
   background: rgba(0,0,0,0.22);
 }
 .sb-mid {
-  font-size: min(calc(14vw * var(--number-size-scale, 1)), 15vh);
+  font-size: min(14vw, 15vh);
   font-weight: 800;
   line-height: 1;
   background: rgba(0,0,0,0.14);

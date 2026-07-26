@@ -515,8 +515,12 @@ label { font-size: 0.85em; color: var(--text-dim); display: block; margin-bottom
 @media (orientation: landscape) {
   .sb-stack:not(.points-only) { grid-template-rows: 4fr 0.7fr 1fr 0.7fr 1fr; }
   .sb-point { font-size: min(calc(18vw * var(--number-size-scale, 1)), calc(40vh * var(--number-size-scale, 1))); }
-  .sb-cap { font-size: calc(clamp(0.55rem, 1.3vw, 0.85rem) * var(--number-size-scale, 1)); }
-  .sb-mid { font-size: min(calc(9vw * var(--number-size-scale, 1)), 22vh); }
+  /* A differenza del verticale, qui GAME/SET NON scalano più col ➕: le loro
+     righe di griglia (0.7fr/1fr) sono fisse e non crescono, quindi
+     ingrandirli li faceva tagliare/uscire dallo spazio assegnato. Solo il
+     punteggio grande (.sb-point sopra) cresce in orizzontale. */
+  .sb-cap { font-size: clamp(0.55rem, 1.3vw, 0.85rem); }
+  .sb-mid { font-size: min(9vw, 22vh); }
 }
 
 .sb-badge {

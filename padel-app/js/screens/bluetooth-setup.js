@@ -35,6 +35,11 @@ let addBindingHint = null;
 let wizardStep = null;
 let wizardSlot = 'A';
 let wizardCapturing = false;
+// Impostato dall'ultima wizardCapture() - il messaggio finale del wizard
+// deve dire cosa è stato davvero assegnato, non un testo fisso (il Nutale
+// Mate ottiene solo doppio click → punto, non lo schema singolo/doppio
+// standard - vedi commento in wizardCapture).
+let wizardLastCaptureNutale = false;
 
 // Rolling log of raw presses seen while this screen is open, newest first -
 // lets the user see with their own eyes whether a press is reaching the app
@@ -63,6 +68,7 @@ export async function renderBluetoothSetup(el) {
   lastConnectDiagnostics = null;
   lastConnectSubscribed = 0;
   diagnosticsOpen = false;
+  wizardLastCaptureNutale = false;
 
   const { settings } = getState();
   const nothingConfiguredYet = !settings.remoteBindings.length && !settings.bleTags.length;
@@ -220,7 +226,9 @@ function wizardCard() {
       ` : ''}
 
       ${wizardStep === 'done' ? `
-        <p>🎉 Fatto! ${slotLabel} può già segnare punti e annullare (doppio click).</p>
+        <p>🎉 Fatto! ${wizardLastCaptureNutale
+          ? `${slotLabel} può già segnare punti con un <strong>doppio click</strong> (il Nutale Mate non risponde al click singolo, è un limite del dispositivo).`
+          : `${slotLabel} può già segnare punti e annullare (doppio click).`}</p>
         <p class="small">Prova a premere il pulsante: dovresti vederlo comparire qui sopra in "Test dal vivo".</p>
         <button class="btn secondary block mt" id="wizard-add-another">➕ Aggiungi un altro dispositivo</button>
         <button class="btn primary block mt" id="wizard-finish">✓ Fine, torna alle impostazioni</button>
@@ -497,10 +505,19 @@ async function wizardCapture(el) {
     return;
   }
   const pointAction = wizardSlot === 'A' ? 'pointA' : 'pointB';
-  const newBindings = [
-    { pattern: 'single', action: pointAction },
-    { pattern: 'double', action: 'undo' },
-  ].map(({ pattern, action }) => ({
+  // Il Nutale Mate ha un limite di firmware: il click singolo non manda mai
+  // nessun segnale (solo il doppio click viene confermato dal device stesso
+  // con un beep) - assegnargli comunque "singolo → punto" per default
+  // creerebbe un'associazione morta che non scatta mai, lasciando l'utente
+  // a doversene accorgere da solo e a sistemarla a mano da Gestione
+  // avanzata. Qui rilevo il nome e assegno subito doppio click → punto,
+  // senza l'associazione singolo/annulla che su questo device non serve.
+  const isNutale = (capture.deviceName || '').toLowerCase().includes('nutale');
+  wizardLastCaptureNutale = isNutale;
+  const bindingSpecs = isNutale
+    ? [{ pattern: 'double', action: pointAction }]
+    : [{ pattern: 'single', action: pointAction }, { pattern: 'double', action: 'undo' }];
+  const newBindings = bindingSpecs.map(({ pattern, action }) => ({
     id: genId(),
     deviceDescriptor: capture.deviceDescriptor,
     deviceName: capture.deviceName || 'Telecomando',

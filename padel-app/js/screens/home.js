@@ -37,16 +37,9 @@ export async function renderHome(el) {
     </div>` : ''}
 
     <div class="card">
-      <div class="row between">
-        <h2>${t('homeNewMatch')}</h2>
-        <button class="btn ghost small" id="go-gamemodes">${t('homeModesBtn')}</button>
-      </div>
+      <h2>${t('homeNewMatch')}</h2>
       <p>${t('homeNewMatchDesc')}</p>
-      <button class="btn primary block" id="go-scoreboard">${t('homeDoublesSingles')}</button>
-      <div class="grid-2 mt">
-        <button class="btn secondary" id="go-americano">${t('homeAmericano')}</button>
-        <button class="btn secondary" id="go-killer">${t('homeKiller')}</button>
-      </div>
+      <button class="btn primary block" id="go-gamemodes">${t('homeModesBtn')}</button>
     </div>
 
     <button class="lite-mode-btn" id="go-lite-mode">
@@ -84,15 +77,12 @@ export async function renderHome(el) {
 
   el.querySelector('#go-login')?.addEventListener('click', () => navigate('login'));
   el.querySelector('#go-gamemodes').addEventListener('click', () => navigate('gamemodes'));
-  el.querySelector('#go-scoreboard').addEventListener('click', () => navigate('scoreboard'));
   el.querySelector('#go-lite-mode').addEventListener('click', () => {
     const ok = confirm(t('homeLiteConfirm'));
     if (!ok) return;
     updateSettings({ liteModeUser: true });
     navigate('scoreboard');
   });
-  el.querySelector('#go-americano').addEventListener('click', () => navigate('americano'));
-  el.querySelector('#go-killer').addEventListener('click', () => navigate('killer'));
   el.querySelector('#go-events').addEventListener('click', () => navigate('events'));
   el.querySelector('#go-stats').addEventListener('click', () => navigate('stats'));
   el.querySelector('#go-gami').addEventListener('click', () => navigate('gamification'));

@@ -85,9 +85,14 @@ function paintSetup(el) {
   });
 }
 
+// A Killer si gioca sempre col vantaggio classico (non punto d'oro): a 40
+// pari chi vince il punto va in vantaggio, se vince anche il successivo si
+// aggiudica il game, altrimenti si torna in parità - è una regola fissa del
+// gioco stesso, indipendente dall'impostazione generale "Punto d'oro" (che
+// altrimenti salterebbe questa fase e deciderebbe il game al primo punto
+// sul 40 pari).
 function freshRoundMatch() {
-  const { settings } = getState();
-  return createMatch({ goldenPoint: settings.goldenPoint, superTiebreak3rdSet: false });
+  return createMatch({ goldenPoint: false, superTiebreak3rdSet: false });
 }
 
 // ===== Play =====

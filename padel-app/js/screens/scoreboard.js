@@ -340,6 +340,10 @@ function paintSetup(el) {
             <label class="switch"><input type="checkbox" id="setup-golden" ${settings.goldenPoint ? 'checked' : ''}><span class="slider"></span></label>
           </div>
           <div class="toggle-row">
+            <div><strong>Punto Killer</strong><p class="mb0 small">Vantaggio classico, ma su vantaggio pari il punto dopo decide - ignorato se attivo il Punto d'oro</p></div>
+            <label class="switch"><input type="checkbox" id="setup-killer-point" ${settings.killerPoint ? 'checked' : ''} ${settings.goldenPoint ? 'disabled' : ''}><span class="slider"></span></label>
+          </div>
+          <div class="toggle-row">
             <div><strong>Super tie-break al 3° set</strong><p class="mb0 small">Il set decisivo si gioca al tie-break fino a 10</p></div>
             <label class="switch"><input type="checkbox" id="setup-super-tb" ${settings.superTiebreak3rdSet ? 'checked' : ''}><span class="slider"></span></label>
           </div>
@@ -420,7 +424,8 @@ function paintSetup(el) {
       b.classList.toggle('active', b.dataset.pickServer === btn.dataset.pickServer);
     });
   }));
-  el.querySelector('#setup-golden')?.addEventListener('change', (e) => updateSettings({ goldenPoint: e.target.checked }));
+  el.querySelector('#setup-golden')?.addEventListener('change', (e) => { updateSettings({ goldenPoint: e.target.checked }); paintSetup(el); });
+  el.querySelector('#setup-killer-point')?.addEventListener('change', (e) => updateSettings({ killerPoint: e.target.checked }));
   el.querySelector('#setup-super-tb')?.addEventListener('change', (e) => updateSettings({ superTiebreak3rdSet: e.target.checked }));
   el.querySelectorAll('[data-setup-time-announce]').forEach((btn) => btn.addEventListener('click', () => {
     updateSettings({ announceTimeEveryMatches: parseInt(btn.dataset.setupTimeAnnounce, 10) });

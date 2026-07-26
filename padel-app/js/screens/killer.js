@@ -1,4 +1,4 @@
-import { getState } from '../store.js';
+import { getState, updateSettings } from '../store.js';
 import { say, stopSpeech } from '../speech.js';
 import { escapeHtml } from '../utils.js';
 import { navigate } from '../router.js';
@@ -30,6 +30,7 @@ function paint(el) {
 // ===== Setup =====
 
 function paintSetup(el) {
+  const { settings } = getState();
   el.innerHTML = `
     <div class="topbar"><h1>🔪 Killer</h1><div class="subtitle">Eliminazione a vite, re del campo</div></div>
 
@@ -60,9 +61,25 @@ function paintSetup(el) {
       </div>
     </div>
 
+    ${setupTrigger === 'game' ? `
+    <div class="card">
+      <label>Opzioni game</label>
+      <div class="toggle-row">
+        <div><strong>Punto d'oro</strong><p class="mb0 small">A 40 pari, il punto successivo decide il gioco</p></div>
+        <label class="switch"><input type="checkbox" id="setup-golden" ${settings.goldenPoint ? 'checked' : ''}><span class="slider"></span></label>
+      </div>
+      <div class="toggle-row">
+        <div><strong>Punto Killer</strong><p class="mb0 small">Vantaggio classico, ma su vantaggio pari il punto dopo decide - ignorato se attivo il Punto d'oro</p></div>
+        <label class="switch"><input type="checkbox" id="setup-killer-point" ${settings.killerPoint ? 'checked' : ''} ${settings.goldenPoint ? 'disabled' : ''}><span class="slider"></span></label>
+      </div>
+    </div>
+    ` : ''}
+
     <button class="btn primary block" id="start-killer">Inizia</button>
   `;
 
+  el.querySelector('#setup-golden')?.addEventListener('change', (e) => { updateSettings({ goldenPoint: e.target.checked }); paintSetup(el); });
+  el.querySelector('#setup-killer-point')?.addEventListener('change', (e) => updateSettings({ killerPoint: e.target.checked }));
   el.querySelector('#add-player').addEventListener('click', () => { setupPlayers.push(''); paint(el); });
   el.querySelectorAll('[data-remove]').forEach((btn) => btn.addEventListener('click', () => {
     setupPlayers.splice(Number(btn.dataset.remove), 1);

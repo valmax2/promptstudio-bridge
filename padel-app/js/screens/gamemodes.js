@@ -8,7 +8,11 @@ const MODES = [
   },
   {
     icon: '🥇', title: "Punto d'oro (no-ad)",
-    body: "Chiamato anche Killer Point, Punto de Oro o Punto Secco: a 40 pari (parità) il punto successivo decide subito il gioco, invece di giocare vantaggio/parità all'infinito. Si attiva/disattiva in Impostazioni → Segnapunti (non è la modalità \"Killer\" qui sotto, che è un torneo a eliminazione diverso).",
+    body: "A 40 pari (parità) il punto successivo decide subito il gioco, invece di giocare vantaggio/parità. Si attiva/disattiva in Impostazioni → Partita, o direttamente da \"Nuova partita\" (non è la modalità \"Killer\" qui sotto, che è un torneo a eliminazione diverso).",
+  },
+  {
+    icon: '🔪', title: 'Punto Killer',
+    body: "Alternativa al Punto d'oro: si gioca il vantaggio classico normalmente, ma se chi era in vantaggio si fa riprendere (vantaggio pari), il punto successivo decide il gioco a prescindere da chi lo vince - niente oscillazione infinita. Ignorato se il Punto d'oro è attivo. Anche questo non è legato alla modalità \"Killer\" sotto, nonostante il nome.",
   },
   {
     icon: '🏁', title: 'Super tie-break al 3° set',

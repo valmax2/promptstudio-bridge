@@ -14,22 +14,18 @@ tutto funzioni sul telefono). Si attiva **solo nell'app nativa**: sul web/PWA no
 - **Rewarded** (video premiato): sblocca il **"dettaglio massimo"** (riduzione oltre l'88%) tramite `showRewarded()`.
 - Rispetta un flag **Pro**: se `pr3d-pro` è attivo, niente pubblicità.
 
-## Passi per attivarla davvero (sul PC)
-1. Installa il plugin nel progetto Capacitor:
-   ```bash
-   cd 3d-reducer
-   npm install @capacitor-community/admob
-   npx cap sync android
-   ```
-2. Metti l'**App ID** nel `AndroidManifest.xml` (`android/app/src/main/AndroidManifest.xml`), dentro `<application>`:
-   ```xml
-   <meta-data
-     android:name="com.google.android.gms.ads.APPLICATION_ID"
-     android:value="ca-app-pub-2590590501208291~8345014556"/>
-   ```
-3. Ricompila l'APK di debug e provalo sul telefono (`cd android && ./gradlew assembleDebug`) — con `TESTING = true` vedrai annunci di prova, sicuri da guardare/toccare.
-4. Quando confermi che funziona: in **`ads.js`** metti `TESTING = false`.
-5. Aumenta `versionCode` in `android/app/build.gradle` e ricompila l'AAB (`bash build-aab.sh`) per l'aggiornamento su Play Console.
+## Passi per attivarla davvero
+Il plugin nativo (`@capacitor-community/admob`) e l'App ID nel `AndroidManifest.xml`
+sono ormai automatizzati in `setup-android.sh`, `build-apk.sh` e `build-aab-ci.sh`
+(sia in locale sul PC sia nelle build via GitHub Actions) — non serve più farlo a mano.
+
+1. Compila un APK di debug (in locale con `bash build-apk.sh`, oppure via il workflow
+   GitHub Actions "Build Poly Reducer 3D APK") e provalo sul telefono — con
+   `TESTING = true` vedrai annunci di prova, sicuri da guardare/toccare.
+2. Quando confermi che funziona: in **`ads.js`** metti `TESTING = false`.
+3. Aumenta il `version_code` e ricompila l'AAB firmato (workflow GitHub Actions
+   "Build Poly Reducer 3D AAB", oppure in locale `bash build-aab.sh`) per l'aggiornamento
+   su Play Console.
 
 > ⚠️ Non pubblicare con gli ID di test, e non cliccare i tuoi annunci reali (Google banna).
 > In UE il **consenso (UMP)** è obbligatorio: `ads.js` prova già a mostrarlo se il plugin lo supporta;

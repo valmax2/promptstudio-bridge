@@ -14,6 +14,7 @@ echo "▶ Installo Capacitor + strumenti"
 [ -f package.json ] || npm init -y >/dev/null
 npm install @capacitor/core @capacitor/cli @capacitor/android
 npm install @capacitor/filesystem @capacitor/share
+npm install @capacitor-community/admob
 npm install --save-dev @capacitor/assets
 
 echo "▶ Copio i file web in www/"
@@ -25,6 +26,11 @@ cp -r assets www/assets
 
 echo "▶ Creo il progetto Android (usa capacitor.config.json)"
 [ -d android ] || npx cap add android
+
+echo "▶ Aggiungo l'App ID di AdMob al manifest (se non già presente)"
+MANIFEST="android/app/src/main/AndroidManifest.xml"
+grep -q "com.google.android.gms.ads.APPLICATION_ID" "$MANIFEST" || \
+  sed -i 's#</application>#    <meta-data android:name="com.google.android.gms.ads.APPLICATION_ID" android:value="ca-app-pub-2590590501208291~8345014556"/>\n    </application>#' "$MANIFEST"
 
 echo "▶ Genero icona e splash dal logo (cartella assets/)"
 npx capacitor-assets generate --android

@@ -41,12 +41,17 @@ cat > package.json <<'EOF'
 EOF
 npm install @capacitor/core @capacitor/cli @capacitor/android >/dev/null
 npm install @capacitor/filesystem @capacitor/share >/dev/null
+npm install @capacitor-community/admob >/dev/null
 npm install --save-dev @capacitor/assets >/dev/null
 
 cp "$HERE"/capacitor.config.json .
 
 echo "▶ Aggiungo la piattaforma Android"
 npx cap add android
+
+echo "▶ Aggiungo l'App ID di AdMob al manifest"
+MANIFEST="android/app/src/main/AndroidManifest.xml"
+sed -i 's#</application>#    <meta-data android:name="com.google.android.gms.ads.APPLICATION_ID" android:value="ca-app-pub-2590590501208291~8345014556"/>\n    </application>#' "$MANIFEST"
 
 echo "▶ Imposto versionCode=$VERSION_CODE versionName=$VERSION_NAME"
 sed -i "s/versionCode 1\$/versionCode $VERSION_CODE/" android/app/build.gradle

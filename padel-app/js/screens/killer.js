@@ -92,7 +92,7 @@ function paintSetup(el) {
 // altrimenti salterebbe questa fase e deciderebbe il game al primo punto
 // sul 40 pari).
 function freshRoundMatch() {
-  return createMatch({ goldenPoint: false, superTiebreak3rdSet: false });
+  return createMatch({ goldenPoint: false, killerPointRule: true, superTiebreak3rdSet: false });
 }
 
 // ===== Play =====

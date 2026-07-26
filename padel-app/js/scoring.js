@@ -18,6 +18,12 @@ export function createMatch({
   teamAPlayers = [teamAName],
   teamBPlayers = [teamBName],
   goldenPoint = true,
+  // Regola "Killer" (non il punto d'oro): quando il vantaggio torna
+  // indietro (chi era in vantaggio perde il punto successivo), invece di
+  // tornare in parità semplice si va in "vantaggio pari" (ADV-ADV) e il
+  // prossimo punto decide il game a prescindere da chi lo vince - niente
+  // oscillazione infinita come nel vantaggio classico. Vedi addRegularPoint.
+  killerPointRule = false,
   superTiebreak3rdSet = true,
   mode = 'doubles',
   startingServer = 'A',
@@ -36,6 +42,7 @@ export function createMatch({
     teamAPlayers,
     teamBPlayers,
     goldenPoint,
+    killerPointRule,
     superTiebreak3rdSet,
     mode,
     format,
@@ -45,7 +52,7 @@ export function createMatch({
     setsWonA: 0,
     setsWonB: 0,
     currentSet: { gamesA: 0, gamesB: 0 },
-    currentGame: { a: 0, b: 0, advantage: null },
+    currentGame: { a: 0, b: 0, advantage: null, killerPointActive: false },
     inTiebreak: false,
     inMatchTiebreak: false,
     server: startingServer,
@@ -89,7 +96,7 @@ export function teamName(match, t) {
 // game via remote control without restarting the whole match.
 export function resetCurrentGame(matchIn) {
   const match = structuredClone(matchIn);
-  match.currentGame = { a: 0, b: 0, advantage: null };
+  match.currentGame = { a: 0, b: 0, advantage: null, killerPointActive: false };
   return match;
 }
 
@@ -109,7 +116,7 @@ function finalizeSet(match, winner, scoreA, scoreB, isTiebreak, tiebreakDetail =
   match.sets.push({ a: scoreA, b: scoreB, tiebreak: isTiebreak, tiebreakScore: tiebreakDetail });
   if (winner === 'A') match.setsWonA++; else match.setsWonB++;
   match.currentSet = { gamesA: 0, gamesB: 0 };
-  match.currentGame = { a: 0, b: 0, advantage: null };
+  match.currentGame = { a: 0, b: 0, advantage: null, killerPointActive: false };
   match.inTiebreak = false;
   match.inMatchTiebreak = false;
 
@@ -158,7 +165,7 @@ function alternateServingPlayer(match, team) {
 
 function awardGame(match, team) {
   if (team === 'A') match.currentSet.gamesA++; else match.currentSet.gamesB++;
-  match.currentGame = { a: 0, b: 0, advantage: null };
+  match.currentGame = { a: 0, b: 0, advantage: null, killerPointActive: false };
   // Service alternates by game count regardless of who won it - using the
   // *winner* here would wrongly let the same team serve twice in a row
   // whenever they break the other side's serve, instead of the other team
@@ -205,9 +212,17 @@ function addRegularPoint(match, team) {
   const mine = g[mineKey];
   const theirs = g[otherKey];
 
+  // "Killer point": il prossimo punto chiude il game a prescindere da chi
+  // lo vince - si arriva qui solo dopo un vantaggio ripreso (vedi sotto).
+  if (g.killerPointActive) return awardGame(match, team);
+
   if (g.advantage) {
     if (g.advantage === team) return awardGame(match, team);
     g.advantage = null;
+    if (match.killerPointRule) {
+      g.killerPointActive = true;
+      return result(match, 'Vantaggio pari, killer point');
+    }
     return result(match, 'Parità');
   }
 
@@ -265,6 +280,7 @@ export function matchPointDisplay(match) {
     return { a: String(match.currentGame.a), b: String(match.currentGame.b) };
   }
   const g = match.currentGame;
+  if (g.killerPointActive && !LITE_MODE) return { a: 'KP', b: 'KP' };
   if (g.advantage && !LITE_MODE) {
     return {
       a: g.advantage === 'A' ? 'AD' : '40',
@@ -276,6 +292,7 @@ export function matchPointDisplay(match) {
 
 export function isGamePoint(match, team) {
   if (match.matchOver) return false;
+  if (match.currentGame.killerPointActive) return true;
   if (match.inTiebreak || match.inMatchTiebreak) {
     const target = match.inMatchTiebreak ? 10 : 7;
     const mine = team === 'A' ? match.currentGame.a : match.currentGame.b;

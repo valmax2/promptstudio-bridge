@@ -6,6 +6,7 @@ import com.android.billingclient.api.BillingClientStateListener;
 import com.android.billingclient.api.BillingFlowParams;
 import com.android.billingclient.api.BillingResult;
 import com.android.billingclient.api.Purchase;
+import com.android.billingclient.api.PendingPurchasesParams;
 import com.android.billingclient.api.PurchasesUpdatedListener;
 import com.android.billingclient.api.QueryProductDetailsParams;
 import com.android.billingclient.api.QueryPurchasesParams;
@@ -33,9 +34,17 @@ public class BillingPlugin extends Plugin implements PurchasesUpdatedListener {
             onReady.run();
             return;
         }
+        // enablePendingPurchases() senza argomenti è stato rimosso nella
+        // Play Billing Library 8 (deprecato in 7): va dichiarato esplicitamente
+        // per quali tipi di prodotto si vuole il supporto "in sospeso" -
+        // enableOneTimeProducts() replica lo stesso comportamento di prima,
+        // dato che "Pro" è un acquisto singolo non consumabile (INAPP).
+        PendingPurchasesParams pendingPurchasesParams = PendingPurchasesParams.newBuilder()
+            .enableOneTimeProducts()
+            .build();
         billingClient = BillingClient.newBuilder(getContext())
             .setListener(this)
-            .enablePendingPurchases()
+            .enablePendingPurchases(pendingPurchasesParams)
             .build();
         billingClient.startConnection(new BillingClientStateListener() {
             @Override

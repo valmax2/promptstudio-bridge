@@ -121,7 +121,7 @@ cat >> android/app/build.gradle <<'EOF'
 
 dependencies {
     implementation 'com.google.android.gms:play-services-ads:23.6.0'
-    implementation 'com.android.billingclient:billing:7.1.1'
+    implementation 'com.android.billingclient:billing:9.0.0'
 }
 EOF
 

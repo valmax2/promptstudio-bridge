@@ -68,7 +68,11 @@ public class BillingPlugin extends Plugin implements PurchasesUpdatedListener {
             List<QueryProductDetailsParams.Product> list = new ArrayList<>();
             list.add(product);
             QueryProductDetailsParams params = QueryProductDetailsParams.newBuilder().setProductList(list).build();
-            billingClient.queryProductDetailsAsync(params, (billingResult, productDetailsList) -> {
+            billingClient.queryProductDetailsAsync(params, (billingResult, queryResult) -> {
+                // Da questa versione della libreria il callback restituisce un
+                // wrapper (QueryProductDetailsResult) invece della List diretta -
+                // il vero elenco si legge con getProductDetailsList().
+                List<ProductDetails> productDetailsList = queryResult.getProductDetailsList();
                 JSObject ret = new JSObject();
                 if (!productDetailsList.isEmpty()) {
                     ProductDetails details = productDetailsList.get(0);
@@ -95,7 +99,8 @@ public class BillingPlugin extends Plugin implements PurchasesUpdatedListener {
             List<QueryProductDetailsParams.Product> list = new ArrayList<>();
             list.add(product);
             QueryProductDetailsParams params = QueryProductDetailsParams.newBuilder().setProductList(list).build();
-            billingClient.queryProductDetailsAsync(params, (billingResult, productDetailsList) -> {
+            billingClient.queryProductDetailsAsync(params, (billingResult, queryResult) -> {
+                List<ProductDetails> productDetailsList = queryResult.getProductDetailsList();
                 if (productDetailsList.isEmpty()) {
                     call.reject("Prodotto non trovato su Play");
                     return;

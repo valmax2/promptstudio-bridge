@@ -11,7 +11,7 @@ const AD_IDS = {
   interstitial: 'ca-app-pub-2590590501208291/1643874838',
   rewarded:     'ca-app-pub-2590590501208291/6525646366',
 };
-const TESTING = true;               // ⚠️ metti false SOLO dopo aver verificato che funziona sul telefono
+const TESTING = false;               // verificato sul telefono in Test interno (versionCode 4): annunci reali attivi
 // Strategia scelta: interstitial al massimo 1 volta per sessione (non ad ogni export)
 // per non infastidire chi elabora più file di fila — l'app è uno strumento veloce,
 // non un gioco. Il rewarded (volontario) e il Pro restano le leve principali.

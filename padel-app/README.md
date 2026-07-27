@@ -162,6 +162,11 @@ padel-app/
 - Punteggio classico 0/15/30/40 per gioco.
 - **Punto d'oro** (impostazione attivabile): a 40 pari, il punto successivo
   decide il gioco. Se disattivato, si gioca con vantaggio/parità classici.
+- **Killer Point** (impostazione attivabile, alternativa al Punto d'oro): si
+  gioca il vantaggio classico normalmente, ma se chi era in vantaggio si fa
+  riprendere (vantaggio pari), il punto successivo decide il gioco a
+  prescindere da chi lo vince - niente oscillazione infinita. Ignorato se il
+  Punto d'oro è attivo.
 - Set fino a 6 giochi, tie-break a 6 pari (primo a 7, scarto di 2).
 - Partita al meglio dei 3 set. **Super tie-break al 3° set** (impostazione
   attivabile): invece di giocare l'intero terzo set, si gioca un tie-break

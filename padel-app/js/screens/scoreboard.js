@@ -726,7 +726,8 @@ function paint(el) {
   el.querySelector('#quick-summary-modal')?.addEventListener('click', (e) => {
     if (e.target.id === 'quick-summary-modal') { quickSummaryOpen = false; paint(el); }
   });
-  el.querySelector('#quick-golden')?.addEventListener('change', (e) => { match.goldenPoint = e.target.checked; });
+  el.querySelector('#quick-golden')?.addEventListener('change', (e) => { match.goldenPoint = e.target.checked; paint(el); });
+  el.querySelector('#quick-killer-point')?.addEventListener('change', (e) => { match.killerPointRule = e.target.checked; });
   el.querySelector('#quick-supertb')?.addEventListener('change', (e) => { match.superTiebreak3rdSet = e.target.checked; });
   el.querySelectorAll('[data-quick-time-announce]').forEach((btn) => {
     btn.addEventListener('click', () => {
@@ -829,6 +830,10 @@ function quickSummaryModal(settings) {
         <div class="toggle-row mt">
           <div><strong>Punto d'oro</strong><p class="mb0 small">A 40 pari, il punto successivo decide il gioco</p></div>
           <label class="switch"><input type="checkbox" id="quick-golden" ${match.goldenPoint ? 'checked' : ''}><span class="slider"></span></label>
+        </div>
+        <div class="toggle-row mt">
+          <div><strong>Killer Point</strong><p class="mb0 small">Vantaggio classico, ma su vantaggio pari il punto dopo decide - ignorato se attivo il Punto d'oro</p></div>
+          <label class="switch"><input type="checkbox" id="quick-killer-point" ${match.killerPointRule ? 'checked' : ''} ${match.goldenPoint ? 'disabled' : ''}><span class="slider"></span></label>
         </div>
         <div class="toggle-row mt">
           <div><strong>Super tie-break al 3° set</strong><p class="mb0 small">Set decisivo fino a 10 punti invece di un set intero</p></div>

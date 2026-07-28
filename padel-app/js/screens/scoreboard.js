@@ -10,7 +10,6 @@ import { navigate } from '../router.js';
 import { toast } from '../app.js';
 import { nearestColorName } from '../color-presets.js';
 import { isLiteMode, canExitLiteMode } from '../lite-mode.js';
-import { canUseRemote } from '../gate-config.js';
 import {
   enableRemote, disableRemote, listenBindings,
   setKeepScreenOn,
@@ -551,7 +550,6 @@ function paint(el) {
         <div class="row" style="gap:2px;">
           <button id="sb-display-mode" aria-label="Modalità visualizzazione" title="Solo punteggio">${pointsOnlyMode ? '🔢' : '📋'}</button>
           <button id="sb-number-size" aria-label="Ingrandisci numero punteggio" title="Ingrandisci numero">➕</button>
-          <button id="sb-remote-toggle" aria-label="Abilita/disabilita telecomando" title="${settings.bleRemoteEnabled ? 'Telecomando abilitato' : 'Telecomando disabilitato'}">${settings.bleRemoteEnabled ? '🎮' : '🚫'}</button>
           <button id="sb-mute">${ttsEnabled ? '🔊' : '🔇'}</button>
         </div>
       </div>
@@ -614,16 +612,6 @@ function paint(el) {
   });
   el.querySelector('#sb-display-mode').addEventListener('click', () => {
     pointsOnlyMode = !pointsOnlyMode;
-    paint(el);
-  });
-  el.querySelector('#sb-remote-toggle').addEventListener('click', () => {
-    const turningOn = !getState().settings.bleRemoteEnabled;
-    if (turningOn && !canUseRemote()) {
-      toast('Il telecomando è una funzione Pro');
-      return;
-    }
-    updateSettings({ bleRemoteEnabled: turningOn });
-    setupRemoteListening(el);
     paint(el);
   });
   el.querySelector('#sb-number-size').addEventListener('click', () => {
@@ -799,7 +787,7 @@ function helpModal() {
         ${row('🎾', 'Tocca <strong>"Batte:"</strong> per scegliere o cambiare chi serve (anche a caso)')}
         ${row('➕', 'In alto: <strong>ingrandisci i numeri</strong> (tocca più volte per i 4 livelli)')}
         ${row('🔢', 'In alto: passa a <strong>solo punteggio</strong> o vista completa con game e set')}
-        ${row('🎮 🔊', 'In alto: accendi/spegni <strong>telecomando</strong> e <strong>voce</strong>')}
+        ${row('🔊', 'In alto: accendi/spegni la <strong>voce</strong>')}
         ${row('▲', `Il <strong>triangolino in basso</strong> apre la barra con Annulla, Riepilogo${isLiteMode() ? ', Bluetooth' : ''}, Opzioni e Nuova partita`)}
         ${row('📋', '<strong>Riepilogo</strong>: cambia regole, modalità, battitore e nomi senza uscire dalla partita')}
         ${row('i', 'Rivedi questa guida quando vuoi dal <strong>cerchietto in basso a sinistra</strong>')}

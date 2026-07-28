@@ -548,7 +548,13 @@ label { font-size: 0.85em; color: var(--text-dim); display: block; margin-bottom
   color: rgba(255,255,255,0.75);
   font-size: 0.8rem;
   line-height: 1;
-  padding: 5px 0 4px;
+  /* Alcuni telefoni (gesture nav a tutto schermo) non riportano l'inset
+     reale in env(safe-area-inset-bottom) pur mostrando comunque il
+     pallino/barra di navigazione sopra il contenuto: oltre al normale
+     safe-bottom (già applicato da .sb-root), riserviamo qui un minimo
+     fisso di margine così la freccina resta sempre sollevata e cliccabile
+     anche quando quell'inset viene riportato come 0. */
+  padding: 5px 0 calc(4px + max(10px, var(--safe-bottom)));
 }
 .sb-controls-toggle:active { background: rgba(255,255,255,0.12); }
 
@@ -574,6 +580,30 @@ label { font-size: 0.85em; color: var(--text-dim); display: block; margin-bottom
   align-items: center;
   justify-content: center;
 }
+
+/* Cerchietto Home al centro esatto del tabellone, sulla linea di confine
+   tra le due metà colorate - più facile da raggiungere durante il gioco
+   rispetto alla freccia in alto a sinistra, senza doverci "mirare" col
+   pollice. z-index sopra le due metà cliccabili sotto, e il click ha il
+   suo stopPropagation così non registra anche un punto per la metà sotto. */
+.sb-home-btn {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 6;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 2px solid rgba(255,255,255,0.8);
+  background: rgba(0,0,0,0.55);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.sb-home-btn svg { width: 22px; height: 22px; }
+.sb-home-btn:active { background: rgba(0,0,0,0.75); }
 
 .sb-help-row { display: flex; gap: 10px; align-items: flex-start; margin-top: 10px; }
 .sb-help-row .sb-help-icon { flex: 0 0 auto; width: 2.4em; text-align: center; }

@@ -2,6 +2,7 @@ import { getState, setState, addMatch, updateSettings } from '../store.js';
 import { pushMatch } from '../cloud.js';
 import { say, stopSpeech } from '../speech.js';
 import { escapeHtml, BACK_ICON, uid as genId } from '../utils.js';
+import { NAV_ICONS } from '../nav-icons.js';
 import {
   createMatch, addPoint, matchPointDisplay, teamName, isGamePoint, resetCurrentGame, endTimeMatch,
 } from '../scoring.js';
@@ -559,6 +560,7 @@ function paint(el) {
         ${teamHalf('B')}
         ${match.matchOver ? matchOverOverlay() : ''}
         <button class="sb-help-btn" id="sb-help" aria-label="Guida ai comandi">i</button>
+        <button class="sb-home-btn" id="sb-home-center" aria-label="Torna alla home">${NAV_ICONS.home}</button>
       </div>
       <button class="sb-controls-toggle" id="sb-controls-toggle" aria-label="${controlsExpanded ? 'Nascondi barra comandi' : 'Mostra barra comandi'}">${controlsExpanded ? '▼' : '▲'}</button>
       ${controlsExpanded ? `
@@ -566,6 +568,7 @@ function paint(el) {
         <button id="sb-undo" ${history.length ? '' : 'disabled'}>↩️ Annulla</button>
         <button id="sb-settings">📋 Riepilogo</button>
         ${isLiteMode() ? '<button id="sb-bluetooth">🔵 Bluetooth</button>' : ''}
+        <button id="sb-open-options">⚙️ Opzioni</button>
         <button id="sb-newmatch">🔄 Nuova partita</button>
       </div>` : ''}
       ${serverPickerOpen ? serverPickerModal() : ''}
@@ -575,6 +578,7 @@ function paint(el) {
   `;
 
   el.querySelector('#sb-back').addEventListener('click', () => navigate('home'));
+  el.querySelector('#sb-home-center')?.addEventListener('click', (e) => { e.stopPropagation(); navigate('home'); });
   el.querySelector('#sb-controls-toggle').addEventListener('click', () => {
     controlsOpen = !controlsOpen;
     paint(el);
@@ -602,6 +606,7 @@ function paint(el) {
     paint(el);
   });
   el.querySelector('#sb-bluetooth')?.addEventListener('click', () => navigate('bluetooth-setup'));
+  el.querySelector('#sb-open-options')?.addEventListener('click', () => navigate('settings'));
   el.querySelector('#sb-mute').addEventListener('click', () => {
     ttsEnabled = !ttsEnabled;
     if (!ttsEnabled) stopSpeech();
@@ -795,7 +800,7 @@ function helpModal() {
         ${row('➕', 'In alto: <strong>ingrandisci i numeri</strong> (tocca più volte per i 4 livelli)')}
         ${row('🔢', 'In alto: passa a <strong>solo punteggio</strong> o vista completa con game e set')}
         ${row('🎮 🔊', 'In alto: accendi/spegni <strong>telecomando</strong> e <strong>voce</strong>')}
-        ${row('▲', `Il <strong>triangolino in basso</strong> apre la barra con Annulla, Riepilogo${isLiteMode() ? ', Bluetooth' : ''} e Nuova partita`)}
+        ${row('▲', `Il <strong>triangolino in basso</strong> apre la barra con Annulla, Riepilogo${isLiteMode() ? ', Bluetooth' : ''}, Opzioni e Nuova partita`)}
         ${row('📋', '<strong>Riepilogo</strong>: cambia regole, modalità, battitore e nomi senza uscire dalla partita')}
         ${row('i', 'Rivedi questa guida quando vuoi dal <strong>cerchietto in basso a sinistra</strong>')}
         <button class="btn primary block mt" id="sb-help-close">Ho capito, si gioca!</button>

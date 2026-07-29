@@ -132,6 +132,13 @@ function handleRemoteAction(action, el) {
     if (match) onReset();
     return;
   }
+  if (action === 'toggleFullScreen') {
+    if (match) {
+      pointsOnlyMode = !pointsOnlyMode;
+      paint(el);
+    }
+    return;
+  }
 }
 
 function startLive(el) {

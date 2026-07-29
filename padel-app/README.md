@@ -213,17 +213,19 @@ di pressione** a **un'azione**:
   distingue i dispositivi tramite un identificativo stabile fornito da
   Android, quindi lo stesso tasto (es. Volume +) può fare cose diverse su
   due telecomandi diversi.
-- **Ogni tasto supporta tre tipi di pressione**, assegnabili
-  indipendentemente sullo stesso tasto: click singolo, doppio click veloce
-  e doppio click lento (~0.9s tra le due pressioni). Se su un tasto è
-  assegnato solo il click singolo, l'azione scatta immediatamente senza
-  attese; se sono assegnati anche doppio/doppio lento, l'app attende
-  brevemente per distinguere i pattern.
+- **Ogni tasto supporta quattro tipi di pressione**, assegnabili
+  indipendentemente sullo stesso tasto: click singolo, doppio click veloce,
+  doppio click lento (~0.9s tra le due pressioni) e triplo click veloce. Se
+  su un tasto è assegnato solo il click singolo, l'azione scatta
+  immediatamente senza attese; se sono assegnati anche doppio/doppio
+  lento/triplo, l'app attende brevemente per distinguere i pattern.
 - **Azioni disponibili:** Punto squadra/giocatore 1, Punto
   squadra/giocatore 2, Annulla ultimo punto, Azzera punteggio del game
   (in corso, senza toccare game/set già vinti), Inizia partita (utile per
   avviare la partita da bordo campo senza toccare lo schermo), Resetta
-  partita (torna alla schermata di impostazione nuova partita).
+  partita (torna alla schermata di impostazione nuova partita), Schermo
+  pieno solo punteggio (passa alla vista con solo il numero grande e
+  torna a quella con game/set, la stessa del pulsante 📋/🔢 in partita).
 
 **Uso:**
 1. Accoppia il telecomando/smartwatch dalle Impostazioni Bluetooth di

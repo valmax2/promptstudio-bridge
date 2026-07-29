@@ -48,12 +48,14 @@ export const ACTION_LABELS = {
   resetGame: 'Azzera punteggio del game',
   startMatch: 'Inizia partita',
   resetMatch: 'Resetta partita',
+  toggleFullScreen: 'Schermo pieno (solo punteggio)',
 };
 
 export const PATTERN_LABELS = {
   single: 'Click singolo',
   double: 'Doppio click veloce',
   doubleSlow: 'Doppio click lento',
+  triple: 'Triplo click veloce',
 };
 
 function remoteControl() {
@@ -116,16 +118,16 @@ export function captureNextPress(timeoutMs = 8000) {
   });
 }
 
-const DOUBLE_FAST_MS = 350; // max gap between presses to count as a fast double-click
+const DOUBLE_FAST_MS = 350; // max gap between presses to count as a fast double/triple-click
 const DOUBLE_SLOW_MS = 900; // max gap between presses to count as a slow double-click
 
 // Listens for hardware key presses and calls onAction(action) whenever a
-// press pattern (single / double / doubleSlow) matches one of `bindings`
-// (each { deviceDescriptor, keyCode, pattern, action }). Keys with only a
-// 'single' binding fire immediately (no wait); keys that also have a
-// double/doubleSlow binding wait up to DOUBLE_SLOW_MS to disambiguate.
+// press pattern (single / double / doubleSlow / triple) matches one of
+// `bindings` (each { deviceDescriptor, keyCode, pattern, action }). Keys with
+// only a 'single' binding fire immediately (no wait); keys that also have a
+// double/doubleSlow/triple binding wait to disambiguate.
 export function listenBindings(bindings, onAction) {
-  const pending = new Map(); // "descriptor::keyCode" -> { timer, firstPressAt }
+  const pending = new Map(); // "descriptor::keyCode" -> { timer, presses: number[] }
 
   const comboKey = (deviceDescriptor, keyCode) => `${deviceDescriptor}::${keyCode}`;
   const bindingsFor = (deviceDescriptor, keyCode) =>
@@ -134,21 +136,21 @@ export function listenBindings(bindings, onAction) {
     const match = bindingsFor(deviceDescriptor, keyCode).find((b) => b.pattern === pattern);
     if (match) onAction(match.action);
   };
-  const startWaiting = (deviceDescriptor, keyCode, firstPressAt) => {
-    const key = comboKey(deviceDescriptor, keyCode);
-    const timer = setTimeout(() => {
-      pending.delete(key);
-      fire(deviceDescriptor, keyCode, 'single');
-    }, DOUBLE_SLOW_MS);
-    pending.set(key, { timer, firstPressAt });
+  // Decide single/double/doubleSlow from exactly the presses collected so
+  // far (2 or fewer) - used both when the wait for a 3rd press times out and
+  // as a fallback when a key has no 'triple' binding to wait for at all.
+  const fireFromPresses = (deviceDescriptor, keyCode, presses) => {
+    if (presses.length === 1) { fire(deviceDescriptor, keyCode, 'single'); return; }
+    const gap = presses[1] - presses[0];
+    fire(deviceDescriptor, keyCode, gap <= DOUBLE_FAST_MS ? 'double' : 'doubleSlow');
   };
 
   const stop = listenRawPresses(({ keyCode, deviceDescriptor }) => {
     const matches = bindingsFor(deviceDescriptor, keyCode);
     if (!matches.length) return;
-    const hasDouble = matches.some((b) => b.pattern === 'double' || b.pattern === 'doubleSlow');
+    const hasMulti = matches.some((b) => b.pattern !== 'single');
 
-    if (!hasDouble) {
+    if (!hasMulti) {
       fire(deviceDescriptor, keyCode, 'single');
       return;
     }
@@ -157,16 +159,39 @@ export function listenBindings(bindings, onAction) {
     const state = pending.get(key);
     const now = Date.now();
 
-    if (state) {
-      clearTimeout(state.timer);
-      pending.delete(key);
-      const delta = now - state.firstPressAt;
-      if (delta <= DOUBLE_FAST_MS) fire(deviceDescriptor, keyCode, 'double');
-      else if (delta <= DOUBLE_SLOW_MS) fire(deviceDescriptor, keyCode, 'doubleSlow');
-      else startWaiting(deviceDescriptor, keyCode, now);
-    } else {
-      startWaiting(deviceDescriptor, keyCode, now);
+    if (!state) {
+      const timer = setTimeout(() => {
+        pending.delete(key);
+        fireFromPresses(deviceDescriptor, keyCode, [now]);
+      }, DOUBLE_SLOW_MS);
+      pending.set(key, { timer, presses: [now] });
+      return;
     }
+
+    clearTimeout(state.timer);
+    state.presses.push(now);
+
+    if (state.presses.length >= 3) {
+      pending.delete(key);
+      fire(deviceDescriptor, keyCode, 'triple');
+      return;
+    }
+
+    // Exactly 2 presses so far: a key with no 'triple' binding resolves
+    // double/doubleSlow immediately (no extra wait, same feel as before this
+    // pattern existed) - one that does have 'triple' bound waits a bit
+    // longer for a possible 3rd fast press before settling on double.
+    if (!matches.some((b) => b.pattern === 'triple')) {
+      pending.delete(key);
+      fireFromPresses(deviceDescriptor, keyCode, state.presses);
+      return;
+    }
+    const presses = state.presses;
+    const timer = setTimeout(() => {
+      pending.delete(key);
+      fireFromPresses(deviceDescriptor, keyCode, presses);
+    }, DOUBLE_FAST_MS);
+    pending.set(key, { timer, presses });
   });
 
   return () => {

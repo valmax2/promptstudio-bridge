@@ -533,6 +533,11 @@ function paintSetup(el) {
 
 function paint(el) {
   const { settings } = getState();
+  // Calcolati ma non mostrati per ora: la barra nera in alto che li ospitava
+  // è stata tolta per lasciare tutto lo spazio a nomi/numeri - da vedere con
+  // l'utente se e dove reintrodurli (es. per il conto alla rovescia del
+  // formato a tempo, l'unico caso in cui modeLabel serviva davvero a leggersi
+  // un'informazione live e non solo "Set 1").
   let modeLabel;
   if (match.format === 'time') {
     modeLabel = match.matchOver ? 'Partita conclusa' : `⏱️ ${formatRemaining(match.matchEndsAt)}`;
@@ -544,19 +549,16 @@ function paint(el) {
 
   el.innerHTML = `
     <div class="sb-root">
-      <div class="sb-topbar">
-        <button id="sb-back" class="icon-btn" aria-label="Torna alla home">${BACK_ICON}</button>
-        <div class="sb-mode">${modeLabel} · ${modeBadge}</div>
-        <div class="row" style="gap:2px;">
-          <button id="sb-display-mode" aria-label="Modalità visualizzazione" title="Solo punteggio">${pointsOnlyMode ? '🔢' : '📋'}</button>
-          <button id="sb-number-size" aria-label="Ingrandisci numero punteggio" title="Ingrandisci numero">➕</button>
-          <button id="sb-mute">${ttsEnabled ? '🔊' : '🔇'}</button>
-        </div>
-      </div>
       <div class="sb-halves">
         ${teamHalf('A')}
         ${teamHalf('B')}
         ${match.matchOver ? matchOverOverlay() : ''}
+        <button class="sb-back-btn" id="sb-back" aria-label="Torna alla home">${BACK_ICON}</button>
+        <div class="sb-icons-pill">
+          <button id="sb-display-mode" aria-label="Modalità visualizzazione" title="Solo punteggio">${pointsOnlyMode ? '🔢' : '📋'}</button>
+          <button id="sb-number-size" aria-label="Ingrandisci numero punteggio" title="Ingrandisci numero">➕</button>
+          <button id="sb-mute">${ttsEnabled ? '🔊' : '🔇'}</button>
+        </div>
         <button class="sb-help-btn" id="sb-help" aria-label="Guida ai comandi">i</button>
         <button class="sb-home-btn" id="sb-home-center" aria-label="Torna alla home">${NAV_ICONS.home}</button>
       </div>
@@ -565,8 +567,7 @@ function paint(el) {
       <div class="sb-controls">
         <button id="sb-undo" ${history.length ? '' : 'disabled'}>↩️ Annulla</button>
         <button id="sb-settings">📋 Riepilogo</button>
-        ${isLiteMode() ? '<button id="sb-bluetooth">🔵 Bluetooth</button>' : ''}
-        <button id="sb-open-options">⚙️ Opzioni</button>
+        ${isLiteMode() ? '<button id="sb-bluetooth">🔵 Bluetooth</button>' : '<button id="sb-open-options">⚙️ Opzioni</button>'}
         <button id="sb-newmatch">🔄 Nuova partita</button>
       </div>` : ''}
       ${serverPickerOpen ? serverPickerModal() : ''}
@@ -575,7 +576,7 @@ function paint(el) {
     </div>
   `;
 
-  el.querySelector('#sb-back').addEventListener('click', () => navigate('home'));
+  el.querySelector('#sb-back').addEventListener('click', (e) => { e.stopPropagation(); navigate('home'); });
   el.querySelector('#sb-home-center')?.addEventListener('click', (e) => { e.stopPropagation(); navigate('home'); });
   el.querySelector('#sb-controls-toggle').addEventListener('click', () => {
     controlsOpen = !controlsOpen;
@@ -605,16 +606,19 @@ function paint(el) {
   });
   el.querySelector('#sb-bluetooth')?.addEventListener('click', () => navigate('bluetooth-setup'));
   el.querySelector('#sb-open-options')?.addEventListener('click', () => navigate('settings'));
-  el.querySelector('#sb-mute').addEventListener('click', () => {
+  el.querySelector('#sb-mute').addEventListener('click', (e) => {
+    e.stopPropagation();
     ttsEnabled = !ttsEnabled;
     if (!ttsEnabled) stopSpeech();
     paint(el);
   });
-  el.querySelector('#sb-display-mode').addEventListener('click', () => {
+  el.querySelector('#sb-display-mode').addEventListener('click', (e) => {
+    e.stopPropagation();
     pointsOnlyMode = !pointsOnlyMode;
     paint(el);
   });
-  el.querySelector('#sb-number-size').addEventListener('click', () => {
+  el.querySelector('#sb-number-size').addEventListener('click', (e) => {
+    e.stopPropagation();
     const current = getState().settings.numberSizeStep || 0;
     updateSettings({ numberSizeStep: (current + 1) % 4 });
   });

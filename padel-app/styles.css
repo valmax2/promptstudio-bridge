@@ -410,6 +410,47 @@ label { font-size: 0.85em; color: var(--text-dim); display: block; margin-bottom
 .sb-topbar #sb-back:active { opacity: 0.55; }
 .sb-mode { font-size: 0.85em; letter-spacing: 0.03em; opacity: 0.85; text-transform: uppercase; }
 
+/* Tabellone live: niente più barra nera piena in alto (tolta per lasciare
+   tutto lo spazio a nomi e numeri) - freccia indietro e iconcine diventano
+   due elementi piccoli e trasparenti sopra il colore, angolo alto-sx/dx.
+   Dentro .sb-halves (position:relative) che parte già sotto la safe-area
+   (vedi padding-top di .sb-root), quindi bastano offset fissi qui. */
+.sb-back-btn {
+  position: absolute;
+  left: 8px;
+  top: 64px;
+  z-index: 6;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 2px solid rgba(255,255,255,0.8);
+  background: rgba(0,0,0,0.45);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.sb-back-btn svg { width: 20px; height: 20px; }
+.sb-back-btn:active { background: rgba(0,0,0,0.7); }
+
+.sb-icons-pill {
+  position: absolute;
+  right: 8px;
+  bottom: 10px;
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  border-radius: 20px;
+  background: rgba(0,0,0,0.45);
+  padding: 2px 2px;
+}
+.sb-icons-pill button {
+  background: none; border: none; color: #fff; font-size: 1.05em;
+  padding: 6px 7px; line-height: 1;
+}
+.sb-icons-pill button:active { opacity: 0.6; }
+
 .sb-halves {
   flex: 1 1 auto;
   display: flex;
@@ -432,10 +473,10 @@ label { font-size: 0.85em; color: var(--text-dim); display: block; margin-bottom
 
 .sb-name-row {
   flex: 0 0 auto;
-  padding: clamp(8px, 2vh, 18px) 8px;
+  padding: clamp(3px, 0.8vh, 6px) 6px;
   text-align: center;
   font-weight: 800;
-  font-size: clamp(1rem, 3vw, 1.6rem);
+  font-size: clamp(0.75rem, 2.2vw, 1.05rem);
   letter-spacing: 0.02em;
   background: rgba(0,0,0,0.12);
   border-bottom: 2px solid rgba(255,255,255,0.25);
@@ -456,7 +497,7 @@ label { font-size: 0.85em; color: var(--text-dim); display: block; margin-bottom
 .sb-stack {
   flex: 1 1 auto;
   display: grid;
-  grid-template-rows: 3fr 1fr 1.4fr 1fr 1.4fr;
+  grid-template-rows: 4fr 0.4fr 1.8fr 0.4fr 1.8fr;
   min-height: 0;
 }
 .sb-stack.points-only { grid-template-rows: 1fr; }
@@ -480,7 +521,7 @@ label { font-size: 0.85em; color: var(--text-dim); display: block; margin-bottom
      rottura del layout. Con la barra comandi a scomparsa (chiusa di
      default in partita) c'è più aria: il tetto vh può essere più generoso
      di prima e l'ingrandimento si vede davvero. */
-  font-size: min(calc(24vw * var(--number-size-scale, 1)), calc(15vh * var(--number-size-scale, 1)));
+  font-size: min(calc(26vw * var(--number-size-scale, 1)), calc(19vh * var(--number-size-scale, 1)));
   font-weight: 800;
   line-height: 1;
   background: rgba(0,0,0,0.08);
@@ -493,14 +534,14 @@ label { font-size: 0.85em; color: var(--text-dim); display: block; margin-bottom
      GAME/SET nella griglia sono fisse e non crescono, quindi ingrandirli
      insieme al punteggio li faceva tagliare/uscire su tablet larghi a
      scala massima. Solo il punteggio grande (.sb-point sopra) cresce. */
-  font-size: clamp(0.7rem, 2vw, 1.1rem);
+  font-size: clamp(0.5rem, 1.1vw, 0.7rem);
   font-weight: 700;
   letter-spacing: 0.12em;
   opacity: 0.85;
   background: rgba(0,0,0,0.22);
 }
 .sb-mid {
-  font-size: min(14vw, 15vh);
+  font-size: min(16vw, 18vh);
   font-weight: 800;
   line-height: 1;
   background: rgba(0,0,0,0.14);
@@ -515,14 +556,14 @@ label { font-size: 0.85em; color: var(--text-dim); display: block; margin-bottom
    sale parecchio, dato che qui la larghezza abbonda e non è più il limite.
    La modalità "solo punteggio" resta invariata (già ok secondo l'utente). */
 @media (orientation: landscape) {
-  .sb-stack:not(.points-only) { grid-template-rows: 4fr 0.7fr 1fr 0.7fr 1fr; }
-  .sb-point { font-size: min(calc(18vw * var(--number-size-scale, 1)), calc(40vh * var(--number-size-scale, 1))); }
+  .sb-stack:not(.points-only) { grid-template-rows: 5fr 0.3fr 1.3fr 0.3fr 1.3fr; }
+  .sb-point { font-size: min(calc(20vw * var(--number-size-scale, 1)), calc(45vh * var(--number-size-scale, 1))); }
   /* A differenza del verticale, qui GAME/SET NON scalano più col ➕: le loro
-     righe di griglia (0.7fr/1fr) sono fisse e non crescono, quindi
+     righe di griglia (0.3fr/1.3fr) sono fisse e non crescono, quindi
      ingrandirli li faceva tagliare/uscire dallo spazio assegnato. Solo il
      punteggio grande (.sb-point sopra) cresce in orizzontale. */
-  .sb-cap { font-size: clamp(0.55rem, 1.3vw, 0.85rem); }
-  .sb-mid { font-size: min(9vw, 22vh); }
+  .sb-cap { font-size: clamp(0.4rem, 1vw, 0.6rem); }
+  .sb-mid { font-size: min(10vw, 25vh); }
 }
 
 .sb-badge {

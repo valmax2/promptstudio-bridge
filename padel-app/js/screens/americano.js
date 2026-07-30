@@ -1,6 +1,7 @@
 import { navigate } from '../router.js';
 import { toast } from '../app.js';
 import { escapeHtml } from '../utils.js';
+import { micButtonHtml, wireAllMicButtons } from '../speech-input.js';
 import {
   createAmericano, submitRoundScores, generateNextRound, finishTournament, standings, playerName,
 } from '../americano.js';
@@ -30,7 +31,8 @@ function paintSetup(el) {
       <div id="players-list">
         ${setupPlayers.map((name, i) => `
           <div class="row mt" style="gap:8px;">
-            <input class="player-name" data-idx="${i}" value="${escapeHtml(name)}" placeholder="Giocatore ${i + 1}" maxlength="20">
+            <input class="player-name" id="americano-player-${i}" data-idx="${i}" value="${escapeHtml(name)}" placeholder="Giocatore ${i + 1}" maxlength="20">
+            ${micButtonHtml(`mic-americano-player-${i}`)}
             ${setupPlayers.length > 4 ? `<button class="btn ghost small" data-remove="${i}">✕</button>` : ''}
           </div>
         `).join('')}
@@ -49,6 +51,7 @@ function paintSetup(el) {
     <button class="btn primary block" id="start-tournament">Inizia torneo</button>
   `;
 
+  wireAllMicButtons(el);
   el.querySelector('#add-player').addEventListener('click', () => {
     setupPlayers.push('');
     paint(el);

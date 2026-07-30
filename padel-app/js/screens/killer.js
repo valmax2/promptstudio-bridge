@@ -1,6 +1,7 @@
 import { getState, updateSettings } from '../store.js';
 import { say, stopSpeech } from '../speech.js';
 import { escapeHtml } from '../utils.js';
+import { micButtonHtml, wireAllMicButtons } from '../speech-input.js';
 import { navigate } from '../router.js';
 import { toast } from '../app.js';
 import {
@@ -39,7 +40,8 @@ function paintSetup(el) {
       <div>
         ${setupPlayers.map((name, i) => `
           <div class="row mt" style="gap:8px;">
-            <input class="player-name" data-idx="${i}" value="${escapeHtml(name)}" placeholder="Giocatore ${i + 1}" maxlength="20">
+            <input class="player-name" id="killer-player-${i}" data-idx="${i}" value="${escapeHtml(name)}" placeholder="Giocatore ${i + 1}" maxlength="20">
+            ${micButtonHtml(`mic-killer-player-${i}`)}
             ${setupPlayers.length > 3 ? `<button class="btn ghost small" data-remove="${i}">✕</button>` : ''}
           </div>
         `).join('')}
@@ -78,6 +80,7 @@ function paintSetup(el) {
     <button class="btn primary block" id="start-killer">Inizia</button>
   `;
 
+  wireAllMicButtons(el);
   el.querySelector('#setup-golden')?.addEventListener('change', (e) => { updateSettings({ goldenPoint: e.target.checked }); paintSetup(el); });
   el.querySelector('#setup-killer-point')?.addEventListener('change', (e) => updateSettings({ killerPoint: e.target.checked }));
   el.querySelector('#add-player').addEventListener('click', () => { setupPlayers.push(''); paint(el); });

@@ -36,7 +36,7 @@ cd "$BUILD"
 cat > package.json <<'EOF'
 { "name": "padel-app-capacitor-release", "version": "1.0.0", "private": true }
 EOF
-npm install @capacitor/core @capacitor/cli @capacitor/android @capacitor-community/text-to-speech @capacitor/share @capacitor/filesystem >/dev/null
+npm install @capacitor/core @capacitor/cli @capacitor/android @capacitor-community/text-to-speech @capacitor-community/speech-recognition @capacitor/share @capacitor/filesystem >/dev/null
 npm install --save-dev @capacitor/assets >/dev/null
 
 cp "$HERE"/capacitor.config.json .
@@ -94,7 +94,7 @@ cp "$HERE"/native-android/com/padelapp/app/*.java "$JAVA_PKG_DIR/"
 
 echo "▶ Aggiungo i permessi Bluetooth e Billing (acquisti in-app)"
 MANIFEST="android/app/src/main/AndroidManifest.xml"
-sed -i 's#</manifest>#    <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />\n    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" android:maxSdkVersion="30" />\n    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" android:maxSdkVersion="30" />\n    <uses-permission android:name="android.permission.BLUETOOTH_SCAN" android:usesPermissionFlags="neverForLocation" />\n    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />\n    <uses-permission android:name="com.android.vending.BILLING" />\n</manifest>#' "$MANIFEST"
+sed -i 's#</manifest>#    <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />\n    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" android:maxSdkVersion="30" />\n    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" android:maxSdkVersion="30" />\n    <uses-permission android:name="android.permission.BLUETOOTH_SCAN" android:usesPermissionFlags="neverForLocation" />\n    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />\n    <uses-permission android:name="com.android.vending.BILLING" />\n    <uses-permission android:name="android.permission.RECORD_AUDIO" />\n</manifest>#' "$MANIFEST"
 
 echo "▶ Aggiungo l'App ID AdMob al manifest"
 sed -i 's#</application>#    <meta-data android:name="com.google.android.gms.ads.APPLICATION_ID" android:value="ca-app-pub-2590590501208291~5366473322"/>\n</application>#' "$MANIFEST"

@@ -10,6 +10,7 @@ import { navigate } from '../router.js';
 import { toast } from '../app.js';
 import { nearestColorName } from '../color-presets.js';
 import { isLiteMode, canExitLiteMode } from '../lite-mode.js';
+import { micButtonHtml, wireAllMicButtons } from '../speech-input.js';
 import {
   enableRemote, disableRemote, listenBindings,
   setKeepScreenOn,
@@ -39,6 +40,11 @@ let stopHwKeys = () => {};
 let victoryModalOpen = false;
 let serverPickerOpen = false;
 let quickSummaryOpen = false;
+// Finestra di rinomina (nome squadra o singolo giocatore) aperta dal tocco
+// sul nome in cima al tabellone o dalla matita nel picker "Chi batte?" -
+// sostituisce il vecchio prompt() nativo per poterci mettere anche il
+// microfono. { kind: 'team'|'player', team: 'A'|'B', idx? } oppure null.
+let renameTarget = null;
 // Barra comandi (Annulla/Riepilogo/.../Nuova partita) a scomparsa durante il
 // punteggio: nascosta di default per lasciare tutto lo spazio ai numeri, si
 // riapre col triangolino in basso. A partita finita si forza aperta (serve
@@ -67,6 +73,7 @@ export async function renderScoreboard(el) {
   quickSummaryOpen = false;
   controlsOpen = false;
   helpOpen = false;
+  renameTarget = null;
   pendingStartAnnouncement = null;
 
   setKeepScreenOn(true);
@@ -207,9 +214,12 @@ function victoryPhraseModal(settings) {
             </div>
           `).join('')}
         </div>
-        <div class="field mt">
-          <label>Nuova frase</label>
-          <input id="new-victory-phrase" placeholder="es. la squadra {vincitore} ha fatto il culo alla squadra {avversario}" maxlength="140">
+        <div class="field mt row" style="align-items:flex-end;gap:6px;">
+          <div style="flex:1;">
+            <label>Nuova frase</label>
+            <input id="new-victory-phrase" placeholder="es. la squadra {vincitore} ha fatto il culo alla squadra {avversario}" maxlength="140">
+          </div>
+          ${micButtonHtml('mic-new-victory-phrase')}
         </div>
         <button class="btn secondary block" id="add-victory-phrase">+ Aggiungi e attiva</button>
         <button class="btn primary block mt" id="victory-modal-done">Fatto</button>
@@ -219,6 +229,55 @@ function victoryPhraseModal(settings) {
 }
 
 // ===== New match setup =====
+
+// Trascina un giocatore (⠿) da una riga all'altra per scambiare i due nomi
+// tra squadre al volo, senza doverli riscrivere - usa Pointer Events (non il
+// Drag and Drop HTML5 nativo, che su Android/WebView è quasi tutto pensato
+// per il mouse e non risponde bene al tocco) così funziona anche su schermo
+// touch. Manipola direttamente i due <input> coinvolti, stesso approccio di
+// data-pick-server sopra: niente paintSetup(el), altrimenti si perderebbero
+// i nomi già scritti negli altri campi non ancora salvati da nessuna parte.
+function wirePlayerDragSwap(el) {
+  let dragRow = null;
+
+  const clearHighlight = () => {
+    el.querySelectorAll('.player-row.drag-over').forEach((r) => r.classList.remove('drag-over'));
+  };
+  const rowAt = (x, y) => document.elementFromPoint(x, y)?.closest('.player-row');
+
+  const onMove = (e) => {
+    clearHighlight();
+    const target = rowAt(e.clientX, e.clientY);
+    if (target && target !== dragRow) target.classList.add('drag-over');
+  };
+  const onUp = (e) => {
+    document.removeEventListener('pointermove', onMove);
+    document.removeEventListener('pointerup', onUp);
+    clearHighlight();
+    dragRow?.classList.remove('dragging');
+    const target = rowAt(e.clientX, e.clientY);
+    if (target && dragRow && target !== dragRow) {
+      const fromInput = dragRow.querySelector('input');
+      const toInput = target.querySelector('input');
+      if (fromInput && toInput) {
+        const tmp = fromInput.value;
+        fromInput.value = toInput.value;
+        toInput.value = tmp;
+      }
+    }
+    dragRow = null;
+  };
+
+  el.querySelectorAll('.player-row').forEach((row) => {
+    row.querySelector('.drag-handle')?.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      dragRow = row;
+      row.classList.add('dragging');
+      document.addEventListener('pointermove', onMove);
+      document.addEventListener('pointerup', onUp);
+    });
+  });
+}
 
 // Legge i campi nome attualmente visibili nel form (dipende da setupMode) -
 // stessa forma di una voce namePresets/lastMatchNames, usata sia per
@@ -282,47 +341,65 @@ function paintSetup(el) {
         ` : ''}
         ${singles ? `
         <div class="card">
-          <div class="field row" style="align-items:center;gap:8px;">
+          <div class="field row player-row" data-player-slot="A:0" style="align-items:center;gap:6px;">
+            <span class="drag-handle" aria-label="Trascina per scambiare">⠿</span>
             <input id="name-a" value="${escapeHtml(fill?.a || 'Giocatore 1')}" maxlength="24" style="flex:1;">
             <button type="button" class="btn-server-pick ${setupServer === 'A' ? 'active' : ''}" data-pick-server="A:0" aria-label="Fa servire per primo">🎾</button>
+            ${micButtonHtml('mic-name-a')}
           </div>
-          <div class="field mb0 row" style="align-items:center;gap:8px;">
+          <div class="field mb0 row player-row" data-player-slot="B:0" style="align-items:center;gap:6px;">
+            <span class="drag-handle" aria-label="Trascina per scambiare">⠿</span>
             <input id="name-b" value="${escapeHtml(fill?.b || 'Giocatore 2')}" maxlength="24" style="flex:1;">
             <button type="button" class="btn-server-pick ${setupServer === 'B' ? 'active' : ''}" data-pick-server="B:0" aria-label="Fa servire per primo">🎾</button>
+            ${micButtonHtml('mic-name-b')}
           </div>
         </div>
         ` : `
         <div class="card">
           <label>Squadra A</label>
-          <div class="field">
-            <label class="small">Nome squadra (facoltativo, default "${teamAColorName}")</label>
-            <input id="team-name-a" placeholder="${teamAColorName}" value="${escapeHtml(fill?.teamA || '')}" maxlength="24">
+          <div class="field row" style="align-items:center;gap:6px;">
+            <div style="flex:1;">
+              <label class="small">Nome squadra (facoltativo, default "${teamAColorName}")</label>
+              <input id="team-name-a" placeholder="${teamAColorName}" value="${escapeHtml(fill?.teamA || '')}" maxlength="24">
+            </div>
+            ${micButtonHtml('mic-team-name-a')}
           </div>
-          <div class="field row" style="align-items:center;gap:8px;">
+          <div class="field row player-row" data-player-slot="A:0" style="align-items:center;gap:6px;">
+            <span class="drag-handle" aria-label="Trascina per scambiare squadra">⠿</span>
             <input id="name-a1" placeholder="Giocatore 1" value="${escapeHtml(fill?.a1 || '')}" maxlength="24" style="flex:1;">
             <button type="button" class="btn-server-pick ${setupServer === 'A' && setupServerPlayerIdx === 0 ? 'active' : ''}" data-pick-server="A:0" aria-label="Fa servire per primo">🎾</button>
+            ${micButtonHtml('mic-name-a1')}
           </div>
-          <div class="field mb0 row" style="align-items:center;gap:8px;">
+          <div class="field mb0 row player-row" data-player-slot="A:1" style="align-items:center;gap:6px;">
+            <span class="drag-handle" aria-label="Trascina per scambiare squadra">⠿</span>
             <input id="name-a2" placeholder="Giocatore 2" value="${escapeHtml(fill?.a2 || '')}" maxlength="24" style="flex:1;">
             <button type="button" class="btn-server-pick ${setupServer === 'A' && setupServerPlayerIdx === 1 ? 'active' : ''}" data-pick-server="A:1" aria-label="Fa servire per primo">🎾</button>
+            ${micButtonHtml('mic-name-a2')}
           </div>
         </div>
         <div class="card">
           <label>Squadra B</label>
-          <div class="field">
-            <label class="small">Nome squadra (facoltativo, default "${teamBColorName}")</label>
-            <input id="team-name-b" placeholder="${teamBColorName}" value="${escapeHtml(fill?.teamB || '')}" maxlength="24">
+          <div class="field row" style="align-items:center;gap:6px;">
+            <div style="flex:1;">
+              <label class="small">Nome squadra (facoltativo, default "${teamBColorName}")</label>
+              <input id="team-name-b" placeholder="${teamBColorName}" value="${escapeHtml(fill?.teamB || '')}" maxlength="24">
+            </div>
+            ${micButtonHtml('mic-team-name-b')}
           </div>
-          <div class="field row" style="align-items:center;gap:8px;">
+          <div class="field row player-row" data-player-slot="B:0" style="align-items:center;gap:6px;">
+            <span class="drag-handle" aria-label="Trascina per scambiare squadra">⠿</span>
             <input id="name-b1" placeholder="Giocatore 3" value="${escapeHtml(fill?.b1 || '')}" maxlength="24" style="flex:1;">
             <button type="button" class="btn-server-pick ${setupServer === 'B' && setupServerPlayerIdx === 0 ? 'active' : ''}" data-pick-server="B:0" aria-label="Fa servire per primo">🎾</button>
+            ${micButtonHtml('mic-name-b1')}
           </div>
-          <div class="field mb0 row" style="align-items:center;gap:8px;">
+          <div class="field mb0 row player-row" data-player-slot="B:1" style="align-items:center;gap:6px;">
+            <span class="drag-handle" aria-label="Trascina per scambiare squadra">⠿</span>
             <input id="name-b2" placeholder="Giocatore 4" value="${escapeHtml(fill?.b2 || '')}" maxlength="24" style="flex:1;">
             <button type="button" class="btn-server-pick ${setupServer === 'B' && setupServerPlayerIdx === 1 ? 'active' : ''}" data-pick-server="B:1" aria-label="Fa servire per primo">🎾</button>
+            ${micButtonHtml('mic-name-b2')}
           </div>
         </div>
-        <p class="small" style="text-align:center;margin:-6px 0 14px;">🎾 Tocca la racchetta per scegliere chi serve per primo/a</p>
+        <p class="small" style="text-align:center;margin:-6px 0 14px;">🎾 Tocca la racchetta per scegliere chi serve per primo/a · ⠿ trascina per scambiare un giocatore tra le squadre · 🎤 detta il nome a voce</p>
         `}
         <button class="btn ghost small block" id="save-name-preset" ${presets.length >= 3 ? 'disabled' : ''}>💾 Salva questi nomi come preset${presets.length >= 3 ? ' (massimo 3 raggiunto)' : ''}</button>
 
@@ -363,7 +440,10 @@ function paintSetup(el) {
           ${settings.announceTimeEveryMatches ? `
           <div class="field mt mb0">
             <label>🗣️ Frase dell'annuncio orario</label>
-            <input id="setup-time-announce-phrase" placeholder="Sono le {orario}. Avete tempo per un'altra partita?" maxlength="140" value="${escapeHtml(settings.timeAnnouncePhrase || '')}">
+            <div class="row" style="align-items:center;gap:6px;">
+              <input id="setup-time-announce-phrase" placeholder="Sono le {orario}. Avete tempo per un'altra partita?" maxlength="140" value="${escapeHtml(settings.timeAnnouncePhrase || '')}" style="flex:1;">
+              ${micButtonHtml('mic-setup-time-announce-phrase')}
+            </div>
             <div class="row mt" style="gap:8px;">
               <button class="btn secondary small block" id="setup-save-time-announce-phrase">💾 Salva frase</button>
               <button class="btn ghost small block" id="setup-reset-time-announce-phrase">↺ Predefinita</button>
@@ -431,6 +511,8 @@ function paintSetup(el) {
       b.classList.toggle('active', b.dataset.pickServer === btn.dataset.pickServer);
     });
   }));
+  wireAllMicButtons(el);
+  wirePlayerDragSwap(el);
   el.querySelector('#setup-golden')?.addEventListener('change', (e) => { updateSettings({ goldenPoint: e.target.checked }); paintSetup(el); });
   el.querySelector('#setup-killer-point')?.addEventListener('change', (e) => updateSettings({ killerPoint: e.target.checked }));
   el.querySelector('#setup-super-tb')?.addEventListener('change', (e) => updateSettings({ superTiebreak3rdSet: e.target.checked }));
@@ -580,9 +662,11 @@ function paint(el) {
       ${serverPickerOpen ? serverPickerModal() : ''}
       ${quickSummaryOpen ? quickSummaryModal(settings) : ''}
       ${helpOpen ? helpModal() : ''}
+      ${renameModal()}
     </div>
   `;
 
+  wireAllMicButtons(el);
   el.querySelector('#sb-back')?.addEventListener('click', (e) => { e.stopPropagation(); navigate('home'); });
   el.querySelector('#sb-home-center')?.addEventListener('click', (e) => { e.stopPropagation(); navigate('home'); });
   el.querySelector('#sb-controls-toggle').addEventListener('click', () => {
@@ -639,8 +723,33 @@ function paint(el) {
   el.querySelectorAll('[data-edit-name]').forEach((nameEl) => {
     nameEl.addEventListener('click', (e) => {
       e.stopPropagation();
-      onEditName(nameEl.dataset.editName, el);
+      renameTarget = { kind: 'team', team: nameEl.dataset.editName };
+      paint(el);
     });
+  });
+  el.querySelector('#rename-modal-close')?.addEventListener('click', () => { renameTarget = null; paint(el); });
+  el.querySelector('#rename-modal')?.addEventListener('click', (e) => {
+    if (e.target.id === 'rename-modal') { renameTarget = null; paint(el); }
+  });
+  el.querySelector('#rename-save')?.addEventListener('click', () => {
+    const trimmed = el.querySelector('#rename-input').value.trim().slice(0, 24);
+    if (trimmed && renameTarget) {
+      const { kind, team, idx } = renameTarget;
+      if (kind === 'team') {
+        if (team === 'A') match.teamAName = trimmed; else match.teamBName = trimmed;
+      } else {
+        const players = team === 'A' ? match.teamAPlayers : match.teamBPlayers;
+        players[idx] = trimmed;
+        // In singolo il nome squadra coincide col nome giocatore (vedi setup);
+        // in doppio il nome squadra resta un campo indipendente e personalizzabile.
+        if (match.mode === 'singles') {
+          if (team === 'A') match.teamAName = players[0];
+          else match.teamBName = players[0];
+        }
+      }
+    }
+    renameTarget = null;
+    paint(el);
   });
   el.querySelectorAll('[data-open-server-picker]').forEach((btn) => {
     btn.addEventListener('click', (e) => {
@@ -686,20 +795,7 @@ function paint(el) {
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
       const [team, idxStr] = btn.dataset.renamePlayer.split(':');
-      const idx = Number(idxStr);
-      const players = team === 'A' ? match.teamAPlayers : match.teamBPlayers;
-      const current = players[idx] || '';
-      const next = prompt('Nome giocatore', current);
-      if (next === null) return;
-      const trimmed = next.trim().slice(0, 24);
-      if (!trimmed) return;
-      players[idx] = trimmed;
-      // In singolo il nome squadra coincide col nome giocatore (vedi setup);
-      // in doppio il nome squadra resta un campo indipendente e personalizzabile.
-      if (match.mode === 'singles') {
-        if (team === 'A') match.teamAName = players[0];
-        else match.teamBName = players[0];
-      }
+      renameTarget = { kind: 'player', team, idx: Number(idxStr) };
       paint(el);
     });
   });
@@ -852,7 +948,10 @@ function quickSummaryModal(settings) {
         ${settings.announceTimeEveryMatches ? `
         <div class="field mt mb0">
           <label>🗣️ Frase dell'annuncio orario</label>
-          <input id="quick-time-announce-phrase" placeholder="Sono le {orario}. Avete tempo per un'altra partita?" maxlength="140" value="${escapeHtml(settings.timeAnnouncePhrase || '')}">
+          <div class="row" style="align-items:center;gap:6px;">
+            <input id="quick-time-announce-phrase" placeholder="Sono le {orario}. Avete tempo per un'altra partita?" maxlength="140" value="${escapeHtml(settings.timeAnnouncePhrase || '')}" style="flex:1;">
+            ${micButtonHtml('mic-quick-time-announce-phrase')}
+          </div>
           <div class="row mt" style="gap:8px;">
             <button class="btn secondary small block" id="quick-save-time-announce-phrase">💾 Salva frase</button>
             <button class="btn ghost small block" id="quick-reset-time-announce-phrase">↺ Predefinita</button>
@@ -885,6 +984,34 @@ function serverPickerModal() {
             </div>
           `).join('')}
         </div>
+      </div>
+    </div>
+  `;
+}
+
+// Finestra di rinomina (nome squadra o singolo giocatore), aperta dal tocco
+// sul nome in cima al tabellone o dalla matita nel picker "Chi batte?" -
+// microfono (stretto) a sinistra della matita per dettare il nome a voce
+// invece di scriverlo, come richiesto dall'utente.
+function renameModal() {
+  if (!renameTarget) return '';
+  const { kind, team, idx } = renameTarget;
+  const current = kind === 'team'
+    ? (team === 'A' ? match.teamAName : match.teamBName)
+    : ((team === 'A' ? match.teamAPlayers : match.teamBPlayers)[idx] || '');
+  const title = kind === 'team'
+    ? `Nome ${match.mode === 'singles' ? 'giocatore' : 'squadra'} ${team === 'A' ? '1' : '2'}`
+    : 'Nome giocatore';
+  return `
+    <div class="modal-backdrop" id="rename-modal">
+      <div class="modal-card">
+        <h2><span>✏️ ${title}</span><button class="icon-btn" id="rename-modal-close" aria-label="Chiudi">✕</button></h2>
+        <div class="field row" style="align-items:center;gap:6px;">
+          ${micButtonHtml('mic-rename-input', 'narrow')}
+          <span aria-hidden="true">✏️</span>
+          <input id="rename-input" value="${escapeHtml(current)}" maxlength="24" style="flex:1;">
+        </div>
+        <button class="btn primary block mt" id="rename-save">Salva</button>
       </div>
     </div>
   `;
@@ -972,15 +1099,6 @@ async function onReset() {
   disableRemote();
   showNav();
   paintSetup(el);
-}
-
-function onEditName(team, el) {
-  const current = team === 'A' ? match.teamAName : match.teamBName;
-  const next = prompt(`Nome ${match.mode === 'singles' ? 'giocatore' : 'squadra'} ${team === 'A' ? '1' : '2'}`, current);
-  if (!next) return;
-  if (team === 'A') match.teamAName = next.trim().slice(0, 24) || current;
-  else match.teamBName = next.trim().slice(0, 24) || current;
-  paint(el);
 }
 
 async function saveMatchRecord(m) {

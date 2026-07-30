@@ -17,7 +17,7 @@ cp "$HERE/native-android/keystore/debug.keystore" "$HOME/.android/debug.keystore
 
 echo "▶ Installo Capacitor + strumenti"
 [ -f package.json ] || npm init -y >/dev/null
-npm install @capacitor/core @capacitor/cli @capacitor/android @capacitor-community/text-to-speech @capacitor/share @capacitor/filesystem
+npm install @capacitor/core @capacitor/cli @capacitor/android @capacitor-community/text-to-speech @capacitor-community/speech-recognition @capacitor/share @capacitor/filesystem
 npm install --save-dev @capacitor/assets
 
 echo "▶ Copio i file web in www/"
@@ -49,7 +49,7 @@ cp native-android/com/padelapp/app/*.java "$JAVA_PKG_DIR/"
 MANIFEST="android/app/src/main/AndroidManifest.xml"
 if ! grep -q "BLUETOOTH_SCAN" "$MANIFEST" 2>/dev/null; then
   echo "▶ Aggiungo i permessi Bluetooth e Billing (acquisti in-app)"
-  sed -i 's#</manifest>#    <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />\n    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" android:maxSdkVersion="30" />\n    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" android:maxSdkVersion="30" />\n    <uses-permission android:name="android.permission.BLUETOOTH_SCAN" android:usesPermissionFlags="neverForLocation" />\n    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />\n    <uses-permission android:name="com.android.vending.BILLING" />\n</manifest>#' "$MANIFEST"
+  sed -i 's#</manifest>#    <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />\n    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" android:maxSdkVersion="30" />\n    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" android:maxSdkVersion="30" />\n    <uses-permission android:name="android.permission.BLUETOOTH_SCAN" android:usesPermissionFlags="neverForLocation" />\n    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />\n    <uses-permission android:name="com.android.vending.BILLING" />\n    <uses-permission android:name="android.permission.RECORD_AUDIO" />\n</manifest>#' "$MANIFEST"
 fi
 if ! grep -q "APPLICATION_ID" "$MANIFEST" 2>/dev/null; then
   echo "▶ Aggiungo l'App ID AdMob al manifest"

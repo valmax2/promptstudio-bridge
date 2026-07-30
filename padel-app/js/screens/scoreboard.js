@@ -560,14 +560,14 @@ function paint(el) {
         ${teamHalf('A')}
         ${teamHalf('B')}
         ${match.matchOver ? matchOverOverlay() : ''}
-        <button class="sb-back-btn" id="sb-back" aria-label="Torna alla home">${BACK_ICON}</button>
+        ${isLiteMode() ? '' : `<button class="sb-back-btn" id="sb-back" aria-label="Torna alla home">${BACK_ICON}</button>`}
         <div class="sb-icons-pill">
           <button id="sb-display-mode" aria-label="Modalità visualizzazione" title="Solo punteggio">${pointsOnlyMode ? '🔢' : '📋'}</button>
           <button id="sb-number-size" aria-label="Ingrandisci numero punteggio" title="Ingrandisci numero">➕</button>
           <button id="sb-mute">${ttsEnabled ? '🔊' : '🔇'}</button>
         </div>
         <button class="sb-help-btn" id="sb-help" aria-label="Guida ai comandi">i</button>
-        <button class="sb-home-btn" id="sb-home-center" aria-label="Torna alla home">${NAV_ICONS.home}</button>
+        ${isLiteMode() ? '' : `<button class="sb-home-btn" id="sb-home-center" aria-label="Torna alla home">${NAV_ICONS.home}</button>`}
       </div>
       <button class="sb-controls-toggle" id="sb-controls-toggle" aria-label="${controlsExpanded ? 'Nascondi barra comandi' : 'Mostra barra comandi'}">${controlsExpanded ? '▼' : '▲'}</button>
       ${controlsExpanded ? `
@@ -583,7 +583,7 @@ function paint(el) {
     </div>
   `;
 
-  el.querySelector('#sb-back').addEventListener('click', (e) => { e.stopPropagation(); navigate('home'); });
+  el.querySelector('#sb-back')?.addEventListener('click', (e) => { e.stopPropagation(); navigate('home'); });
   el.querySelector('#sb-home-center')?.addEventListener('click', (e) => { e.stopPropagation(); navigate('home'); });
   el.querySelector('#sb-controls-toggle').addEventListener('click', () => {
     controlsOpen = !controlsOpen;

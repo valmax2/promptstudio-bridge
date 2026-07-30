@@ -22,6 +22,8 @@ statistiche, gamification e sincronizzazione cloud.
 | Telecomando Bluetooth / tasti fotocamera smartwatch | ✅ Funzionante per dispositivi che si accoppiano come tastiera Bluetooth (la maggior parte dei telecomandi economici e degli smartwatch in modalità scatto foto). Supporta **due o più telecomandi accoppiati contemporaneamente**, e per ogni tasto **click singolo / doppio / doppio lento** assegnabili ad azioni diverse (punto, annulla, azzera game, inizia partita, resetta partita). I portachiavi "trova oggetto" generici usano spesso un protocollo proprietario e potrebbero non essere supportati |
 | Modalità Americano (rotazione compagni, classifica individuale) | ✅ Funzionante, offline |
 | Modalità Killer / Eliminazione (a vite, in coda, "re del campo") | ✅ Funzionante, offline |
+| Dettatura vocale nei campi di testo (🎤 nomi squadra/giocatori, frasi personalizzate, messaggi, ecc.) | ✅ Funzionante *(richiede l'app installata come APK Android — usa il plugin nativo `@capacitor-community/speech-recognition`, non funziona nell'anteprima da browser)* |
+| Scambio giocatori tra squadre trascinando (⠿) nella schermata Nuova partita | ✅ Funzionante, offline |
 
 Senza configurare Firebase, l'app funziona comunque in **modalità locale**:
 segnapunti, tema, statistiche e progressi restano salvati sul telefono.

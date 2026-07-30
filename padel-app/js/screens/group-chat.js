@@ -4,6 +4,7 @@ import { sendCircleMessage, listenCircleMessages } from '../cloud.js';
 import { escapeHtml, BACK_ICON } from '../utils.js';
 import { navigate } from '../router.js';
 import { toast } from '../app.js';
+import { micButtonHtml, wireAllMicButtons } from '../speech-input.js';
 
 export async function renderGroupChat(el, params = {}) {
   const circleId = params.id;
@@ -26,9 +27,11 @@ export async function renderGroupChat(el, params = {}) {
     <div class="chat-thread" id="chat-thread"></div>
     <div class="chat-input-row">
       <input id="chat-input" placeholder="Scrivi al gruppo…" maxlength="500">
+      ${micButtonHtml('mic-chat-input', 'narrow')}
       <button class="btn primary" id="chat-send">➤</button>
     </div>
   `;
+  wireAllMicButtons(el);
   el.querySelector('#chat-back').addEventListener('click', () => navigate('community'));
 
   function senderName(senderUid) {

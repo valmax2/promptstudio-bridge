@@ -12,6 +12,7 @@ import { remoteSupported, bleTagSupported, disconnectBleTag } from '../ble-remot
 import { BACK_ICON, BLUETOOTH_ICON, escapeHtml, uid as genId } from '../utils.js';
 import { APP_VERSION } from '../version.js';
 import { billingSupported, purchasePro, verifyProOnLaunch, isPro } from '../billing.js';
+import { micButtonHtml, wireAllMicButtons } from '../speech-input.js';
 
 let activeCategory = 'bluetooth';
 
@@ -196,7 +197,10 @@ function paint(el) {
       <div class="field mt mb0">
         <label>🗣️ Frase dell'annuncio orario</label>
         <p class="small">Usa <strong>{orario}</strong> nel testo: viene sostituito con l'ora reale. Lascia vuoto per usare la frase predefinita.</p>
-        <input id="time-announce-phrase" placeholder="Sono le {orario}. Avete tempo per un'altra partita?" maxlength="140" value="${escapeHtml(settings.timeAnnouncePhrase || '')}">
+        <div class="row" style="align-items:center;gap:6px;">
+          <input id="time-announce-phrase" placeholder="Sono le {orario}. Avete tempo per un'altra partita?" maxlength="140" value="${escapeHtml(settings.timeAnnouncePhrase || '')}" style="flex:1;">
+          ${micButtonHtml('mic-time-announce-phrase')}
+        </div>
         <div class="row mt" style="gap:8px;">
           <button class="btn secondary small block" id="save-time-announce-phrase">💾 Salva frase</button>
           <button class="btn ghost small block" id="reset-time-announce-phrase">↺ Predefinita</button>
@@ -291,9 +295,15 @@ function paint(el) {
       ${clubForm ? `
       <div class="field mt">
         <label>Nome del club</label>
-        <input type="text" id="club-name" value="${escapeHtml(clubForm.name || '')}" placeholder="Es. Padel Club Milano" maxlength="60">
+        <div class="row" style="align-items:center;gap:6px;">
+          <input type="text" id="club-name" value="${escapeHtml(clubForm.name || '')}" placeholder="Es. Padel Club Milano" maxlength="60" style="flex:1;">
+          ${micButtonHtml('mic-club-name')}
+        </div>
         <label class="mt">Orari</label>
-        <input type="text" id="club-hours" value="${escapeHtml(clubForm.hours || '')}" placeholder="Es. Lun-Dom 8:00-23:00" maxlength="60">
+        <div class="row" style="align-items:center;gap:6px;">
+          <input type="text" id="club-hours" value="${escapeHtml(clubForm.hours || '')}" placeholder="Es. Lun-Dom 8:00-23:00" maxlength="60" style="flex:1;">
+          ${micButtonHtml('mic-club-hours')}
+        </div>
         <label class="mt">Telefono</label>
         <input type="tel" id="club-phone" value="${escapeHtml(clubForm.phone || '')}" placeholder="Es. 02 1234567" maxlength="30">
         <div class="row mt">
@@ -349,6 +359,7 @@ function paint(el) {
     <p class="small center mt mb0" style="opacity:0.6;">Padel App ${APP_VERSION}</p>
   `;
 
+  wireAllMicButtons(el);
   el.querySelectorAll('[data-category]').forEach((btn) => btn.addEventListener('click', () => {
     activeCategory = btn.dataset.category;
     paint(el);

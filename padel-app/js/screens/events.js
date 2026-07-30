@@ -5,6 +5,7 @@ import { currentUser, firebaseAvailable } from '../firebase.js';
 import { navigate } from '../router.js';
 import { toast } from '../app.js';
 import { setNavBadge } from '../notifications.js';
+import { micButtonHtml, wireAllMicButtons } from '../speech-input.js';
 
 let formOpen = false;
 let invitedIds = [];
@@ -42,6 +43,7 @@ export async function renderEvents(el) {
       </div>
     `;
 
+    wireAllMicButtons(el);
     el.querySelector('#new-event').addEventListener('click', () => {
       formOpen = !formOpen;
       if (formOpen) invitedIds = [];
@@ -138,9 +140,12 @@ function newEventForm(cloud, friends) {
   return `
     <div class="card">
       <h2>Nuovo evento</h2>
-      <div class="field">
-        <label>Titolo</label>
-        <input id="ev-title" placeholder="es. Partita al Club Padel Roma" maxlength="60">
+      <div class="field row" style="align-items:flex-end;gap:6px;">
+        <div style="flex:1;">
+          <label>Titolo</label>
+          <input id="ev-title" placeholder="es. Partita al Club Padel Roma" maxlength="60">
+        </div>
+        ${micButtonHtml('mic-ev-title')}
       </div>
       <div class="row" style="gap:10px;">
         <div class="field" style="flex:1;">
@@ -152,9 +157,12 @@ function newEventForm(cloud, friends) {
           <input id="ev-time" type="time" value="19:00">
         </div>
       </div>
-      <div class="field">
-        <label>Luogo (facoltativo)</label>
-        <input id="ev-location" placeholder="es. Padel Center Milano" maxlength="60">
+      <div class="field row" style="align-items:flex-end;gap:6px;">
+        <div style="flex:1;">
+          <label>Luogo (facoltativo)</label>
+          <input id="ev-location" placeholder="es. Padel Center Milano" maxlength="60">
+        </div>
+        ${micButtonHtml('mic-ev-location')}
       </div>
       <div class="field mb0">
         <label>Numero massimo giocatori</label>

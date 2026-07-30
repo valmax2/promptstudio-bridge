@@ -6,6 +6,7 @@ import {
   listenMyChats, chatIdFor,
 } from '../cloud.js';
 import { escapeHtml, uid as genId } from '../utils.js';
+import { micButtonHtml, wireAllMicButtons } from '../speech-input.js';
 import { navigate } from '../router.js';
 import { toast } from '../app.js';
 import { setNavBadge } from '../notifications.js';
@@ -69,8 +70,9 @@ export async function renderCommunity(el) {
           <input id="friend-code" placeholder="Codice amico (es. 7K4RTQ)" style="flex:1" maxlength="6">
           <button class="btn primary" id="add-friend">Aggiungi</button>
         </div>` : `
-        <div class="row">
+        <div class="row" style="gap:6px;">
           <input id="friend-name" placeholder="Nome amico (locale)" style="flex:1">
+          ${micButtonHtml('mic-friend-name')}
           <button class="btn primary" id="add-friend-local">Aggiungi</button>
         </div>`}
         <div class="mt">
@@ -110,6 +112,7 @@ export async function renderCommunity(el) {
       try { await navigator.clipboard.writeText(code); toast('Codice gruppo copiato!'); } catch { toast(`Codice gruppo: ${code}`); }
     }));
 
+    wireAllMicButtons(el);
     el.querySelector('#add-friend-local')?.addEventListener('click', () => {
       const name = el.querySelector('#friend-name').value.trim();
       if (!name) return;

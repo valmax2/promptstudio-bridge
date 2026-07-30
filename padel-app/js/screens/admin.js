@@ -14,6 +14,7 @@ import { escapeHtml } from '../utils.js';
 import { toast } from '../app.js';
 import { isAdmin } from '../admin.js';
 import { openImageCropper } from '../image-crop.js';
+import { micButtonHtml, wireAllMicButtons } from '../speech-input.js';
 
 const MAX_PRIZES = 5;
 const MAX_COMPATIBLE_REMOTES = 4;
@@ -63,9 +64,12 @@ export async function renderAdmin(el) {
 
       <div class="card">
         <h2>Nuovo avatar</h2>
-        <div class="field">
-          <label>Nome</label>
-          <input id="new-avatar-label" placeholder="es. Volpe dorata" maxlength="30">
+        <div class="field row" style="align-items:flex-end;gap:6px;">
+          <div style="flex:1;">
+            <label>Nome</label>
+            <input id="new-avatar-label" placeholder="es. Volpe dorata" maxlength="30">
+          </div>
+          ${micButtonHtml('mic-new-avatar-label')}
         </div>
         <div class="field">
           <label>Posizione (opzionale)</label>
@@ -94,9 +98,12 @@ export async function renderAdmin(el) {
         <h2>Vetrina Premi (${prizes.length}/${MAX_PRIZES})</h2>
         <p class="small">Al massimo ${MAX_PRIZES} alla volta: una vetrina che tutti vedono in "Premi", che cambi quando vuoi (tema natalizio, un premio vero, ecc). Solo tu la gestisci.</p>
         ${prizesFull ? `<p class="small mb0" style="color:var(--danger,#e5484d);">⚠️ Hai già ${MAX_PRIZES} premi. Eliminane uno per poterne caricare un altro.</p>` : `
-        <div class="field">
-          <label>Nome</label>
-          <input id="new-prize-label" placeholder="es. Buon Natale!" maxlength="30">
+        <div class="field row" style="align-items:flex-end;gap:6px;">
+          <div style="flex:1;">
+            <label>Nome</label>
+            <input id="new-prize-label" placeholder="es. Buon Natale!" maxlength="30">
+          </div>
+          ${micButtonHtml('mic-new-prize-label')}
         </div>
         <div class="field">
           <label>Posizione (opzionale)</label>
@@ -173,9 +180,12 @@ export async function renderAdmin(el) {
         <h2>📡 Telecomandi compatibili (${compatibleRemotes.length}/${MAX_COMPATIBLE_REMOTES})</h2>
         <p class="small">Pagina dedicata raggiungibile dalla schermata Bluetooth: nome + link (es. affiliazione Amazon) + immagine opzionale. Al massimo ${MAX_COMPATIBLE_REMOTES}. Compare con dicitura "link sponsorizzato".</p>
         ${remotesFull ? `<p class="small mb0" style="color:var(--danger,#e5484d);">⚠️ Hai già ${MAX_COMPATIBLE_REMOTES} telecomandi. Eliminane uno per poterne aggiungere un altro.</p>` : `
-        <div class="field">
-          <label>Nome telecomando</label>
-          <input id="new-remote-label" placeholder="es. Telecomando scatto foto Bluetooth" maxlength="60">
+        <div class="field row" style="align-items:flex-end;gap:6px;">
+          <div style="flex:1;">
+            <label>Nome telecomando</label>
+            <input id="new-remote-label" placeholder="es. Telecomando scatto foto Bluetooth" maxlength="60">
+          </div>
+          ${micButtonHtml('mic-new-remote-label')}
         </div>
         <div class="field">
           <label>Link</label>
@@ -207,6 +217,7 @@ export async function renderAdmin(el) {
       <input type="file" accept="image/*" id="edit-image-file" class="hidden" style="display:none">
     `;
 
+    wireAllMicButtons(el);
     el.querySelector('#pick-avatar-file').addEventListener('click', () => el.querySelector('#new-avatar-file').click());
     el.querySelector('#new-avatar-file').addEventListener('change', (e) => handleUpload('avatar', e));
 

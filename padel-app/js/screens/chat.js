@@ -4,6 +4,7 @@ import { markConversationRead } from '../store.js';
 import { escapeHtml, BACK_ICON } from '../utils.js';
 import { navigate } from '../router.js';
 import { toast } from '../app.js';
+import { micButtonHtml, wireAllMicButtons } from '../speech-input.js';
 
 export async function renderChat(el, params = {}) {
   const friendUid = params.uid;
@@ -27,9 +28,11 @@ export async function renderChat(el, params = {}) {
     <div class="chat-thread" id="chat-thread"></div>
     <div class="chat-input-row">
       <input id="chat-input" placeholder="Scrivi un messaggio…" maxlength="500">
+      ${micButtonHtml('mic-chat-input', 'narrow')}
       <button class="btn primary" id="chat-send">➤</button>
     </div>
   `;
+  wireAllMicButtons(el);
   el.querySelector('#chat-back').addEventListener('click', () => navigate('community'));
   el.querySelector('#chat-delete').addEventListener('click', async () => {
     if (!confirm('Eliminare questa conversazione?')) return;

@@ -6,6 +6,7 @@ import { escapeHtml } from '../utils.js';
 import { toast } from '../app.js';
 import { avatarSvg, AVATARS } from '../avatars.js';
 import { isAdmin } from '../admin.js';
+import { micButtonHtml, wireAllMicButtons } from '../speech-input.js';
 
 export async function renderProfile(el) {
   let unsubAvatars = null;
@@ -42,9 +43,12 @@ export async function renderProfile(el) {
       ${isAdmin() ? `<div class="card"><button class="btn secondary block" id="go-admin">🛠️ Pannello amministratore</button></div>` : ''}
 
       <div class="card">
-        <div class="field">
-          <label>Nome visualizzato</label>
-          <input id="name" value="${escapeHtml(profile.name)}" maxlength="30">
+        <div class="field row" style="align-items:flex-end;gap:6px;">
+          <div style="flex:1;">
+            <label>Nome visualizzato</label>
+            <input id="name" value="${escapeHtml(profile.name)}" maxlength="30">
+          </div>
+          ${micButtonHtml('mic-name')}
         </div>
         ${authed ? `<p class="small">Codice amico: ${escapeHtml(profile.friendCode || '—')}</p>` : ''}
         <button class="btn primary block" id="save-name">Salva</button>
@@ -63,6 +67,7 @@ export async function renderProfile(el) {
       </div>
     `;
 
+    wireAllMicButtons(el);
     el.querySelectorAll('[data-emoji]').forEach((btn) => {
       btn.addEventListener('click', async () => {
         const emoji = btn.dataset.emoji;

@@ -841,13 +841,24 @@ a { color: var(--accent-2); }
 }
 
 /* Maniglia per trascinare un giocatore tra Squadra A e B nel form "Nuova
-   partita" (vedi wirePlayerDragSwap in scoreboard.js) - touch-action:none
-   impedisce alla pagina di scrollare mentre si trascina col dito. */
+   partita" (vedi wirePlayerDragSwap in scoreboard.js) - un cerchietto ben
+   visibile (non solo un carattere "nudo") per essere facile da individuare
+   e afferrare col dito; si evidenzia chiaramente mentre lo si trascina.
+   touch-action:none impedisce alla pagina di scrollare mentre si trascina. */
 .drag-handle {
-  flex-shrink: 0; width: 26px; height: 44px;
+  flex-shrink: 0; width: 40px; height: 40px; border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
-  font-size: 1.3em; color: var(--text-secondary, #888);
+  font-size: 1.5em; line-height: 1;
+  background: var(--surface-2); border: 2px solid var(--border);
   cursor: grab; touch-action: none; user-select: none;
 }
-.player-row.dragging { opacity: 0.45; }
-.player-row.drag-over { outline: 2px dashed var(--accent); outline-offset: 2px; border-radius: 8px; }
+.player-row.dragging .drag-handle {
+  background: var(--accent); border-color: var(--accent);
+  transform: scale(1.15);
+  box-shadow: 0 0 0 5px color-mix(in srgb, var(--accent) 30%, transparent);
+}
+.player-row.dragging { opacity: 0.7; }
+.player-row.drag-over {
+  outline: 3px dashed var(--accent); outline-offset: 2px; border-radius: 8px;
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+}

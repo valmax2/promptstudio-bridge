@@ -23,7 +23,7 @@ statistiche, gamification e sincronizzazione cloud.
 | Modalità Americano (rotazione compagni, classifica individuale) | ✅ Funzionante, offline |
 | Modalità Killer / Eliminazione (a vite, in coda, "re del campo") | ✅ Funzionante, offline |
 | Dettatura vocale nei campi di testo (🎤 nomi squadra/giocatori, frasi personalizzate, messaggi, ecc.) | ✅ Funzionante *(richiede l'app installata come APK Android — usa il plugin nativo `@capacitor-community/speech-recognition`, non funziona nell'anteprima da browser)* |
-| Scambio giocatori tra squadre trascinando (⠿) nella schermata Nuova partita | ✅ Funzionante, offline |
+| Scambio giocatori tra squadre trascinando (👆) nella schermata Nuova partita | ✅ Funzionante, offline |
 
 Senza configurare Firebase, l'app funziona comunque in **modalità locale**:
 segnapunti, tema, statistiche e progressi restano salvati sul telefono.

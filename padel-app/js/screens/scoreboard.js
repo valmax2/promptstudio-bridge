@@ -230,7 +230,7 @@ function victoryPhraseModal(settings) {
 
 // ===== New match setup =====
 
-// Trascina un giocatore (⠿) da una riga all'altra per scambiare i due nomi
+// Trascina un giocatore (👆) da una riga all'altra per scambiare i due nomi
 // tra squadre al volo, senza doverli riscrivere - usa Pointer Events (non il
 // Drag and Drop HTML5 nativo, che su Android/WebView è quasi tutto pensato
 // per il mouse e non risponde bene al tocco) così funziona anche su schermo
@@ -342,13 +342,13 @@ function paintSetup(el) {
         ${singles ? `
         <div class="card">
           <div class="field row player-row" data-player-slot="A:0" style="align-items:center;gap:6px;">
-            <span class="drag-handle" aria-label="Trascina per scambiare">⠿</span>
+            <span class="drag-handle" aria-label="Trascina per scambiare">👆</span>
             <input id="name-a" value="${escapeHtml(fill?.a || 'Giocatore 1')}" maxlength="24" style="flex:1;">
             <button type="button" class="btn-server-pick ${setupServer === 'A' ? 'active' : ''}" data-pick-server="A:0" aria-label="Fa servire per primo">🎾</button>
             ${micButtonHtml('mic-name-a')}
           </div>
           <div class="field mb0 row player-row" data-player-slot="B:0" style="align-items:center;gap:6px;">
-            <span class="drag-handle" aria-label="Trascina per scambiare">⠿</span>
+            <span class="drag-handle" aria-label="Trascina per scambiare">👆</span>
             <input id="name-b" value="${escapeHtml(fill?.b || 'Giocatore 2')}" maxlength="24" style="flex:1;">
             <button type="button" class="btn-server-pick ${setupServer === 'B' ? 'active' : ''}" data-pick-server="B:0" aria-label="Fa servire per primo">🎾</button>
             ${micButtonHtml('mic-name-b')}
@@ -365,13 +365,13 @@ function paintSetup(el) {
             ${micButtonHtml('mic-team-name-a')}
           </div>
           <div class="field row player-row" data-player-slot="A:0" style="align-items:center;gap:6px;">
-            <span class="drag-handle" aria-label="Trascina per scambiare squadra">⠿</span>
+            <span class="drag-handle" aria-label="Trascina per scambiare squadra">👆</span>
             <input id="name-a1" placeholder="Giocatore 1" value="${escapeHtml(fill?.a1 || '')}" maxlength="24" style="flex:1;">
             <button type="button" class="btn-server-pick ${setupServer === 'A' && setupServerPlayerIdx === 0 ? 'active' : ''}" data-pick-server="A:0" aria-label="Fa servire per primo">🎾</button>
             ${micButtonHtml('mic-name-a1')}
           </div>
           <div class="field mb0 row player-row" data-player-slot="A:1" style="align-items:center;gap:6px;">
-            <span class="drag-handle" aria-label="Trascina per scambiare squadra">⠿</span>
+            <span class="drag-handle" aria-label="Trascina per scambiare squadra">👆</span>
             <input id="name-a2" placeholder="Giocatore 2" value="${escapeHtml(fill?.a2 || '')}" maxlength="24" style="flex:1;">
             <button type="button" class="btn-server-pick ${setupServer === 'A' && setupServerPlayerIdx === 1 ? 'active' : ''}" data-pick-server="A:1" aria-label="Fa servire per primo">🎾</button>
             ${micButtonHtml('mic-name-a2')}
@@ -387,19 +387,19 @@ function paintSetup(el) {
             ${micButtonHtml('mic-team-name-b')}
           </div>
           <div class="field row player-row" data-player-slot="B:0" style="align-items:center;gap:6px;">
-            <span class="drag-handle" aria-label="Trascina per scambiare squadra">⠿</span>
+            <span class="drag-handle" aria-label="Trascina per scambiare squadra">👆</span>
             <input id="name-b1" placeholder="Giocatore 3" value="${escapeHtml(fill?.b1 || '')}" maxlength="24" style="flex:1;">
             <button type="button" class="btn-server-pick ${setupServer === 'B' && setupServerPlayerIdx === 0 ? 'active' : ''}" data-pick-server="B:0" aria-label="Fa servire per primo">🎾</button>
             ${micButtonHtml('mic-name-b1')}
           </div>
           <div class="field mb0 row player-row" data-player-slot="B:1" style="align-items:center;gap:6px;">
-            <span class="drag-handle" aria-label="Trascina per scambiare squadra">⠿</span>
+            <span class="drag-handle" aria-label="Trascina per scambiare squadra">👆</span>
             <input id="name-b2" placeholder="Giocatore 4" value="${escapeHtml(fill?.b2 || '')}" maxlength="24" style="flex:1;">
             <button type="button" class="btn-server-pick ${setupServer === 'B' && setupServerPlayerIdx === 1 ? 'active' : ''}" data-pick-server="B:1" aria-label="Fa servire per primo">🎾</button>
             ${micButtonHtml('mic-name-b2')}
           </div>
         </div>
-        <p class="small" style="text-align:center;margin:-6px 0 14px;">🎾 Tocca la racchetta per scegliere chi serve per primo/a · ⠿ trascina per scambiare un giocatore tra le squadre · 🎤 detta il nome a voce</p>
+        <p class="small" style="text-align:center;margin:-6px 0 14px;">🎾 Tocca la racchetta per scegliere chi serve per primo/a · 👆 trascina per scambiare un giocatore tra le squadre · 🎤 detta il nome a voce</p>
         `}
         <button class="btn ghost small block" id="save-name-preset" ${presets.length >= 3 ? 'disabled' : ''}>💾 Salva questi nomi come preset${presets.length >= 3 ? ' (massimo 3 raggiunto)' : ''}</button>
 

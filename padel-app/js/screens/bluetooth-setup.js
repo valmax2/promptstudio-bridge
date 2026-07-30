@@ -195,6 +195,7 @@ function wizardCard() {
         ${remoteSupported() ? '<button class="btn secondary block mt" data-wizard-type="remote">🎮 Un telecomando o una tastiera</button>' : ''}
         ${bleTagSupported() ? '<button class="btn secondary block mt" data-wizard-type="tag">🔑 Un tag/portachiavi "trova oggetto"</button>' : ''}
         ${!remoteSupported() && !bleTagSupported() ? '<p class="small">Richiede l\'app installata come APK Android (non funziona nell\'anteprima da browser).</p>' : ''}
+        <p class="small mb0" style="text-align:center;">Non sai quale prendere? <a href="#" id="wizard-see-remote-board">📡 Vedi i modelli consigliati</a></p>
         <button class="btn ghost small mt" id="wizard-back">← Indietro</button>
       ` : ''}
 
@@ -245,6 +246,7 @@ function overviewCard(settings) {
       ${settings.bleTags.map((t) => tagRow(t, settings.remoteBindings)).join('')}
       ${groupedRemoteRows(settings.remoteBindings)}
       <button class="btn primary block mt" id="wizard-start">➕ Aggiungi un altro dispositivo (guidata)</button>
+      <button class="btn ghost small block mt" id="open-remote-board-bt">📡 Telecomandi compatibili consigliati</button>
     </div>
 
     <div class="card">
@@ -347,6 +349,12 @@ function wireEvents(el) {
     updateSettings({ bleRemoteEnabled: e.target.checked });
     paint(el);
     syncSettings();
+  });
+
+  el.querySelector('#open-remote-board-bt')?.addEventListener('click', () => navigate('remote-board'));
+  el.querySelector('#wizard-see-remote-board')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    navigate('remote-board');
   });
 
   // ---- Wizard navigation ----

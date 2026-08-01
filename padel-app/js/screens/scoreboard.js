@@ -365,24 +365,27 @@ function paintSetup(el) {
         </div>
         ` : ''}
         ${singles ? `
-        <div class="card">
-          <div class="field row player-row" data-player-slot="A:0" style="align-items:center;gap:6px;">
+        <div class="card" style="border-color:${settings.teamAColor};border-width:2px;">
+          <div class="field mb0 row player-row" data-player-slot="A:0" style="align-items:center;gap:6px;">
             <span class="drag-handle" aria-label="Trascina per scambiare">👆</span>
-            <input id="name-a" value="${escapeHtml(fill?.a || 'Giocatore 1')}" maxlength="24" style="flex:1;border-color:${settings.teamAColor};border-width:2px;">
+            <input id="name-a" value="${escapeHtml(fill?.a || 'Giocatore 1')}" maxlength="24" style="flex:1;">
             <button type="button" class="palette-trigger palette-trigger-narrow" data-color-team="A" aria-label="Cambia colore Squadra 1">🎨</button>
             <button type="button" class="btn-server-pick ${setupServer === 'A' ? 'active' : ''}" data-pick-server="A:0" aria-label="Fa servire per primo">🎾</button>
             ${micButtonHtml('mic-name-a')}
           </div>
+        </div>
+        <div class="card" style="border-color:${settings.teamBColor};border-width:2px;">
           <div class="field mb0 row player-row" data-player-slot="B:0" style="align-items:center;gap:6px;">
             <span class="drag-handle" aria-label="Trascina per scambiare">👆</span>
-            <input id="name-b" value="${escapeHtml(fill?.b || 'Giocatore 2')}" maxlength="24" style="flex:1;border-color:${settings.teamBColor};border-width:2px;">
+            <input id="name-b" value="${escapeHtml(fill?.b || 'Giocatore 2')}" maxlength="24" style="flex:1;">
             <button type="button" class="palette-trigger palette-trigger-narrow" data-color-team="B" aria-label="Cambia colore Squadra 2">🎨</button>
             <button type="button" class="btn-server-pick ${setupServer === 'B' ? 'active' : ''}" data-pick-server="B:0" aria-label="Fa servire per primo">🎾</button>
             ${micButtonHtml('mic-name-b')}
           </div>
         </div>
+        <p class="small" style="text-align:center;margin:-6px 0 14px;">🎾 Tocca la racchetta per scegliere chi serve per primo/a · 👆 trascina per scambiare un giocatore tra le squadre · 🎨 cambia il colore squadra · 🎤 detta il nome a voce</p>
         ` : `
-        <div class="card">
+        <div class="card" style="border-color:${settings.teamAColor};border-width:2px;">
           <label>Squadra A</label>
           <div class="field row" style="align-items:flex-end;gap:6px;">
             <button type="button" class="drag-handle palette-trigger" data-color-team="A" aria-label="Cambia colore Squadra A">🎨</button>
@@ -428,7 +431,7 @@ function paintSetup(el) {
             ${micButtonHtml('mic-name-b2')}
           </div>
         </div>
-        <p class="small" style="text-align:center;margin:-6px 0 14px;">🎾 Tocca la racchetta per scegliere chi serve per primo/a · 👆 trascina per scambiare un giocatore tra le squadre · 🎤 detta il nome a voce</p>
+        <p class="small" style="text-align:center;margin:-6px 0 14px;">🎾 Tocca la racchetta per scegliere chi serve per primo/a · 👆 trascina per scambiare un giocatore tra le squadre · 🎨 cambia il colore squadra · 🎤 detta il nome a voce</p>
         `}
         <button class="btn ghost small block" id="save-name-preset" ${presets.length >= 3 ? 'disabled' : ''}>💾 Salva questi nomi come preset${presets.length >= 3 ? ' (massimo 3 raggiunto)' : ''}</button>
 

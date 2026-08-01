@@ -8,7 +8,7 @@ import {
 } from '../scoring.js';
 import { navigate } from '../router.js';
 import { toast } from '../app.js';
-import { nearestColorName } from '../color-presets.js';
+import { nearestColorName, NAMED_COLORS } from '../color-presets.js';
 import { isLiteMode, canExitLiteMode } from '../lite-mode.js';
 import { micButtonHtml, wireAllMicButtons } from '../speech-input.js';
 import {
@@ -45,6 +45,9 @@ let quickSummaryOpen = false;
 // sostituisce il vecchio prompt() nativo per poterci mettere anche il
 // microfono. { kind: 'team'|'player', team: 'A'|'B', idx? } oppure null.
 let renameTarget = null;
+// Selettore colore rapido nella schermata di impostazione partita ('A'|'B'
+// mentre è aperto, altrimenti null) - vedi colorPickerModal più sotto.
+let colorPickerOpen = null;
 // Barra comandi (Annulla/Riepilogo/.../Nuova partita) a scomparsa durante il
 // punteggio: nascosta di default per lasciare tutto lo spazio ai numeri, si
 // riapre col triangolino in basso. A partita finita si forza aperta (serve
@@ -74,6 +77,7 @@ export async function renderScoreboard(el) {
   controlsOpen = false;
   helpOpen = false;
   renameTarget = null;
+  colorPickerOpen = null;
   pendingStartAnnouncement = null;
 
   setKeepScreenOn(true);
@@ -191,6 +195,27 @@ function customVictoryAnnouncement(m) {
   const winner = teamName(m, m.matchWinner);
   const loser = teamName(m, m.matchWinner === 'A' ? 'B' : 'A');
   return phrase.text.replaceAll('{vincitore}', winner).replaceAll('{avversario}', loser);
+}
+
+// Selettore colore rapido, aperto dal pallino colorato accanto al nome
+// squadra/giocatore in "Nuova partita" - stessa lista di colori con nome
+// usata per dedurre il nome squadra di default (vedi color-presets.js),
+// così scegliere qui un colore "sfasato" tra i due lo cambia subito nel
+// tabellone, senza dover andare fino a Impostazioni → Colori.
+function colorPickerModal(team, settings) {
+  const current = (team === 'A' ? settings.teamAColor : settings.teamBColor).toLowerCase();
+  return `
+    <div class="modal-backdrop" id="color-picker-modal">
+      <div class="modal-card">
+        <h2><span>🎨 Colore Squadra ${team === 'A' ? '1' : '2'}</span><button class="icon-btn" id="color-picker-close" aria-label="Chiudi">✕</button></h2>
+        <div class="color-swatch-grid">
+          ${NAMED_COLORS.map((c) => `
+            <button type="button" class="color-swatch-option ${current === c.hex.toLowerCase() ? 'selected' : ''}" data-color="${c.hex}" style="background:${c.hex}" aria-label="${c.name}" title="${c.name}"></button>
+          `).join('')}
+        </div>
+      </div>
+    </div>
+  `;
 }
 
 function victoryPhraseModal(settings) {
@@ -343,13 +368,15 @@ function paintSetup(el) {
         <div class="card">
           <div class="field row player-row" data-player-slot="A:0" style="align-items:center;gap:6px;">
             <span class="drag-handle" aria-label="Trascina per scambiare">👆</span>
-            <input id="name-a" value="${escapeHtml(fill?.a || 'Giocatore 1')}" maxlength="24" style="flex:1;">
+            <input id="name-a" value="${escapeHtml(fill?.a || 'Giocatore 1')}" maxlength="24" style="flex:1;border-color:${settings.teamAColor};border-width:2px;">
+            <button type="button" class="palette-trigger palette-trigger-narrow" data-color-team="A" aria-label="Cambia colore Squadra 1">🎨</button>
             <button type="button" class="btn-server-pick ${setupServer === 'A' ? 'active' : ''}" data-pick-server="A:0" aria-label="Fa servire per primo">🎾</button>
             ${micButtonHtml('mic-name-a')}
           </div>
           <div class="field mb0 row player-row" data-player-slot="B:0" style="align-items:center;gap:6px;">
             <span class="drag-handle" aria-label="Trascina per scambiare">👆</span>
-            <input id="name-b" value="${escapeHtml(fill?.b || 'Giocatore 2')}" maxlength="24" style="flex:1;">
+            <input id="name-b" value="${escapeHtml(fill?.b || 'Giocatore 2')}" maxlength="24" style="flex:1;border-color:${settings.teamBColor};border-width:2px;">
+            <button type="button" class="palette-trigger palette-trigger-narrow" data-color-team="B" aria-label="Cambia colore Squadra 2">🎨</button>
             <button type="button" class="btn-server-pick ${setupServer === 'B' ? 'active' : ''}" data-pick-server="B:0" aria-label="Fa servire per primo">🎾</button>
             ${micButtonHtml('mic-name-b')}
           </div>
@@ -357,10 +384,11 @@ function paintSetup(el) {
         ` : `
         <div class="card">
           <label>Squadra A</label>
-          <div class="field row" style="align-items:center;gap:6px;">
+          <div class="field row" style="align-items:flex-end;gap:6px;">
+            <button type="button" class="drag-handle palette-trigger" data-color-team="A" aria-label="Cambia colore Squadra A">🎨</button>
             <div style="flex:1;">
               <label class="small">Nome squadra (facoltativo, default "${teamAColorName}")</label>
-              <input id="team-name-a" placeholder="${teamAColorName}" value="${escapeHtml(fill?.teamA || '')}" maxlength="24">
+              <input id="team-name-a" placeholder="${teamAColorName}" value="${escapeHtml(fill?.teamA || '')}" maxlength="24" style="border-color:${settings.teamAColor};border-width:2px;">
             </div>
             ${micButtonHtml('mic-team-name-a')}
           </div>
@@ -379,10 +407,11 @@ function paintSetup(el) {
         </div>
         <div class="card">
           <label>Squadra B</label>
-          <div class="field row" style="align-items:center;gap:6px;">
+          <div class="field row" style="align-items:flex-end;gap:6px;">
+            <button type="button" class="drag-handle palette-trigger" data-color-team="B" aria-label="Cambia colore Squadra B">🎨</button>
             <div style="flex:1;">
               <label class="small">Nome squadra (facoltativo, default "${teamBColorName}")</label>
-              <input id="team-name-b" placeholder="${teamBColorName}" value="${escapeHtml(fill?.teamB || '')}" maxlength="24">
+              <input id="team-name-b" placeholder="${teamBColorName}" value="${escapeHtml(fill?.teamB || '')}" maxlength="24" style="border-color:${settings.teamBColor};border-width:2px;">
             </div>
             ${micButtonHtml('mic-team-name-b')}
           </div>
@@ -463,12 +492,28 @@ function paintSetup(el) {
     </div>
 
     ${victoryModalOpen ? victoryPhraseModal(settings) : ''}
+    ${colorPickerOpen ? colorPickerModal(colorPickerOpen, settings) : ''}
   `;
   pendingNameFill = null;
 
   el.querySelector('#sb-back').addEventListener('click', () => navigate('home'));
   el.querySelectorAll('[data-mode]').forEach((btn) => btn.addEventListener('click', () => {
     setupMode = btn.dataset.mode;
+    paintSetup(el);
+  }));
+  el.querySelectorAll('[data-color-team]').forEach((btn) => btn.addEventListener('click', () => {
+    colorPickerOpen = btn.dataset.colorTeam;
+    paintSetup(el);
+  }));
+  el.querySelector('#color-picker-close')?.addEventListener('click', () => { colorPickerOpen = null; paintSetup(el); });
+  el.querySelector('#color-picker-modal')?.addEventListener('click', (e) => {
+    if (e.target.id === 'color-picker-modal') { colorPickerOpen = null; paintSetup(el); }
+  });
+  el.querySelectorAll('[data-color]').forEach((btn) => btn.addEventListener('click', () => {
+    const hex = btn.dataset.color;
+    const patch = colorPickerOpen === 'A' ? { teamAColor: hex } : { teamBColor: hex };
+    updateSettings({ ...patch, colorPreset: 'custom' });
+    colorPickerOpen = null;
     paintSetup(el);
   }));
   el.querySelectorAll('[data-load-preset]').forEach((btn) => btn.addEventListener('click', () => {

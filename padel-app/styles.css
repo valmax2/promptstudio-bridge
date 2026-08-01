@@ -862,3 +862,34 @@ a { color: var(--accent-2); }
   outline: 3px dashed var(--accent); outline-offset: 2px; border-radius: 8px;
   background: color-mix(in srgb, var(--accent) 10%, transparent);
 }
+
+/* Icona tavolozza per aprire il selettore colore rapido in "Nuova partita"
+   (vedi colorPickerModal in scoreboard.js) - il colore scelto si vede dal
+   bordo colorato del campo nome stesso, non da un pallino a parte. Nelle
+   righe Squadra A/B è allineata a sinistra nella stessa posizione della
+   manina di trascinamento (👆) sulle righe sotto - stesso cerchietto di
+   .drag-handle, ma è un pulsante normale (niente cursore/touch-action da
+   trascinamento). In Singolo, dove a sinistra c'è già la manina, è
+   un'iconcina stretta accanto al campo (vedi .mic-btn.narrow). */
+.palette-trigger { cursor: pointer; touch-action: auto; }
+.palette-trigger-narrow {
+  flex-shrink: 0; width: 34px; height: 34px; border-radius: 50%;
+  border: 2px solid var(--border); background: var(--surface-2);
+  color: var(--text); font-size: 1em;
+  display: flex; align-items: center; justify-content: center;
+}
+.palette-trigger-narrow:active { opacity: 0.6; }
+
+.color-swatch-grid {
+  display: flex; flex-wrap: wrap; gap: 12px;
+  justify-content: center; margin-top: 8px;
+}
+.color-swatch-option {
+  width: 44px; height: 44px; border-radius: 50%;
+  border: 2px solid var(--border);
+  padding: 0;
+}
+.color-swatch-option.selected {
+  border-color: var(--accent); border-width: 3px;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 30%, transparent);
+}

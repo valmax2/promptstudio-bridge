@@ -28,7 +28,7 @@ export const COLOR_PRESETS = {
 // Nearest common Italian color name for an arbitrary hex value - used to
 // default a team's name to e.g. "Rosa" / "Verde" (matching its scoreboard
 // color) instead of a generic "Squadra A/B" when no custom name is typed.
-const NAMED_COLORS = [
+export const NAMED_COLORS = [
   { name: 'Rosso', hex: '#E53935' },
   { name: 'Verde', hex: '#43A047' },
   { name: 'Blu', hex: '#1E88E5' },

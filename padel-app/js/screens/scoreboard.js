@@ -408,7 +408,7 @@ function paintSetup(el) {
             ${micButtonHtml('mic-name-a2')}
           </div>
         </div>
-        <div class="card">
+        <div class="card" style="border-color:${settings.teamBColor};border-width:2px;">
           <label>Squadra B</label>
           <div class="field row" style="align-items:flex-end;gap:6px;">
             <button type="button" class="drag-handle palette-trigger" data-color-team="B" aria-label="Cambia colore Squadra B">🎨</button>

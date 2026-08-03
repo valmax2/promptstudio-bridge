@@ -5,7 +5,7 @@ import { isPro } from './billing.js';
 // va acceso manualmente prima della build che va in produzione sullo Store,
 // così chi ha già provato l'app gratis durante i test non se lo vede
 // improvvisamente tolto senza preavviso.
-export const REMOTE_REQUIRES_PRO = false;
+export const REMOTE_REQUIRES_PRO = true;
 
 export function canUseRemote() {
   return !REMOTE_REQUIRES_PRO || isPro();

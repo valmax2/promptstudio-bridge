@@ -763,6 +763,7 @@ function paint(el) {
   });
   el.querySelector('#sb-undo')?.addEventListener('click', onUndo);
   el.querySelector('#sb-newmatch')?.addEventListener('click', onReset);
+  el.querySelector('#sb-overlay-newmatch')?.addEventListener('click', onReset);
 
   if (!match.matchOver) {
     el.querySelector('#half-a').addEventListener('click', () => onPoint('A'));
@@ -1094,6 +1095,7 @@ function matchOverOverlay() {
       <h2>${title}</h2>
       <p>${detail}</p>
       <p class="small">✅ Salvata automaticamente nelle statistiche. Puoi condividerla in un secondo momento dallo storico partite.</p>
+      <button class="btn primary block sb-overlay-cta" id="sb-overlay-newmatch">▶️ Inizia partita</button>
     </div>
   `;
 }

@@ -120,9 +120,10 @@ const DEFAULT_STATE = {
   // Catalogo condiviso di avatar custom caricati dall'admin (vedi
   // js/admin.js): {id, label, imageUrl, order, createdAt}.
   customAvatars: [],
-  // Vetrina "Premi": sempre al massimo 5 elementi, gestiti solo dall'admin
-  // (niente XP/livelli/sblocchi - solo un annuncio/vetrina che chiunque
-  // vede ma solo lei può cambiare). {id, label, imageUrl, order, createdAt}.
+  // Vetrina "Accessori telecomandi": sempre al massimo 5 elementi, gestiti
+  // solo dall'admin (niente XP/livelli/sblocchi - solo un annuncio/vetrina
+  // che chiunque vede ma solo lei può cambiare).
+  // {id, label, imageUrl, link, order, createdAt}.
   prizes: [],
   // Bacheca "Telecomandi compatibili" gestita solo dall'admin: nome +
   // link (affiliazione Amazon o altro negozio). {id, label, link, order, createdAt}.

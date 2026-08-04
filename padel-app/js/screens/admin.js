@@ -1,7 +1,7 @@
 import { getState, setState } from '../store.js';
 import {
   listenCustomAvatars, listenPrizes, uploadCustomCatalogItem, deleteCustomCatalogItem,
-  updateCustomCatalogItemOrder, updateCustomCatalogItemImage,
+  updateCustomCatalogItemOrder, updateCustomCatalogItemImage, updateCustomCatalogItem,
   listenCompatibleRemotes, addCompatibleRemote, updateCompatibleRemoteOrder, deleteCompatibleRemote,
   updateCompatibleRemoteImage,
   listenWelcomeImage, uploadWelcomeImage,
@@ -41,6 +41,11 @@ export async function renderAdmin(el) {
   // stiamo per sostituire cliccando sulla sua anteprima già esistente -
   // riusa un solo input file nascosto invece di uno per riga.
   let editingImage = null;
+  // Finestra "Modifica accessorio" (id dell'accessorio aperto, o null se
+  // chiusa) - un'unica finestra per cambiare foto, link e posizione insieme,
+  // invece dei controlli sparsi riga per riga di prima.
+  let accessoryEditId = null;
+  let accessoryEditPickedImage = null;
 
   paint();
 
@@ -95,35 +100,37 @@ export async function renderAdmin(el) {
       </div>
 
       <div class="card">
-        <h2>Vetrina Premi (${prizes.length}/${MAX_PRIZES})</h2>
-        <p class="small">Al massimo ${MAX_PRIZES} alla volta: una vetrina che tutti vedono in "Premi", che cambi quando vuoi (tema natalizio, un premio vero, ecc). Solo tu la gestisci.</p>
-        ${prizesFull ? `<p class="small mb0" style="color:var(--danger,#e5484d);">⚠️ Hai già ${MAX_PRIZES} premi. Eliminane uno per poterne caricare un altro.</p>` : `
+        <h2>🔌 Accessori telecomandi (${prizes.length}/${MAX_PRIZES})</h2>
+        <p class="small">Al massimo ${MAX_PRIZES} alla volta: una vetrina che tutti vedono in "Accessori telecomandi" (foto + link opzionale, es. dove comprarli), che cambi quando vuoi. Solo tu la gestisci.</p>
+        ${prizesFull ? `<p class="small mb0" style="color:var(--danger,#e5484d);">⚠️ Hai già ${MAX_PRIZES} accessori. Eliminane uno per poterne caricare un altro.</p>` : `
         <div class="field row" style="align-items:flex-end;gap:6px;">
           <div style="flex:1;">
             <label>Nome</label>
-            <input id="new-prize-label" placeholder="es. Buon Natale!" maxlength="30">
+            <input id="new-prize-label" placeholder="es. Custodia telecomando" maxlength="30">
           </div>
           ${micButtonHtml('mic-new-prize-label')}
+        </div>
+        <div class="field">
+          <label>Link (opzionale)</label>
+          <input id="new-prize-link" placeholder="https://...">
         </div>
         <div class="field">
           <label>Posizione (opzionale)</label>
           <input id="new-prize-order" type="number" placeholder="es. 1 per metterlo primo">
         </div>
         <input type="file" accept="image/*" id="new-prize-file" class="hidden" style="display:none">
-        <button class="btn secondary block" id="pick-prize-file" ${uploading ? 'disabled' : ''}>${uploading ? 'Caricamento...' : '🎁 Scegli immagine e carica'}</button>
+        <button class="btn secondary block" id="pick-prize-file" ${uploading ? 'disabled' : ''}>${uploading ? 'Caricamento...' : '🔌 Scegli immagine e carica'}</button>
         `}
       </div>
 
       <div class="card">
-        <h2>Premi in vetrina</h2>
+        <h2>Accessori in vetrina</h2>
         <div class="picker-grid">
           ${prizes.map((p) => `
             <div class="frame-pick-wrap">
-              <div class="pick-item" data-edit-image="prize:${p.id}" title="Clicca per cambiare foto" style="cursor:pointer;"><span class="pick-item-preview"><img src="${p.imageUrl}" alt="" style="width:100%;height:100%;object-fit:cover;"></span></div>
+              <div class="pick-item pick-item-framed"><span class="pick-item-preview"><img src="${p.imageUrl}" alt="" style="width:100%;height:100%;object-fit:cover;"></span></div>
               <span class="pick-item-label">${escapeHtml(p.label || '')}</span>
-              <input type="number" class="small" data-order-prize="${p.id}" value="${p.order ?? 9999}" style="width:64px;text-align:center;margin-top:4px;">
-              <button class="btn ghost small" data-save-order-prize="${p.id}">✓</button>
-              <button class="btn danger small" data-del-prize="${p.id}">Elimina</button>
+              <button class="btn ghost small" data-edit-accessory="${p.id}">✏️ Modifica</button>
             </div>
           `).join('') || '<p class="small mb0">Nessuno.</p>'}
         </div>
@@ -215,6 +222,8 @@ export async function renderAdmin(el) {
       </div>
 
       <input type="file" accept="image/*" id="edit-image-file" class="hidden" style="display:none">
+
+      ${accessoryEditId ? accessoryEditModal(prizes.find((p) => p.id === accessoryEditId)) : ''}
     `;
 
     wireAllMicButtons(el);
@@ -228,11 +237,6 @@ export async function renderAdmin(el) {
       await deleteCustomCatalogItem('avatar', btn.dataset.delAvatar);
       toast('Avatar eliminato');
     }));
-    el.querySelectorAll('[data-del-prize]').forEach((btn) => btn.addEventListener('click', async () => {
-      await deleteCustomCatalogItem('prize', btn.dataset.delPrize);
-      toast('Premio eliminato');
-    }));
-
     el.querySelectorAll('[data-save-order-avatar]').forEach((btn) => btn.addEventListener('click', async () => {
       const id = btn.dataset.saveOrderAvatar;
       const input = el.querySelector(`[data-order-avatar="${id}"]`);
@@ -240,13 +244,51 @@ export async function renderAdmin(el) {
       await updateCustomCatalogItemOrder('avatar', id, isNaN(order) ? 9999 : order);
       toast('Posizione aggiornata');
     }));
-    el.querySelectorAll('[data-save-order-prize]').forEach((btn) => btn.addEventListener('click', async () => {
-      const id = btn.dataset.saveOrderPrize;
-      const input = el.querySelector(`[data-order-prize="${id}"]`);
-      const order = parseInt(input.value, 10);
-      await updateCustomCatalogItemOrder('prize', id, isNaN(order) ? 9999 : order);
-      toast('Posizione aggiornata');
+
+    el.querySelectorAll('[data-edit-accessory]').forEach((btn) => btn.addEventListener('click', () => {
+      accessoryEditId = btn.dataset.editAccessory;
+      accessoryEditPickedImage = null;
+      paint();
     }));
+    el.querySelector('#accessory-edit-close')?.addEventListener('click', () => { accessoryEditId = null; accessoryEditPickedImage = null; paint(); });
+    el.querySelector('#accessory-edit-modal')?.addEventListener('click', (e) => {
+      if (e.target.id === 'accessory-edit-modal') { accessoryEditId = null; accessoryEditPickedImage = null; paint(); }
+    });
+    el.querySelector('#accessory-edit-preview')?.addEventListener('click', () => el.querySelector('#accessory-edit-file').click());
+    el.querySelector('#accessory-edit-file')?.addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      e.target.value = '';
+      if (!file) return;
+      const blob = await openImageCropper(file, { shape: 'square' });
+      if (!blob) return;
+      accessoryEditPickedImage = blob;
+      paint();
+    });
+    el.querySelector('#accessory-edit-save')?.addEventListener('click', async () => {
+      const id = accessoryEditId;
+      const label = el.querySelector('#accessory-edit-label').value.trim().slice(0, 30) || 'Accessorio';
+      const link = el.querySelector('#accessory-edit-link').value.trim();
+      const orderVal = parseInt(el.querySelector('#accessory-edit-order').value, 10);
+      const order = isNaN(orderVal) ? 9999 : orderVal;
+      try {
+        if (accessoryEditPickedImage) await updateCustomCatalogItemImage('prize', id, accessoryEditPickedImage);
+        await updateCustomCatalogItem('prize', id, { label, link: link || null, order });
+        toast('Accessorio aggiornato!');
+      } catch (err) {
+        toast('Errore: ' + err.message);
+      }
+      accessoryEditId = null;
+      accessoryEditPickedImage = null;
+      paint();
+    });
+    el.querySelector('#accessory-edit-delete')?.addEventListener('click', async () => {
+      if (!confirm('Eliminare questo accessorio?')) return;
+      await deleteCustomCatalogItem('prize', accessoryEditId);
+      toast('Accessorio eliminato');
+      accessoryEditId = null;
+      accessoryEditPickedImage = null;
+      paint();
+    });
 
     el.querySelector('#pick-welcome-image-file').addEventListener('click', () => el.querySelector('#new-welcome-image-file').click());
     el.querySelector('#new-welcome-image-file').addEventListener('change', async (e) => {
@@ -389,19 +431,58 @@ export async function renderAdmin(el) {
     });
   }
 
+  // Finestra "Modifica accessorio": foto (con cornice spessa), link e
+  // posizione tutti insieme, invece della riga sparsa di prima - si apre dal
+  // pulsante "✏️ Modifica" su ogni accessorio in vetrina.
+  function accessoryEditModal(prize) {
+    if (!prize) return '';
+    const previewUrl = accessoryEditPickedImage ? URL.createObjectURL(accessoryEditPickedImage) : prize.imageUrl;
+    return `
+      <div class="modal-backdrop" id="accessory-edit-modal">
+        <div class="modal-card">
+          <h2><span>🔌 Modifica accessorio</span><button class="icon-btn" id="accessory-edit-close" aria-label="Chiudi">✕</button></h2>
+          <div class="center">
+            <div class="pick-item pick-item-framed" id="accessory-edit-preview" style="width:120px;height:120px;margin:0 auto 14px;cursor:pointer;border-radius:14px;overflow:hidden;background:var(--surface-2);display:flex;align-items:center;justify-content:center;position:relative;" title="Tocca per cambiare foto">
+              <span class="pick-item-preview"><img src="${previewUrl}" alt="" style="width:100%;height:100%;object-fit:cover;"></span>
+            </div>
+          </div>
+          <input type="file" accept="image/*" id="accessory-edit-file" class="hidden" style="display:none">
+          <div class="field row" style="align-items:flex-end;gap:6px;">
+            <div style="flex:1;">
+              <label>Nome</label>
+              <input id="accessory-edit-label" value="${escapeHtml(prize.label || '')}" maxlength="30">
+            </div>
+            ${micButtonHtml('mic-accessory-edit-label')}
+          </div>
+          <div class="field">
+            <label>Link (opzionale)</label>
+            <input id="accessory-edit-link" value="${escapeHtml(prize.link || '')}" placeholder="https://...">
+          </div>
+          <div class="field">
+            <label>Posizione</label>
+            <input id="accessory-edit-order" type="number" value="${prize.order ?? 9999}">
+          </div>
+          <button class="btn primary block mt" id="accessory-edit-save">Salva</button>
+          <button class="btn danger block" id="accessory-edit-delete">Elimina accessorio</button>
+        </div>
+      </div>
+    `;
+  }
+
   async function handleUpload(kind, e) {
     const file = e.target.files[0];
     e.target.value = '';
     if (!file) return;
     if (kind === 'prize' && getState().prizes.length >= MAX_PRIZES) {
-      toast(`Massimo ${MAX_PRIZES} premi in vetrina - eliminane uno prima`);
+      toast(`Massimo ${MAX_PRIZES} accessori in vetrina - eliminane uno prima`);
       return;
     }
     const labelInput = el.querySelector(kind === 'avatar' ? '#new-avatar-label' : '#new-prize-label');
     const orderInput = el.querySelector(kind === 'avatar' ? '#new-avatar-order' : '#new-prize-order');
-    const label = labelInput.value.trim().slice(0, 30) || (kind === 'avatar' ? 'Avatar' : 'Premio');
+    const label = labelInput.value.trim().slice(0, 30) || (kind === 'avatar' ? 'Avatar' : 'Accessorio');
     const orderVal = parseInt(orderInput.value, 10);
     const order = isNaN(orderVal) ? 9999 : orderVal;
+    const link = kind === 'prize' ? el.querySelector('#new-prize-link').value.trim() : null;
 
     const blob = await openImageCropper(file, { shape: kind === 'avatar' ? 'circle' : 'square' });
     if (!blob) return;
@@ -409,8 +490,8 @@ export async function renderAdmin(el) {
     uploading = true;
     paint();
     try {
-      await uploadCustomCatalogItem(kind, label, blob, order);
-      toast(kind === 'avatar' ? 'Avatar caricato!' : 'Premio caricato!');
+      await uploadCustomCatalogItem(kind, label, blob, order, link);
+      toast(kind === 'avatar' ? 'Avatar caricato!' : 'Accessorio caricato!');
     } catch (err) {
       toast('Errore: ' + err.message);
     } finally {

@@ -55,7 +55,7 @@ export async function renderProfile(el) {
       </div>
 
       <div class="card row between">
-        <div><strong>🎁 Premi</strong></div>
+        <div><strong>🔌 Accessori telecomandi</strong></div>
         <button class="btn ghost small" id="go-gami">Vedi</button>
       </div>
 

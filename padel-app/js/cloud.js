@@ -281,7 +281,8 @@ export function listenMyMatches(cb) {
   return fsListenCollection('matches', cb, [['createdBy', '==', id]]);
 }
 
-// ---- Admin catalog (custom avatars + prize showcase, see js/admin.js) ----
+// ---- Admin catalog (custom avatars + "Accessori telecomandi" showcase,
+// see js/admin.js) ----
 // order controls where the item lands in the shared picker grid relative to
 // the built-in avatars (which use multiples of 10, see js/avatars.js) -
 // defaults to the end of the list when not specified.
@@ -289,17 +290,24 @@ function collectionFor(kind) {
   return kind === 'avatar' ? 'customAvatars' : 'prizes';
 }
 
-export async function uploadCustomCatalogItem(kind, label, blob, order = 9999) {
+export async function uploadCustomCatalogItem(kind, label, blob, order = 9999, link = null) {
   if (!isCloudReady()) return;
   const itemId = genId();
   const collection = collectionFor(kind);
   const imageUrl = await uploadCatalogImage(`admin-${collection}/${itemId}`, blob);
-  await fsSet(`${collection}/${itemId}`, { label, imageUrl, order, createdAt: Date.now() });
+  await fsSet(`${collection}/${itemId}`, { label, imageUrl, order, link: link || null, createdAt: Date.now() });
 }
 
 export async function updateCustomCatalogItemOrder(kind, itemId, order) {
   if (!isCloudReady()) return;
   await fsSet(`${collectionFor(kind)}/${itemId}`, { order });
+}
+
+// Scrittura unica di label+link+order dalla finestra di modifica accessorio
+// (vedi js/screens/admin.js) - evita 3 fsSet separate per un solo salvataggio.
+export async function updateCustomCatalogItem(kind, itemId, patch) {
+  if (!isCloudReady()) return;
+  await fsSet(`${collectionFor(kind)}/${itemId}`, patch);
 }
 
 // Replaces just the image of an already-existing item (same id, label and
@@ -329,9 +337,9 @@ export async function deleteCustomCatalogItem(kind, itemId) {
 }
 
 // ---- Admin: bacheca "Telecomandi compatibili" (nome + link + immagine
-// opzionale) - stesso concetto della vetrina Premi, mostrata in una pagina
-// dedicata (js/screens/remote-board.js) raggiungibile dalla schermata
-// Bluetooth. ----
+// opzionale) - stesso concetto della vetrina "Accessori telecomandi",
+// mostrata in una pagina dedicata (js/screens/remote-board.js) raggiungibile
+// dalla schermata Bluetooth. ----
 export async function addCompatibleRemote(label, link, blob, order = 9999) {
   if (!isCloudReady()) return;
   const itemId = genId();

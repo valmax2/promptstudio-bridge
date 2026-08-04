@@ -490,8 +490,8 @@ label { font-size: 0.85em; color: var(--text-dim); display: block; margin-bottom
   border-top: 2px solid rgba(255,255,255,0.2);
   margin-top: 4px;
   background: rgba(0,0,0,0.3); color: #fff;
-  font-size: clamp(0.7rem, 2vw, 0.9rem); font-weight: 700;
-  padding: 6px 8px; text-transform: none; letter-spacing: normal;
+  font-size: clamp(0.9rem, 3.2vw, 1.35rem); font-weight: 700;
+  padding: 8px; text-transform: none; letter-spacing: normal;
 }
 
 .sb-stack {
@@ -533,11 +533,13 @@ label { font-size: 0.85em; color: var(--text-dim); display: block; margin-bottom
   /* NON scala più col ➕ (vedi .sb-mid sotto per il motivo): le righe di
      GAME/SET nella griglia sono fisse e non crescono, quindi ingrandirli
      insieme al punteggio li faceva tagliare/uscire su tablet larghi a
-     scala massima. Solo il punteggio grande (.sb-point sopra) cresce. */
-  font-size: clamp(0.5rem, 1.1vw, 0.7rem);
+     scala massima. Solo il punteggio grande (.sb-point sopra) cresce.
+     La dimensione base è comunque stata alzata (era clamp 0.5-0.7rem):
+     c'è spazio a sufficienza nella riga e restava poco leggibile. */
+  font-size: clamp(0.85rem, 2.4vw, 1.15rem);
   font-weight: 700;
-  letter-spacing: 0.12em;
-  opacity: 0.85;
+  letter-spacing: 0.1em;
+  opacity: 0.9;
   background: rgba(0,0,0,0.22);
 }
 .sb-mid {
@@ -562,7 +564,7 @@ label { font-size: 0.85em; color: var(--text-dim); display: block; margin-bottom
      righe di griglia (0.3fr/1.3fr) sono fisse e non crescono, quindi
      ingrandirli li faceva tagliare/uscire dallo spazio assegnato. Solo il
      punteggio grande (.sb-point sopra) cresce in orizzontale. */
-  .sb-cap { font-size: clamp(0.4rem, 1vw, 0.6rem); }
+  .sb-cap { font-size: clamp(0.7rem, 1.8vw, 0.95rem); }
   .sb-mid { font-size: min(10vw, 25vh); }
 }
 
@@ -677,6 +679,12 @@ label { font-size: 0.85em; color: var(--text-dim); display: block; margin-bottom
 }
 .sb-overlay h2 { font-size: clamp(1.4rem, 4vw, 2.2rem); }
 .sb-overlay .btn { font-size: 1.1em; padding: 16px 28px; }
+.sb-overlay-cta {
+  margin-top: 6px;
+  font-size: 1.3em !important;
+  padding: 18px 32px !important;
+  width: min(100%, 340px);
+}
 
 .sb-time-announce {
   flex: 1 1 auto; display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -783,6 +791,13 @@ label { font-size: 0.85em; color: var(--text-dim); display: block; margin-bottom
 }
 .frame-pick-wrap { display: flex; flex-direction: column; align-items: center; gap: 4px; }
 .frame-pick-wrap .pick-item-label { font-size: 0.72em; color: var(--text-dim); text-align: center; }
+
+/* Cornice spessa per gli "Accessori telecomandi" (foto in vetrina/admin) -
+   li distingue a colpo d'occhio dagli avatar tondi accanto. */
+.pick-item.pick-item-framed {
+  border: 5px solid var(--accent);
+  box-shadow: 0 2px 10px rgba(0,0,0,0.22);
+}
 
 a { color: var(--accent-2); }
 .center { text-align: center; }

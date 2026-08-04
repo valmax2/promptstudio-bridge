@@ -202,12 +202,24 @@ function customVictoryAnnouncement(m) {
 // usata per dedurre il nome squadra di default (vedi color-presets.js),
 // così scegliere qui un colore "sfasato" tra i due lo cambia subito nel
 // tabellone, senza dover andare fino a Impostazioni → Colori.
-function colorPickerModal(team, settings) {
-  const current = (team === 'A' ? settings.teamAColor : settings.teamBColor).toLowerCase();
+function colorPickerModal(target, settings) {
+  const titleMap = {
+    A: 'Colore Squadra 1',
+    B: 'Colore Squadra 2',
+    newMatchBg: 'Sfondo pulsante "Inizia nuova partita"',
+    newMatchText: 'Testo pulsante "Inizia nuova partita"',
+  };
+  const currentMap = {
+    A: settings.teamAColor,
+    B: settings.teamBColor,
+    newMatchBg: settings.newMatchButtonBg || '#4DD9FF',
+    newMatchText: settings.newMatchButtonTextColor || '#041A14',
+  };
+  const current = (currentMap[target] || '').toLowerCase();
   return `
     <div class="modal-backdrop" id="color-picker-modal">
       <div class="modal-card">
-        <h2><span>🎨 Colore Squadra ${team === 'A' ? '1' : '2'}</span><button class="icon-btn" id="color-picker-close" aria-label="Chiudi">✕</button></h2>
+        <h2><span>🎨 ${titleMap[target]}</span><button class="icon-btn" id="color-picker-close" aria-label="Chiudi">✕</button></h2>
         <div class="color-swatch-grid">
           ${NAMED_COLORS.map((c) => `
             <button type="button" class="color-swatch-option ${current === c.hex.toLowerCase() ? 'selected' : ''}" data-color="${c.hex}" style="background:${c.hex}" aria-label="${c.name}" title="${c.name}"></button>
@@ -488,6 +500,21 @@ function paintSetup(el) {
           <p class="small mb0">${currentVictoryPhraseLabel(settings)}</p>
           <button class="btn secondary block mt" id="setup-victory-phrase">Personalizza</button>
         </div>
+        <div class="card">
+          <label>🎾 Pulsante "Inizia nuova partita"</label>
+          <p class="small">Testo, sfondo e colore del testo del pulsante che appare a fine partita.</p>
+          <div class="field row" style="align-items:flex-end;gap:6px;">
+            <div style="flex:1;">
+              <input id="new-match-btn-text" placeholder="Inizia nuova partita" value="${escapeHtml(settings.newMatchButtonText || '')}" maxlength="30">
+            </div>
+            ${micButtonHtml('mic-new-match-btn-text')}
+          </div>
+          <div class="row mt" style="gap:8px;">
+            <button type="button" class="btn secondary" style="flex:1;" data-color-team="newMatchBg">🎨 Sfondo</button>
+            <button type="button" class="btn secondary" style="flex:1;" data-color-team="newMatchText">🎨 Testo</button>
+          </div>
+          ${(settings.newMatchButtonText || settings.newMatchButtonBg || settings.newMatchButtonTextColor) ? '<button class="btn ghost block mt" id="new-match-btn-reset">↺ Predefinito</button>' : ''}
+        </div>
         ${isLiteMode() ? '<button class="btn secondary block mt" id="setup-bluetooth">🔵 Configura Bluetooth</button>' : ''}
         ${canExitLiteMode() ? '<button class="btn lite-highlight block mt" id="setup-exit-lite">↩️ Esci da Modalità Light</button>' : ''}
         <button class="btn primary block mt" id="start-match">Inizia partita</button>
@@ -514,11 +541,23 @@ function paintSetup(el) {
   });
   el.querySelectorAll('[data-color]').forEach((btn) => btn.addEventListener('click', () => {
     const hex = btn.dataset.color;
-    const patch = colorPickerOpen === 'A' ? { teamAColor: hex } : { teamBColor: hex };
-    updateSettings({ ...patch, colorPreset: 'custom' });
+    const patch = {
+      A: { teamAColor: hex, colorPreset: 'custom' },
+      B: { teamBColor: hex, colorPreset: 'custom' },
+      newMatchBg: { newMatchButtonBg: hex },
+      newMatchText: { newMatchButtonTextColor: hex },
+    }[colorPickerOpen];
+    if (patch) updateSettings(patch);
     colorPickerOpen = null;
     paintSetup(el);
   }));
+  el.querySelector('#new-match-btn-text')?.addEventListener('change', (e) => {
+    updateSettings({ newMatchButtonText: e.target.value.trim().slice(0, 30) || null });
+  });
+  el.querySelector('#new-match-btn-reset')?.addEventListener('click', () => {
+    updateSettings({ newMatchButtonText: null, newMatchButtonBg: null, newMatchButtonTextColor: null });
+    paintSetup(el);
+  });
   el.querySelectorAll('[data-load-preset]').forEach((btn) => btn.addEventListener('click', () => {
     const preset = (getState().settings.namePresets || []).find((p) => p.id === btn.dataset.loadPreset);
     if (!preset) return;
@@ -689,7 +728,7 @@ function paint(el) {
       <div class="sb-halves">
         ${teamHalf('A')}
         ${teamHalf('B')}
-        ${match.matchOver ? matchOverOverlay() : ''}
+        ${match.matchOver ? matchOverOverlay(settings) : ''}
         ${isLiteMode() ? '' : `<button class="sb-back-btn" id="sb-back" aria-label="Torna alla home">${BACK_ICON}</button>`}
         <div class="sb-icons-pill">
           <button id="sb-display-mode" aria-label="Modalità visualizzazione" title="Solo punteggio">${pointsOnlyMode ? '🔢' : '📋'}</button>
@@ -707,7 +746,7 @@ function paint(el) {
         ${isLiteMode() ? '<button id="sb-bluetooth">🔵 Bluetooth</button>' : '<button id="sb-open-options">⚙️ Opzioni</button>'}
         <button id="sb-newmatch">🔄 Nuova partita</button>
       </div>` : ''}
-      ${serverPickerOpen ? serverPickerModal() : ''}
+      ${serverPickerOpen ? serverPickerModal(settings) : ''}
       ${quickSummaryOpen ? quickSummaryModal(settings) : ''}
       ${helpOpen ? helpModal() : ''}
       ${renameModal()}
@@ -840,11 +879,20 @@ function paint(el) {
       paint(el);
     });
   });
-  el.querySelectorAll('[data-rename-player]').forEach((btn) => {
-    btn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const [team, idxStr] = btn.dataset.renamePlayer.split(':');
-      renameTarget = { kind: 'player', team, idx: Number(idxStr) };
+  // Nome modificabile direttamente nella riga (stessa UX di "Nuova partita"),
+  // salvato al cambio focus - niente più matita che apre un'altra finestra.
+  el.querySelectorAll('[data-server-name]').forEach((input) => {
+    input.addEventListener('change', () => {
+      const [team, idxStr] = input.dataset.serverName.split(':');
+      const idx = Number(idxStr);
+      const trimmed = input.value.trim().slice(0, 24);
+      if (!trimmed) return;
+      const players = team === 'A' ? match.teamAPlayers : match.teamBPlayers;
+      players[idx] = trimmed;
+      if (match.mode === 'singles') {
+        if (team === 'A') match.teamAName = players[0];
+        else match.teamBName = players[0];
+      }
       paint(el);
     });
   });
@@ -922,7 +970,7 @@ function teamHalf(team) {
   return `
     <div class="sb-half sb-${team.toLowerCase()}" id="half-${team.toLowerCase()}">
       <div class="sb-name-row" data-edit-name="${team}">${escapeHtml(name)}</div>
-      ${serving ? `<button class="sb-server-player" data-open-server-picker="${team}">🎾 ${isDoubles ? `Batte: ${escapeHtml(servingPlayerName)}` : 'Al servizio'}</button>` : ''}
+      ${serving ? `<button class="sb-server-player" data-open-server-picker="${team}">🎾 ${isDoubles ? escapeHtml(servingPlayerName) : 'Al servizio'}</button>` : ''}
       <div class="sb-stack ${pointsOnlyMode ? 'points-only' : ''}">${stackContent}</div>
       ${badge ? `<div class="sb-badge">${badge}</div>` : ''}
     </div>
@@ -1013,25 +1061,37 @@ function quickSummaryModal(settings) {
   `;
 }
 
-function serverPickerModal() {
-  const options = [
-    { team: 'A', idx: 0, name: match.teamAPlayers[0] },
-    ...(match.teamAPlayers.length > 1 ? [{ team: 'A', idx: 1, name: match.teamAPlayers[1] }] : []),
-    { team: 'B', idx: 0, name: match.teamBPlayers[0] },
-    ...(match.teamBPlayers.length > 1 ? [{ team: 'B', idx: 1, name: match.teamBPlayers[1] }] : []),
-  ];
+// Stessa grafica della riga giocatore in "Nuova partita" (vedi teamHalf più
+// sotto e paintSetup): maniglia 👆, campo nome modificabile sul posto,
+// racchetta per scegliere chi batte, microfono - così chi già conosce quei
+// controlli li ritrova identici anche qui, invece del vecchio elenco di
+// pulsanti + matita separata che apriva un'altra finestra.
+function serverPickerModal(settings) {
+  const teamRow = (team, idx, name) => {
+    const active = match.server === team && idx === ((team === 'A' ? match.serverPlayerA : match.serverPlayerB) || 0);
+    const inputId = `srv-name-${team}-${idx}`;
+    return `
+      <div class="field mb0 row player-row" style="align-items:center;gap:6px;">
+        <span class="drag-handle" aria-label="Giocatore" style="cursor:default;touch-action:auto;">👆</span>
+        <input id="${inputId}" data-server-name="${team}:${idx}" value="${escapeHtml(name)}" maxlength="24" style="flex:1;">
+        <button type="button" class="btn-server-pick ${active ? 'active' : ''}" data-pick-live-server="${team}:${idx}" aria-label="Fa battere">🎾</button>
+        ${micButtonHtml(`mic-${inputId}`)}
+      </div>
+    `;
+  };
+  const teamCard = (team, color, players) => `
+    <div class="card" style="border-color:${color};border-width:2px;">
+      ${players.map((name, idx) => teamRow(team, idx, name)).join('')}
+    </div>
+  `;
   return `
     <div class="modal-backdrop" id="server-picker-modal">
       <div class="modal-card">
         <h2><span>🎾 Chi batte?</span><button class="icon-btn" id="server-picker-close" aria-label="Chiudi">✕</button></h2>
         <button class="btn primary block mt" id="pick-random-server" style="font-size:1.15em;padding:16px;">🎲 Battitore casuale</button>
         <div class="mt">
-          ${options.map((o) => `
-            <div class="row mt" style="gap:8px;">
-              <button class="btn ${match.server === o.team && (o.idx === ((o.team === 'A' ? match.serverPlayerA : match.serverPlayerB) || 0)) ? 'primary' : 'secondary'} block" style="flex:1;" data-pick-live-server="${o.team}:${o.idx}">${escapeHtml(o.name)}</button>
-              <button class="btn ghost small" data-rename-player="${o.team}:${o.idx}" aria-label="Rinomina giocatore">✏️</button>
-            </div>
-          `).join('')}
+          ${teamCard('A', settings.teamAColor, match.teamAPlayers)}
+          ${teamCard('B', settings.teamBColor, match.teamBPlayers)}
         </div>
       </div>
     </div>
@@ -1083,19 +1143,24 @@ function badgeFor(team) {
   return null;
 }
 
-function matchOverOverlay() {
+function matchOverOverlay(settings) {
   const title = match.matchWinner
     ? `🏆 ${escapeHtml(teamName(match, match.matchWinner))} vince!`
     : '🤝 Pareggio!';
   const detail = match.format === 'time'
     ? `${match.currentSet.gamesA}-${match.currentSet.gamesB} giochi`
     : match.sets.map((s) => `${s.a}-${s.b}`).join(' &nbsp;·&nbsp; ');
+  const btnText = escapeHtml(settings.newMatchButtonText || 'Inizia nuova partita');
+  // null = usa lo sfondo/testo predefiniti del .btn.primary (gradiente
+  // accent) - lo stile inline qui sotto li sovrascrive solo se personalizzati.
+  const btnStyle = (settings.newMatchButtonBg ? `background:${settings.newMatchButtonBg};` : '')
+    + (settings.newMatchButtonTextColor ? `color:${settings.newMatchButtonTextColor};` : '');
   return `
     <div class="sb-overlay">
       <h2>${title}</h2>
       <p>${detail}</p>
       <p class="small">✅ Salvata automaticamente nelle statistiche. Puoi condividerla in un secondo momento dallo storico partite.</p>
-      <button class="btn primary block sb-overlay-cta" id="sb-overlay-newmatch">▶️ Inizia partita</button>
+      <button class="btn primary block sb-overlay-cta" id="sb-overlay-newmatch" style="${btnStyle}"><span class="sb-overlay-cta-icon">🎾</span> ${btnText}</button>
     </div>
   `;
 }

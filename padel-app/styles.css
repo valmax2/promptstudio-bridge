@@ -490,7 +490,7 @@ label { font-size: 0.85em; color: var(--text-dim); display: block; margin-bottom
   border-top: 2px solid rgba(255,255,255,0.2);
   margin-top: 4px;
   background: rgba(0,0,0,0.3); color: #fff;
-  font-size: clamp(0.9rem, 3.2vw, 1.35rem); font-weight: 700;
+  font-size: clamp(1rem, 3.8vw, 1.55rem); font-weight: 700;
   padding: 8px; text-transform: none; letter-spacing: normal;
 }
 
@@ -684,7 +684,9 @@ label { font-size: 0.85em; color: var(--text-dim); display: block; margin-bottom
   font-size: 1.3em !important;
   padding: 18px 32px !important;
   width: min(100%, 340px);
+  display: flex; align-items: center; justify-content: center; gap: 8px;
 }
+.sb-overlay-cta-icon { font-size: 1.7em; line-height: 1; }
 
 .sb-time-announce {
   flex: 1 1 auto; display: flex; flex-direction: column; align-items: center; justify-content: center;

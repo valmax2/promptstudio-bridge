@@ -77,6 +77,12 @@ const DEFAULT_STATE = {
     // activeVictoryPhraseId null = usa l'annuncio predefinito.
     victoryPhrases: [],
     activeVictoryPhraseId: null,
+    // Personalizzazione del pulsante "Inizia nuova partita" a fine partita
+    // (vedi matchOverOverlay in scoreboard.js) - null = usa il testo/colori
+    // predefiniti (sfondo a gradiente, testo scuro).
+    newMatchButtonText: null,
+    newMatchButtonBg: null,
+    newMatchButtonTextColor: null,
     // Attiva la Modalità Interfaccia Light da dentro l'app (vedi
     // js/lite-mode.js:isLiteMode()) - riduce l'app a solo Nuova partita +
     // Bluetooth, reversibile in qualsiasi momento dall'utente. Separata dal

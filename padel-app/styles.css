@@ -526,8 +526,8 @@ label { font-size: 0.85em; color: var(--text-dim); display: block; margin-bottom
   border-top: 2px solid rgba(255,255,255,0.2);
   margin-top: 4px;
   background: rgba(0,0,0,0.3); color: #fff;
-  font-size: clamp(1rem, 3.8vw, 1.55rem); font-weight: 700;
-  padding: 8px; text-transform: none; letter-spacing: normal;
+  font-size: clamp(1.3rem, 5.2vw, 2.1rem); font-weight: 700;
+  padding: 10px 8px; text-transform: none; letter-spacing: normal;
 }
 
 .sb-stack {

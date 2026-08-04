@@ -176,6 +176,28 @@ label { font-size: 0.85em; color: var(--text-dim); display: block; margin-bottom
 }
 .modal-card h2 { display: flex; align-items: center; justify-content: space-between; }
 
+/* Foto ingrandita a schermo intero (tocco su un avatar "Telecomandi
+   compatibili" / "Accessori telecomandi") - solo visualizzazione, niente
+   ritaglio. z-index sopra i modal-backdrop normali così funziona anche se
+   aperta da dentro un'altra finestra. */
+.lightbox-backdrop {
+  position: fixed; inset: 0; z-index: 400;
+  background: rgba(0,0,0,0.9);
+  display: flex; align-items: center; justify-content: center;
+  padding: 24px;
+}
+.lightbox-backdrop img {
+  max-width: 100%; max-height: 100%; border-radius: 12px;
+  object-fit: contain;
+}
+.lightbox-close {
+  position: absolute; top: max(14px, var(--safe-top, 14px)); right: 14px;
+  width: 40px; height: 40px; border-radius: 50%;
+  background: rgba(255,255,255,0.15); color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.2em;
+}
+
 .crop-viewport {
   position: relative; width: 100%; max-width: 300px; aspect-ratio: 1;
   margin: 12px auto 0; overflow: hidden; border-radius: 16px;
@@ -433,18 +455,24 @@ label { font-size: 0.85em; color: var(--text-dim); display: block; margin-bottom
 .sb-back-btn svg { width: 20px; height: 20px; }
 .sb-back-btn:active { background: rgba(0,0,0,0.7); }
 
-/* Ora dentro .sb-bottom-bar (vedi sotto) invece che sovrapposta al
-   tabellone colorato: sta sulla barra nera in basso a destra, accanto alla
-   freccina, e si sposta insieme ad essa quando la barra comandi si apre. */
+/* Sovrapposta con position:absolute sopra la .sb-controls-toggle (non un
+   figlio in fila con essa) così la freccina resta larga il 100% della barra
+   e centrata come prima - le iconcine sono un fratello a parte "appoggiato"
+   sopra all'angolo destro, e toccarle non attiva il toggle sotto. Vive
+   comunque dentro .sb-bottom-bar (vedi sopra) quindi si sposta insieme alla
+   barra quando la barra comandi si apre/chiude. */
 .sb-icons-pill {
-  flex: 0 0 auto;
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 2;
   display: flex;
   align-items: center;
   gap: 2px;
   border-radius: 20px;
-  background: rgba(255,255,255,0.1);
+  background: rgba(255,255,255,0.12);
   padding: 2px 2px;
-  margin: 0 6px max(8px, var(--safe-bottom)) 0;
 }
 .sb-icons-pill button {
   background: none; border: none; color: #fff; font-size: 1.05em;
@@ -591,20 +619,16 @@ label { font-size: 0.85em; color: var(--text-dim); display: block; margin-bottom
   flex: 0 0 auto;
   width: 100%;
   background: #111;
-  display: flex;
-  align-items: center;
+  position: relative;
 }
 .sb-controls-toggle {
-  flex: 1 1 auto;
+  flex: 0 0 auto;
+  width: 100%;
   background: none;
   border: none;
   color: rgba(255,255,255,0.75);
   font-size: 1.4rem;
   line-height: 1;
-  align-self: stretch;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   /* Alcuni telefoni (gesture nav a tutto schermo) non riportano l'inset
      reale in env(safe-area-inset-bottom) pur mostrando comunque il
      pallino/barra di navigazione sopra il contenuto: oltre al normale

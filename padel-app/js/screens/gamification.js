@@ -4,11 +4,14 @@ import { firebaseAvailable } from '../firebase.js';
 import { escapeHtml } from '../utils.js';
 import { navigate } from '../router.js';
 import { isAdmin } from '../admin.js';
+import { openImageLightbox } from '../image-lightbox.js';
 
 // "Accessori telecomandi": a small admin-curated showcase (max 5 items, see
-// js/admin.js) - read-only here. Foto + link opzionale (es. dove comprarli):
-// niente XP/livelli/sblocchi, solo quello che l'admin vuole mettere in
-// vetrina in questo momento.
+// js/admin.js) - read-only here. Foto + descrizione + link opzionale (es.
+// dove comprarli): niente XP/livelli/sblocchi, solo quello che l'admin vuole
+// mettere in vetrina in questo momento. Stessa "tipologia" a righe di
+// "Telecomandi compatibili" (vedi remote-board.js) invece della griglia di
+// prima, per coerenza tra le due bacheche - tocca la foto per vederla grande.
 export async function renderGamification(el) {
   let unsubPrizes = null;
 
@@ -26,16 +29,16 @@ export async function renderGamification(el) {
 
       ${prizes.length ? `
       <div class="card">
-        <div class="picker-grid">
-          ${prizes.map((p) => `
-            <div class="frame-pick-wrap">
-              <div class="pick-item pick-item-framed" ${p.link ? `data-open-link="${escapeHtml(p.link)}" style="cursor:pointer;"` : ''}><span class="pick-item-preview"><img src="${p.imageUrl}" alt="${escapeHtml(p.label || '')}" style="width:100%;height:100%;object-fit:cover;"></span></div>
-              <span class="pick-item-label">${escapeHtml(p.label || '')}</span>
-              ${p.description ? `<span class="small" style="text-align:center;opacity:0.8;">${escapeHtml(p.description)}</span>` : ''}
-              ${p.link ? `<a class="btn ghost small" href="${escapeHtml(p.link)}" target="_blank" rel="noopener noreferrer">Vedi</a>` : ''}
+        ${prizes.map((p) => `
+          <div class="list-item row" style="gap:14px;align-items:center;">
+            <div class="avatar" style="width:64px;height:64px;flex-shrink:0;cursor:pointer;" data-open-lightbox="${escapeHtml(p.imageUrl)}" data-lightbox-label="${escapeHtml(p.label || '')}"><img src="${p.imageUrl}" alt="${escapeHtml(p.label || '')}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"></div>
+            <div class="meta" style="flex:1;">
+              <strong>${escapeHtml(p.label || '')}</strong>
+              ${p.description ? `<span>${escapeHtml(p.description)}</span>` : ''}
             </div>
-          `).join('')}
-        </div>
+            ${p.link ? `<a class="btn primary small" href="${escapeHtml(p.link)}" target="_blank" rel="noopener noreferrer">Vedi</a>` : ''}
+          </div>
+        `).join('')}
       </div>
       ` : ''}
 
@@ -43,8 +46,8 @@ export async function renderGamification(el) {
     `;
 
     el.querySelector('#go-admin')?.addEventListener('click', () => navigate('admin'));
-    el.querySelectorAll('[data-open-link]').forEach((box) => box.addEventListener('click', () => {
-      window.open(box.dataset.openLink, '_blank', 'noopener,noreferrer');
+    el.querySelectorAll('[data-open-lightbox]').forEach((box) => box.addEventListener('click', () => {
+      openImageLightbox(box.dataset.openLightbox, box.dataset.lightboxLabel);
     }));
   }
 

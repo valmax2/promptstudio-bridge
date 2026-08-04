@@ -19,11 +19,11 @@ export function openImageCropper(file, { shape = 'square', aspect = 1 } = {}) {
       backdrop.innerHTML = `
         <div class="modal-card crop-modal">
           <h2>Ritaglia immagine <button class="btn ghost small" id="crop-close">✕</button></h2>
-          <p class="small">Trascina per spostare, usa il cursore per ingrandire. Quello che vedi nel riquadro è quello che verrà usato.</p>
+          <p class="small">Trascina per spostare, pizzica con due dita o usa il cursore per ingrandire. Quello che vedi nel riquadro è quello che verrà usato.</p>
           <div class="crop-viewport ${shape === 'circle' ? 'crop-circle' : ''}" id="crop-viewport" style="aspect-ratio:${aspect};">
             <img id="crop-img" src="${url}" draggable="false" alt="">
           </div>
-          <input type="range" id="crop-zoom" min="1" max="3" step="0.01" value="1" class="mt">
+          <input type="range" id="crop-zoom" min="1" max="6" step="0.01" value="1" class="mt">
           <div class="row" style="gap:8px;margin-top:14px;">
             <button class="btn secondary block" id="crop-cancel">Annulla</button>
             <button class="btn primary block" id="crop-confirm">Usa questa immagine</button>
@@ -44,9 +44,20 @@ export function openImageCropper(file, { shape = 'square', aspect = 1 } = {}) {
       let startY = 0;
       let startTx = 0;
       let startTy = 0;
+      // Pizzico a due dita per ingrandire (oltre al cursore #crop-zoom, più
+      // comodo su schermi piccoli): tiene traccia dei puntatori attivi per
+      // calcolare la distanza tra le due dita e farla corrispondere allo
+      // zoom, come farebbe qualsiasi galleria foto.
+      const activePointers = new Map();
+      let pinchStartDist = 0;
+      let pinchStartZoom = 1;
 
       const vpSize = () => ({ w: viewport.clientWidth, h: viewport.clientHeight });
       const scale = () => baseScale * parseFloat(zoomEl.value);
+      const pointerDist = () => {
+        const pts = [...activePointers.values()];
+        return Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+      };
 
       function clamp() {
         const { w, h } = vpSize();
@@ -80,19 +91,51 @@ export function openImageCropper(file, { shape = 'square', aspect = 1 } = {}) {
       zoomEl.addEventListener('input', render);
 
       viewport.addEventListener('pointerdown', (e) => {
-        dragging = true;
-        startX = e.clientX; startY = e.clientY;
-        startTx = tx; startTy = ty;
         viewport.setPointerCapture(e.pointerId);
+        activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+        if (activePointers.size === 2) {
+          // Un secondo dito è arrivato: passa dal trascinamento al pizzico,
+          // ricordando la distanza/zoom di partenza per calcolare il fattore
+          // di scala relativo mentre le dita si allontanano o avvicinano.
+          dragging = false;
+          pinchStartDist = pointerDist();
+          pinchStartZoom = parseFloat(zoomEl.value);
+        } else {
+          dragging = true;
+          startX = e.clientX; startY = e.clientY;
+          startTx = tx; startTy = ty;
+        }
       });
       viewport.addEventListener('pointermove', (e) => {
+        if (!activePointers.has(e.pointerId)) return;
+        activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+        if (activePointers.size === 2) {
+          const factor = pointerDist() / pinchStartDist;
+          const next = Math.min(6, Math.max(1, pinchStartZoom * factor));
+          zoomEl.value = next;
+          render();
+          return;
+        }
         if (!dragging) return;
         tx = startTx + (e.clientX - startX);
         ty = startTy + (e.clientY - startY);
         render();
       });
-      viewport.addEventListener('pointerup', () => { dragging = false; });
-      viewport.addEventListener('pointercancel', () => { dragging = false; });
+      const endPointer = (e) => {
+        activePointers.delete(e.pointerId);
+        dragging = false;
+        // Se resta ancora un dito sul vetro dopo averne sollevato uno
+        // durante il pizzico, riparte da lì un trascinamento normale invece
+        // di lasciare l'immagine "ferma" finché non si stacca anche l'altro.
+        if (activePointers.size === 1) {
+          const [[, p]] = activePointers;
+          dragging = true;
+          startX = p.x; startY = p.y;
+          startTx = tx; startTy = ty;
+        }
+      };
+      viewport.addEventListener('pointerup', endPointer);
+      viewport.addEventListener('pointercancel', endPointer);
 
       function finish(result) {
         URL.revokeObjectURL(url);

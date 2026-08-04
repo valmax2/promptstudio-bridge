@@ -187,8 +187,15 @@ label { font-size: 0.85em; color: var(--text-dim); display: block; margin-bottom
   padding: 24px;
 }
 .lightbox-backdrop img {
-  max-width: 100%; max-height: 100%; border-radius: 12px;
+  /* Larghezza/altezza fisse (non max-width/height) così l'immagine riempie
+     sempre un'ampia porzione dello schermo con object-fit:contain, anche se
+     la foto originale è piccola - altrimenti una foto piccola resterebbe
+     alla sua dimensione naturale invece di ingrandirsi. Da lì si può
+     pizzicare per ingrandire ancora o rimpicciolire un po' e trascinare
+     quando ingrandita (vedi image-lightbox.js) - doppio tocco per resettare. */
+  width: 92vw; height: 82vh; border-radius: 12px;
   object-fit: contain;
+  touch-action: none; cursor: grab; user-select: none;
 }
 .lightbox-close {
   position: absolute; top: max(14px, var(--safe-top, 14px)); right: 14px;

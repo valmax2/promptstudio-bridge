@@ -290,12 +290,12 @@ function collectionFor(kind) {
   return kind === 'avatar' ? 'customAvatars' : 'prizes';
 }
 
-export async function uploadCustomCatalogItem(kind, label, blob, order = 9999, link = null) {
+export async function uploadCustomCatalogItem(kind, label, blob, order = 9999, link = null, description = null) {
   if (!isCloudReady()) return;
   const itemId = genId();
   const collection = collectionFor(kind);
   const imageUrl = await uploadCatalogImage(`admin-${collection}/${itemId}`, blob);
-  await fsSet(`${collection}/${itemId}`, { label, imageUrl, order, link: link || null, createdAt: Date.now() });
+  await fsSet(`${collection}/${itemId}`, { label, imageUrl, order, link: link || null, description: description || null, createdAt: Date.now() });
 }
 
 export async function updateCustomCatalogItemOrder(kind, itemId, order) {

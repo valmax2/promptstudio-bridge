@@ -433,17 +433,18 @@ label { font-size: 0.85em; color: var(--text-dim); display: block; margin-bottom
 .sb-back-btn svg { width: 20px; height: 20px; }
 .sb-back-btn:active { background: rgba(0,0,0,0.7); }
 
+/* Ora dentro .sb-bottom-bar (vedi sotto) invece che sovrapposta al
+   tabellone colorato: sta sulla barra nera in basso a destra, accanto alla
+   freccina, e si sposta insieme ad essa quando la barra comandi si apre. */
 .sb-icons-pill {
-  position: absolute;
-  right: 8px;
-  bottom: 10px;
-  z-index: 6;
+  flex: 0 0 auto;
   display: flex;
   align-items: center;
   gap: 2px;
   border-radius: 20px;
-  background: rgba(0,0,0,0.45);
+  background: rgba(255,255,255,0.1);
   padding: 2px 2px;
+  margin: 0 6px max(8px, var(--safe-bottom)) 0;
 }
 .sb-icons-pill button {
   background: none; border: none; color: #fff; font-size: 1.05em;
@@ -581,16 +582,29 @@ label { font-size: 0.85em; color: var(--text-dim); display: block; margin-bottom
   white-space: nowrap;
 }
 
-/* Maniglia della barra comandi a scomparsa: striscia sottile sempre
-   visibile col triangolino centrato - tocca per aprire/chiudere la barra. */
-.sb-controls-toggle {
+/* Striscia nera sempre visibile in fondo al tabellone: triangolino (che
+   apre/chiude la barra comandi sotto) + le 3 iconcine (visualizzazione,
+   ingrandisci numero, audio) a destra sulla stessa riga - prima erano
+   sovrapposte al tabellone colorato, ora stanno qui e si spostano insieme
+   a questa barra quando la barra comandi sotto si apre/chiude. */
+.sb-bottom-bar {
   flex: 0 0 auto;
   width: 100%;
   background: #111;
+  display: flex;
+  align-items: center;
+}
+.sb-controls-toggle {
+  flex: 1 1 auto;
+  background: none;
   border: none;
   color: rgba(255,255,255,0.75);
-  font-size: 0.8rem;
+  font-size: 1.4rem;
   line-height: 1;
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   /* Alcuni telefoni (gesture nav a tutto schermo) non riportano l'inset
      reale in env(safe-area-inset-bottom) pur mostrando comunque il
      pallino/barra di navigazione sopra il contenuto: oltre al normale

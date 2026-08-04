@@ -110,6 +110,13 @@ export async function renderAdmin(el) {
           </div>
           ${micButtonHtml('mic-new-prize-label')}
         </div>
+        <div class="field row" style="align-items:flex-end;gap:6px;">
+          <div style="flex:1;">
+            <label>Descrizione (opzionale)</label>
+            <input id="new-prize-desc" placeholder="es. Custodia rigida compatibile con tutti i telecomandi" maxlength="120">
+          </div>
+          ${micButtonHtml('mic-new-prize-desc')}
+        </div>
         <div class="field">
           <label>Link (opzionale)</label>
           <input id="new-prize-link" placeholder="https://...">
@@ -267,12 +274,13 @@ export async function renderAdmin(el) {
     el.querySelector('#accessory-edit-save')?.addEventListener('click', async () => {
       const id = accessoryEditId;
       const label = el.querySelector('#accessory-edit-label').value.trim().slice(0, 30) || 'Accessorio';
+      const description = el.querySelector('#accessory-edit-desc').value.trim().slice(0, 120);
       const link = el.querySelector('#accessory-edit-link').value.trim();
       const orderVal = parseInt(el.querySelector('#accessory-edit-order').value, 10);
       const order = isNaN(orderVal) ? 9999 : orderVal;
       try {
         if (accessoryEditPickedImage) await updateCustomCatalogItemImage('prize', id, accessoryEditPickedImage);
-        await updateCustomCatalogItem('prize', id, { label, link: link || null, order });
+        await updateCustomCatalogItem('prize', id, { label, description: description || null, link: link || null, order });
         toast('Accessorio aggiornato!');
       } catch (err) {
         toast('Errore: ' + err.message);
@@ -454,6 +462,13 @@ export async function renderAdmin(el) {
             </div>
             ${micButtonHtml('mic-accessory-edit-label')}
           </div>
+          <div class="field row" style="align-items:flex-end;gap:6px;">
+            <div style="flex:1;">
+              <label>Descrizione (opzionale)</label>
+              <input id="accessory-edit-desc" value="${escapeHtml(prize.description || '')}" maxlength="120">
+            </div>
+            ${micButtonHtml('mic-accessory-edit-desc')}
+          </div>
           <div class="field">
             <label>Link (opzionale)</label>
             <input id="accessory-edit-link" value="${escapeHtml(prize.link || '')}" placeholder="https://...">
@@ -483,6 +498,7 @@ export async function renderAdmin(el) {
     const orderVal = parseInt(orderInput.value, 10);
     const order = isNaN(orderVal) ? 9999 : orderVal;
     const link = kind === 'prize' ? el.querySelector('#new-prize-link').value.trim() : null;
+    const description = kind === 'prize' ? el.querySelector('#new-prize-desc').value.trim().slice(0, 120) : null;
 
     const blob = await openImageCropper(file, { shape: kind === 'avatar' ? 'circle' : 'square' });
     if (!blob) return;
@@ -490,7 +506,7 @@ export async function renderAdmin(el) {
     uploading = true;
     paint();
     try {
-      await uploadCustomCatalogItem(kind, label, blob, order, link);
+      await uploadCustomCatalogItem(kind, label, blob, order, link, description);
       toast(kind === 'avatar' ? 'Avatar caricato!' : 'Accessorio caricato!');
     } catch (err) {
       toast('Errore: ' + err.message);

@@ -31,6 +31,7 @@ export async function renderGamification(el) {
             <div class="frame-pick-wrap">
               <div class="pick-item pick-item-framed" ${p.link ? `data-open-link="${escapeHtml(p.link)}" style="cursor:pointer;"` : ''}><span class="pick-item-preview"><img src="${p.imageUrl}" alt="${escapeHtml(p.label || '')}" style="width:100%;height:100%;object-fit:cover;"></span></div>
               <span class="pick-item-label">${escapeHtml(p.label || '')}</span>
+              ${p.description ? `<span class="small" style="text-align:center;opacity:0.8;">${escapeHtml(p.description)}</span>` : ''}
               ${p.link ? `<a class="btn ghost small" href="${escapeHtml(p.link)}" target="_blank" rel="noopener noreferrer">Vedi</a>` : ''}
             </div>
           `).join('')}

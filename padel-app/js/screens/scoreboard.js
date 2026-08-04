@@ -730,15 +730,17 @@ function paint(el) {
         ${teamHalf('B')}
         ${match.matchOver ? matchOverOverlay(settings) : ''}
         ${isLiteMode() ? '' : `<button class="sb-back-btn" id="sb-back" aria-label="Torna alla home">${BACK_ICON}</button>`}
+        <button class="sb-help-btn" id="sb-help" aria-label="Guida ai comandi">i</button>
+        ${isLiteMode() ? '' : `<button class="sb-home-btn" id="sb-home-center" aria-label="Torna alla home">${NAV_ICONS.home}</button>`}
+      </div>
+      <div class="sb-bottom-bar">
+        <button class="sb-controls-toggle" id="sb-controls-toggle" aria-label="${controlsExpanded ? 'Nascondi barra comandi' : 'Mostra barra comandi'}">${controlsExpanded ? '▼' : '▲'}</button>
         <div class="sb-icons-pill">
           <button id="sb-display-mode" aria-label="Modalità visualizzazione" title="Solo punteggio">${pointsOnlyMode ? '🔢' : '📋'}</button>
           <button id="sb-number-size" aria-label="Ingrandisci numero punteggio" title="Ingrandisci numero">➕</button>
           <button id="sb-mute">${ttsEnabled ? '🔊' : '🔇'}</button>
         </div>
-        <button class="sb-help-btn" id="sb-help" aria-label="Guida ai comandi">i</button>
-        ${isLiteMode() ? '' : `<button class="sb-home-btn" id="sb-home-center" aria-label="Torna alla home">${NAV_ICONS.home}</button>`}
       </div>
-      <button class="sb-controls-toggle" id="sb-controls-toggle" aria-label="${controlsExpanded ? 'Nascondi barra comandi' : 'Mostra barra comandi'}">${controlsExpanded ? '▼' : '▲'}</button>
       ${controlsExpanded ? `
       <div class="sb-controls">
         <button id="sb-undo" ${history.length ? '' : 'disabled'}>↩️ Annulla</button>

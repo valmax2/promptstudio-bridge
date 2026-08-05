@@ -66,7 +66,15 @@ echo "  → versionCode impostato a $VERSION_CODE"
 
 echo "▶ Genero l'icona nativa dell'app Android da icon.png"
 mkdir -p assets
-cp "$HERE"/icon.png assets/icon-only.png
+# "assets/icon.png" (non "icon-only.png"!) attiva la modalità automatica di
+# capacitor-assets, che genera DA SOLO sia l'icona piatta legacy sia quella
+# adattiva (mipmap-anydpi-v26) - "icon-only.png" attiva invece la modalità
+# "esperta" che si aspetta ANCHE icon-foreground.png/icon-background.png
+# separati: senza quei due file genera solo l'icona piatta e salta
+# silenziosamente quella adattiva, che è quella usata davvero dai launcher
+# moderni - da qui l'icona "generica" vista dopo l'installazione nonostante
+# lo step non dia alcun errore.
+cp "$HERE"/icon.png assets/icon.png
 if npx capacitor-assets generate --android; then
   # Tengo l'icona adattiva generata (usa icon.png come sfondo a piena tela):
   # cancellarla farebbe ricadere il launcher sulla mipmap "legacy", che

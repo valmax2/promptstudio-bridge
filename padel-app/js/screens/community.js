@@ -71,7 +71,7 @@ export async function renderCommunity(el) {
           <button class="btn primary" id="add-friend">Aggiungi</button>
         </div>` : `
         <div class="row" style="gap:6px;">
-          <input id="friend-name" placeholder="Nome amico (locale)" style="flex:1">
+          <input id="friend-name" placeholder="Nome amico" style="flex:1">
           ${micButtonHtml('mic-friend-name')}
           <button class="btn primary" id="add-friend-local">Aggiungi</button>
         </div>`}

@@ -990,10 +990,10 @@ function helpModal() {
         <h2><span>👆 Come si usa il tabellone</span></h2>
         ${row('🟦🟨', 'Tocca la <strong>metà di una squadra</strong> per assegnarle un punto')}
         ${row('✏️', 'Tocca il <strong>nome</strong> per cambiare nome a squadra/giocatore')}
-        ${row('🎾', 'Tocca <strong>"Batte:"</strong> per scegliere o cambiare chi serve (anche a caso)')}
-        ${row('➕', 'In alto: <strong>ingrandisci i numeri</strong> (tocca più volte per i 4 livelli)')}
-        ${row('🔢', 'In alto: passa a <strong>solo punteggio</strong> o vista completa con game e set')}
-        ${row('🔊', 'In alto: accendi/spegni la <strong>voce</strong>')}
+        ${row('🎾', 'Tocca il <strong>nome di chi serve</strong> per scegliere o cambiare battitore (anche a caso)')}
+        ${row('➕', 'In basso: <strong>ingrandisci i numeri</strong> (tocca più volte per i 4 livelli)')}
+        ${row('🔢', 'In basso: passa a <strong>solo punteggio</strong> o vista completa con game e set')}
+        ${row('🔊', 'In basso: accendi/spegni la <strong>voce</strong>')}
         ${row('▲', `Il <strong>triangolino in basso</strong> apre la barra con Annulla, Riepilogo${isLiteMode() ? ', Bluetooth' : ''}, Opzioni e Nuova partita`)}
         ${row('📋', '<strong>Riepilogo</strong>: cambia regole, modalità, battitore e nomi senza uscire dalla partita')}
         ${row('i', 'Rivedi questa guida quando vuoi dal <strong>cerchietto in basso a sinistra</strong>')}

@@ -13,7 +13,7 @@ import { isLiteMode } from '../lite-mode.js';
 import { canUseRemote } from '../gate-config.js';
 import { APP_VERSION } from '../version.js';
 
-const SUPPORT_EMAIL = 'VStudioApps@gmail.com';
+const SUPPORT_EMAIL = 'vstudioapps@gmail.com';
 
 let bleScanResults = [];
 let bleScanning = false;

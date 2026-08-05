@@ -3,7 +3,7 @@ import { updateProfile, updateSettings } from '../store.js';
 import { pushProfile, pullProfile } from '../cloud.js';
 import { navigate } from '../router.js';
 import { toast } from '../app.js';
-import { genFriendCode } from '../utils.js';
+import { genFriendCode, escapeHtml } from '../utils.js';
 
 export async function renderLogin(el, params = {}) {
   // Arrivando dal pulsante Accedi della schermata iniziale si torna LÌ dopo
@@ -25,6 +25,28 @@ export async function renderLogin(el, params = {}) {
   if (currentUser()) { navigate(fromWelcome ? 'welcome' : 'home'); return; }
 
   let mode = 'login';
+  // Finestra "Password dimenticata?" - sostituisce il vecchio prompt()
+  // nativo del browser, inaffidabile dentro la WebView Android di Capacitor
+  // (stesso motivo per cui la rinomina in diretta sul tabellone usa una
+  // finestra dedicata invece di prompt()).
+  let forgotOpen = false;
+
+  function forgotModal() {
+    const prefill = el.querySelector('#email')?.value.trim() || '';
+    return `
+      <div class="modal-backdrop" id="forgot-modal">
+        <div class="modal-card">
+          <h2><span>🔑 Password dimenticata?</span><button class="icon-btn" id="forgot-close" aria-label="Chiudi">✕</button></h2>
+          <p class="small">Inserisci la tua email: ti mandiamo un link per reimpostare la password.</p>
+          <div class="field mb0">
+            <label>Email</label>
+            <input id="forgot-email" type="email" placeholder="nome@esempio.com" value="${escapeHtml(prefill)}" autocomplete="email">
+          </div>
+          <button class="btn primary block mt" id="forgot-send">Invia email</button>
+        </div>
+      </div>
+    `;
+  }
 
   function paint() {
     el.innerHTML = `
@@ -56,6 +78,7 @@ export async function renderLogin(el, params = {}) {
         <button class="btn primary block mt" id="submit">${mode === 'login' ? 'Accedi' : 'Crea account'}</button>
         ${mode === 'login' ? '<button class="btn ghost small block mt" id="forgot">Password dimenticata?</button>' : ''}
       </div>
+      ${forgotOpen ? forgotModal() : ''}
     `;
 
     el.querySelectorAll('[data-mode]').forEach((btn) => btn.addEventListener('click', () => {
@@ -97,12 +120,21 @@ export async function renderLogin(el, params = {}) {
       }
     });
 
-    el.querySelector('#forgot')?.addEventListener('click', async () => {
-      const prefill = el.querySelector('#email').value.trim();
-      const email = (prompt('Inserisci la tua email per ricevere il link di reimpostazione password:', prefill) || '').trim();
-      if (!email) return;
+    el.querySelector('#forgot')?.addEventListener('click', () => {
+      forgotOpen = true;
+      paint();
+    });
+    el.querySelector('#forgot-close')?.addEventListener('click', () => { forgotOpen = false; paint(); });
+    el.querySelector('#forgot-modal')?.addEventListener('click', (e) => {
+      if (e.target.id === 'forgot-modal') { forgotOpen = false; paint(); }
+    });
+    el.querySelector('#forgot-send')?.addEventListener('click', async () => {
+      const email = el.querySelector('#forgot-email').value.trim();
+      if (!email) { toast('Inserisci la tua email'); return; }
       try {
         await resetPasswordEmail(email);
+        forgotOpen = false;
+        paint();
         toast(`Email inviata a ${email}: controlla anche nello spam`, 4000);
       } catch (err) {
         toast(describeAuthError(err));

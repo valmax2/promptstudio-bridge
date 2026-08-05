@@ -4,7 +4,7 @@ import { firebaseAvailable, currentUser } from '../firebase.js';
 import { listenWelcomeImage } from '../cloud.js';
 import { t } from '../i18n.js';
 
-const SUPPORT_EMAIL = 'VStudioApps@gmail.com';
+const SUPPORT_EMAIL = 'vstudioapps@gmail.com';
 
 // SVG a dimensione fissa (18x18) cosi le icone dei due pulsanti risultano
 // sempre identiche, a differenza degli emoji che su Android variano molto

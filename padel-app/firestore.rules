@@ -74,16 +74,21 @@ service cloud.firestore {
       allow read: if isSignedIn();
       allow write: if isAdmin();
     }
+    // Vetrina pubblica "Accessori telecomandi": leggibile da chiunque, anche
+    // senza login (raggiungibile dal Profilo indipendentemente da come si è
+    // autenticati) - lettura ristretta a isSignedIn() la rendeva vuota in
+    // silenzio (nessun errore mostrato, nessun onError sul listener client)
+    // per chi non aveva ancora fatto accesso.
     match /prizes/{itemId} {
-      allow read: if isSignedIn();
+      allow read: if true;
       allow write: if isAdmin();
     }
 
     // Bacheca "Telecomandi compatibili" (nome + link affiliato) e immagine
-    // circolare della schermata iniziale - stesso schema di sopra: lettura
-    // per chiunque autenticato, scrittura solo admin.
+    // circolare della schermata iniziale - stessa vetrina pubblica di sopra:
+    // lettura per chiunque, scrittura solo admin.
     match /compatibleRemotes/{itemId} {
-      allow read: if isSignedIn();
+      allow read: if true;
       allow write: if isAdmin();
     }
     match /config/{docId} {

@@ -1,4 +1,4 @@
-import { getState, updateSettings } from '../store.js';
+import { getState, updateSettings, updateProfile } from '../store.js';
 import { navigate } from '../router.js';
 import { pushProfile } from '../cloud.js';
 import { isCloudReady } from '../cloud.js';
@@ -523,6 +523,11 @@ function paint(el) {
     const result = await redeemProCode(code);
     if (result.ok) {
       resetPromoCodeAttempts();
+      // redeemProCode scrive proGranted:true solo su Firestore - senza
+      // questo lo stato locale (da cui isPro() legge) resta a false finché
+      // non arriva un pull/riavvio, e l'interfaccia sembra non essere
+      // cambiata nonostante il riscatto sia andato a buon fine.
+      updateProfile({ proGranted: true });
       toast('Pro sbloccato!');
       paint(el);
     } else if (result.reason === 'offline') {

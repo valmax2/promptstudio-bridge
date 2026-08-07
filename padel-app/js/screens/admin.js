@@ -7,10 +7,11 @@ import {
   listenWelcomeImage, uploadWelcomeImage,
   listenShareAssets, addShareAsset, deleteShareAsset,
   listenMatchResultIcons, uploadMatchResultIcon,
+  listenPromoCodes, createPromoCode, deletePromoCode,
 } from '../cloud.js';
 import { firebaseAvailable } from '../firebase.js';
 import { navigate } from '../router.js';
-import { escapeHtml } from '../utils.js';
+import { escapeHtml, genFriendCode } from '../utils.js';
 import { toast } from '../app.js';
 import { isAdmin } from '../admin.js';
 import { openImageCropper } from '../image-crop.js';
@@ -32,6 +33,7 @@ export async function renderAdmin(el) {
   let unsubShareBg = null;
   let unsubShareFrames = null;
   let unsubResultIcons = null;
+  let unsubPromoCodes = null;
   let uploading = false;
   let uploadingWelcomeImage = false;
   let uploadingShareAsset = false;
@@ -46,6 +48,12 @@ export async function renderAdmin(el) {
   // invece dei controlli sparsi riga per riga di prima.
   let accessoryEditId = null;
   let accessoryEditPickedImage = null;
+  // Testo del campo "nuovo codice": vuoto = generato automaticamente al
+  // volo (6 caratteri, stesso formato del codice amico social) quando si
+  // preme "Genera codice"; scrivendoci dentro si può invece scegliere un
+  // codice a piacere.
+  let newPromoCodeUses = 1;
+  let creatingPromoCode = false;
 
   paint();
 
@@ -59,6 +67,7 @@ export async function renderAdmin(el) {
     const shareBackgrounds = getState().shareBackgrounds || [];
     const shareFrames = getState().shareFrames || [];
     const matchResultIcons = getState().matchResultIcons || {};
+    const promoCodes = [...getState().promoCodes].sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0));
 
     el.innerHTML = `
       <div class="topbar"><h1>🛠️ Amministratore</h1></div>
@@ -225,6 +234,27 @@ export async function renderAdmin(el) {
               <button class="btn danger small" data-del-remote="${r.id}">Elimina</button>
             </div>
           `).join('') || '<p class="small mb0">Nessuno.</p>'}
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>🎟️ Codici amico Pro</h2>
+        <p class="small">Sblocca il telecomando/tag senza pagare a chi lo riscatta nell'app. Un codice generato qui vale una volta sola per la persona a cui lo dai (poi si esaurisce da solo) - se vuoi che valga per più persone, cambia il numero di usi prima di generarlo.</p>
+        <div class="field row" style="align-items:flex-end;gap:6px;">
+          <div style="flex:1;">
+            <label>Usi consentiti</label>
+            <input id="new-promo-uses" type="number" min="1" value="${newPromoCodeUses}">
+          </div>
+          <button class="btn primary" id="gen-promo-code" ${creatingPromoCode ? 'disabled' : ''}>${creatingPromoCode ? 'Creazione...' : '🎲 Genera codice'}</button>
+        </div>
+        <div class="mt">
+          ${promoCodes.map((p) => `
+            <div class="list-item">
+              <div class="meta"><strong style="font-family:monospace;letter-spacing:0.05em;">${escapeHtml(p.id)}</strong><span>${p.remainingUses > 0 ? `${p.remainingUses} uso/i rimasti` : 'Esaurito'}</span></div>
+              <button class="btn ghost small" data-copy-promo="${escapeHtml(p.id)}">📋 Copia</button>
+              <button class="btn danger small" data-del-promo="${escapeHtml(p.id)}">Elimina</button>
+            </div>
+          `).join('') || '<p class="small mb0">Nessun codice creato ancora.</p>'}
         </div>
       </div>
 
@@ -414,6 +444,38 @@ export async function renderAdmin(el) {
       toast('Posizione aggiornata');
     }));
 
+    el.querySelector('#new-promo-uses')?.addEventListener('change', (e) => {
+      const v = parseInt(e.target.value, 10);
+      newPromoCodeUses = isNaN(v) || v < 1 ? 1 : v;
+    });
+    el.querySelector('#gen-promo-code')?.addEventListener('click', async () => {
+      creatingPromoCode = true;
+      paint();
+      try {
+        const code = await createPromoCode(genFriendCode(), newPromoCodeUses);
+        toast(code ? `Codice creato: ${code}` : 'Serve essere connessi e loggati');
+      } catch (err) {
+        toast('Errore: ' + err.message);
+      } finally {
+        creatingPromoCode = false;
+        paint();
+      }
+    });
+    el.querySelectorAll('[data-copy-promo]').forEach((btn) => btn.addEventListener('click', async () => {
+      const code = btn.dataset.copyPromo;
+      try {
+        await navigator.clipboard.writeText(code);
+        toast('Codice copiato: ' + code);
+      } catch {
+        toast('Codice: ' + code);
+      }
+    }));
+    el.querySelectorAll('[data-del-promo]').forEach((btn) => btn.addEventListener('click', async () => {
+      if (!confirm(`Eliminare il codice ${btn.dataset.delPromo}?`)) return;
+      await deletePromoCode(btn.dataset.delPromo);
+      toast('Codice eliminato');
+    }));
+
     el.querySelectorAll('[data-edit-image]').forEach((box) => box.addEventListener('click', () => {
       const [kind, id] = box.dataset.editImage.split(':');
       editingImage = { kind, id };
@@ -524,7 +586,8 @@ export async function renderAdmin(el) {
     unsubShareBg = listenShareAssets('background', (items) => { setState({ shareBackgrounds: items }, { silent: true }); if (!uploadingShareAsset) paint(); });
     unsubShareFrames = listenShareAssets('frame', (items) => { setState({ shareFrames: items }, { silent: true }); if (!uploadingShareAsset) paint(); });
     unsubResultIcons = listenMatchResultIcons((icons) => { setState({ matchResultIcons: icons }, { silent: true }); if (!uploadingResultIcon) paint(); });
+    unsubPromoCodes = listenPromoCodes((list) => { setState({ promoCodes: list }, { silent: true }); if (!creatingPromoCode) paint(); });
   }
 
-  return () => { unsubAvatars?.(); unsubPrizes?.(); unsubRemotes?.(); unsubWelcomeImage?.(); unsubShareBg?.(); unsubShareFrames?.(); unsubResultIcons?.(); };
+  return () => { unsubAvatars?.(); unsubPrizes?.(); unsubRemotes?.(); unsubWelcomeImage?.(); unsubShareBg?.(); unsubShareFrames?.(); unsubResultIcons?.(); unsubPromoCodes?.(); };
 }

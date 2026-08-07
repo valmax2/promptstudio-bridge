@@ -37,11 +37,13 @@ export async function uploadAvatarBlob(blob) {
 }
 
 // ---- Codice amico "Pro" ----
-// Documenti in promoCodes/{CODICE} con { remainingUses: number }, creati a
-// mano dall'admin in console Firebase. Il decremento è atomico lato server
-// (fs.increment) e le regole di sicurezza bloccano l'update se il codice è
-// già esaurito, quindi due riscatti simultanei dello stesso codice monouso
-// non possono farlo scendere sotto zero.
+// Documenti in promoCodes/{CODICE} con { remainingUses: number }, creabili
+// sia a mano in console Firebase sia dall'admin direttamente nell'app (vedi
+// createPromoCode/listenPromoCodes/deletePromoCode più sotto e
+// js/screens/admin.js). Il decremento è atomico lato server (fs.increment)
+// e le regole di sicurezza bloccano l'update se il codice è già esaurito,
+// quindi due riscatti simultanei dello stesso codice monouso non possono
+// farlo scendere sotto zero.
 export async function redeemProCode(code) {
   const id = uid();
   if (!isCloudReady() || !id) return { ok: false, reason: 'offline' };
@@ -69,6 +71,29 @@ export async function redeemProCode(code) {
     return { ok: false, reason: 'error' };
   }
   return { ok: true };
+}
+
+// ---- Admin: gestione codici amico dall'app (invece che a mano su Firebase
+// Console) - stesso documento promoCodes/{CODICE} usato da redeemProCode
+// sopra, solo creato/eliminato qui invece che manualmente. Le regole di
+// sicurezza limitano create/delete al solo admin (vedi firestore.rules).
+export function listenPromoCodes(cb) {
+  if (!firebaseAvailable()) return () => {};
+  return fsListenCollection('promoCodes', cb);
+}
+
+export async function createPromoCode(code, remainingUses = 1) {
+  if (!isCloudReady()) return null;
+  const normalized = code.trim().toUpperCase();
+  if (!normalized) throw new Error('Codice vuoto');
+  await fsSet(`promoCodes/${normalized}`, { remainingUses, createdAt: Date.now() });
+  return normalized;
+}
+
+export async function deletePromoCode(code) {
+  if (!isCloudReady()) return;
+  const { fs } = mods();
+  await fs.deleteDoc(fs.doc(db(), `promoCodes/${code}`));
 }
 
 // ---- Friends ----

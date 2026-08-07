@@ -134,6 +134,10 @@ const DEFAULT_STATE = {
   // Bacheca "Telecomandi compatibili" gestita solo dall'admin: nome +
   // link (affiliazione Amazon o altro negozio). {id, label, link, order, createdAt}.
   compatibleRemotes: [],
+  // Codici amico "Pro" (sblocco telecomando/tag senza pagare), gestiti solo
+  // dall'admin - vedi redeemProCode/createPromoCode in js/cloud.js.
+  // {id (= il codice stesso), remainingUses, createdAt}.
+  promoCodes: [],
   // Immagine circolare mostrata nella schermata iniziale, sostituibile
   // dall'admin in qualsiasi momento (vedi js/screens/admin.js). null finché
   // l'admin non ne carica una: si usa icon.png come immagine provvisoria.

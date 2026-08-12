@@ -71,7 +71,7 @@ function paintSetup(el) {
         <label class="switch"><input type="checkbox" id="setup-golden" ${settings.goldenPoint ? 'checked' : ''}><span class="slider"></span></label>
       </div>
       <div class="toggle-row">
-        <div><strong>Killer Point</strong><p class="mb0 small">Vantaggio classico, ma su vantaggio pari il punto dopo decide - ignorato se attivo il Punto d'oro</p></div>
+        <div><strong>Punto Killer</strong><p class="mb0 small">Vantaggio classico, ma su vantaggio pari il punto dopo decide - ignorato se attivo il Punto d'oro</p></div>
         <label class="switch"><input type="checkbox" id="setup-killer-point" ${settings.killerPoint ? 'checked' : ''} ${settings.goldenPoint ? 'disabled' : ''}><span class="slider"></span></label>
       </div>
     </div>
@@ -106,7 +106,7 @@ function paintSetup(el) {
 }
 
 // Il game "intero" dentro Killer usa le stesse regole di parità/vantaggio
-// impostate in Impostazioni → Partita (Punto d'oro / Killer Point), esattamente
+// impostate in Impostazioni → Partita (Punto d'oro / Punto Killer), esattamente
 // come una partita normale - non è una regola fissa del gioco Killer stesso.
 function freshRoundMatch() {
   const { settings } = getState();

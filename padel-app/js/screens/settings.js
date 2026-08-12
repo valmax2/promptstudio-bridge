@@ -180,7 +180,7 @@ function paint(el) {
         <label class="switch"><input type="checkbox" id="golden" ${settings.goldenPoint ? 'checked' : ''}><span class="slider"></span></label>
       </div>
       <div class="toggle-row">
-        <div><strong>Killer Point</strong><p class="mb0 small">Vantaggio classico, ma se torna in parità (vantaggio pari) il punto dopo decide il gioco - niente oscillazione infinita. Ignorato se attivo il Punto d'oro.</p></div>
+        <div><strong>Punto Killer</strong><p class="mb0 small">Vantaggio classico, ma se torna in parità (vantaggio pari) il punto dopo decide il gioco - niente oscillazione infinita. Ignorato se attivo il Punto d'oro.</p></div>
         <label class="switch"><input type="checkbox" id="killer-point" ${settings.killerPoint ? 'checked' : ''} ${settings.goldenPoint ? 'disabled' : ''}><span class="slider"></span></label>
       </div>
       <div class="toggle-row">

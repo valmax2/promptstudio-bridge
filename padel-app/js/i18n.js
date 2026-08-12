@@ -18,7 +18,7 @@ const STRINGS = {
     tutorial2: '<strong>2. Telecomando Bluetooth</strong> — in Impostazioni → Bluetooth puoi associare telecomandi o tag per segnare i punti senza toccare lo schermo.',
     tutorial3: "<strong>3. Community</strong> — aggiungi amici con un codice (puoi anche condividerlo su WhatsApp), crea gruppi con chat condivisa, e organizza eventi.",
     tutorial4: '<strong>4. Accessori telecomandi</strong> — una vetrina di accessori consigliati per il telecomando/tag (con link dove trovarli), sempre visibile dal Profilo.',
-    tutorial5: '<strong>5. Riepilogo partita</strong> — mentre giochi, tocca "📋 Riepilogo" per cambiare al volo modalità, punto d\'oro, Killer Point, super tie-break, chi serve o rinominare i giocatori, senza mai uscire dal tabellone. A fine partita puoi condividere un\'immagine col risultato completo direttamente dallo storico partite in Statistiche.',
+    tutorial5: '<strong>5. Riepilogo partita</strong> — mentre giochi, tocca "📋 Riepilogo" per cambiare al volo modalità, punto d\'oro, Punto Killer, super tie-break, chi serve o rinominare i giocatori, senza mai uscire dal tabellone. A fine partita puoi condividere un\'immagine col risultato completo direttamente dallo storico partite in Statistiche.',
     tutorial6: '<strong>6. Modalità Light</strong> — dalla Home puoi passare a un\'interfaccia minimale che mostra solo l\'essenziale per giocare (via il Bluetooth resta comunque raggiungibile), utile se vuoi solo segnare i punti senza distrazioni. Personalizza inoltre tema, colori e lingua in Impostazioni.',
     tutorialDone: 'Ho capito',
     navHome: 'Home',

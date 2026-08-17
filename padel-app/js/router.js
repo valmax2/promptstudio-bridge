@@ -26,7 +26,18 @@ export function registerRoute(name, renderFn) {
 export function initRouter(appEl, navElement) {
   mountEl = appEl;
   navEl = navElement;
-  window.addEventListener('hashchange', () => navigate(currentHashRoute()));
+  // navigate() stessa aggiorna location.hash quando serve, il che genera un
+  // hashchange "eco" che arriverebbe comunque qui - senza questo controllo lo
+  // rirenderizzava una seconda volta SENZA i params passati alla chiamata
+  // originale (es. { from: 'welcome' }), perdendoli subito dopo averli usati.
+  // Se l'hash coincide già con la route corrente è proprio quell'eco: va
+  // ignorato. Solo un cambio hash genuino (indietro/avanti del browser, hash
+  // modificato a mano) deve ri-navigare qui.
+  window.addEventListener('hashchange', () => {
+    const name = currentHashRoute();
+    if (name === currentRoute) return;
+    navigate(name);
+  });
 }
 
 // Returns '' (not a fallback route name) when there's no hash, so callers

@@ -56,6 +56,10 @@ function paint(el) {
         <span class="welcome-choice-title">⚡ Apri modalità Light</span>
         <span class="welcome-choice-desc">Solo partita e Bluetooth: semplice e immediata</span>
       </button>
+      <button class="btn secondary block welcome-cta" id="welcome-open-board" style="margin-top:10px;">
+        <span class="welcome-choice-title">📡 Bacheca telecomandi e accessori</span>
+        <span class="welcome-choice-desc">Accessori consigliati e telecomandi/tag compatibili</span>
+      </button>
       <div class="row" style="gap:10px;margin-top:14px;">
         <button class="btn secondary" id="welcome-tutorial" style="flex:1;min-width:0;">${BOOK_ICON} ${t('welcomeTutorial')}</button>
         <button class="btn secondary" id="welcome-support" style="flex:1;min-width:0;">${MAIL_ICON} ${t('welcomeSupport')}</button>
@@ -73,6 +77,15 @@ function paint(el) {
         <p>${t('tutorial5')}</p>
         <p>${t('tutorial6')}</p>
         <button class="btn primary block mt" id="tutorial-done">${t('tutorialDone')}</button>
+      </div>
+    </div>
+
+    <div class="modal-backdrop hidden" id="board-modal">
+      <div class="modal-card">
+        <h2><span>📡 Bacheca telecomandi e accessori</span><button class="icon-btn" id="board-close" aria-label="Chiudi">✕</button></h2>
+        <p class="small">Sfoglia gli accessori consigliati o controlla quali telecomandi/tag Bluetooth funzionano con l'app.</p>
+        <button class="btn primary block mt" id="board-open-accessories">🔌 Accessori telecomandi</button>
+        <button class="btn secondary block mt" id="board-open-remotes">📡 Telecomandi compatibili</button>
       </div>
     </div>
   `;
@@ -99,5 +112,16 @@ function paint(el) {
 
   el.querySelector('#welcome-support').addEventListener('click', () => {
     window.location.href = `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent('Padel App - Assistenza')}`;
+  });
+
+  const boardModal = el.querySelector('#board-modal');
+  el.querySelector('#welcome-open-board').addEventListener('click', () => boardModal.classList.remove('hidden'));
+  el.querySelector('#board-close').addEventListener('click', () => boardModal.classList.add('hidden'));
+  boardModal.addEventListener('click', (e) => { if (e.target === boardModal) boardModal.classList.add('hidden'); });
+  el.querySelector('#board-open-accessories').addEventListener('click', () => {
+    navigate('gamification', { params: { from: 'welcome' } });
+  });
+  el.querySelector('#board-open-remotes').addEventListener('click', () => {
+    navigate('remote-board', { params: { from: 'welcome' } });
   });
 }

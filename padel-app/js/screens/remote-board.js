@@ -10,8 +10,12 @@ import { openImageLightbox } from '../image-lightbox.js';
 // admin-curata di telecomandi consigliati (max 4, vedi js/screens/admin.js)
 // ha spazio per un'immagine per ognuno senza essere schiacciata in una
 // lista stretta.
-export async function renderRemoteBoard(el) {
+export async function renderRemoteBoard(el, params = {}) {
   let unsub = null;
+  // Raggiungibile sia da Impostazioni → Bluetooth sia dalla bacheca sulla
+  // schermata di benvenuto, prima ancora di scegliere Full/Light - il tasto
+  // indietro deve tornare al punto di partenza giusto in entrambi i casi.
+  const backTarget = params.from === 'welcome' ? 'welcome' : 'bluetooth-setup';
 
   paint(el);
 
@@ -23,12 +27,11 @@ export async function renderRemoteBoard(el) {
   }
 
   return () => { unsub?.(); };
-}
 
-function paint(el) {
-  const list = [...getState().compatibleRemotes].sort((a, b) => (a.order ?? 9999) - (b.order ?? 9999));
+  function paint(el) {
+    const list = [...getState().compatibleRemotes].sort((a, b) => (a.order ?? 9999) - (b.order ?? 9999));
 
-  el.innerHTML = `
+    el.innerHTML = `
     <div class="topbar"><div class="row"><button class="icon-btn" id="rb-back" aria-label="Indietro">${BACK_ICON}</button><h1>📡 Telecomandi compatibili</h1></div></div>
 
     ${list.length ? list.map((r) => `
@@ -44,9 +47,10 @@ function paint(el) {
     ${isAdmin() ? `<div class="card"><button class="btn secondary block" id="rb-manage">🛠️ Gestisci bacheca</button></div>` : ''}
   `;
 
-  el.querySelector('#rb-back').addEventListener('click', () => navigate('bluetooth-setup'));
-  el.querySelector('#rb-manage')?.addEventListener('click', () => navigate('admin'));
-  el.querySelectorAll('[data-open-lightbox]').forEach((box) => box.addEventListener('click', () => {
-    openImageLightbox(box.dataset.openLightbox, box.dataset.lightboxLabel);
-  }));
+    el.querySelector('#rb-back').addEventListener('click', () => navigate(backTarget));
+    el.querySelector('#rb-manage')?.addEventListener('click', () => navigate('admin'));
+    el.querySelectorAll('[data-open-lightbox]').forEach((box) => box.addEventListener('click', () => {
+      openImageLightbox(box.dataset.openLightbox, box.dataset.lightboxLabel);
+    }));
+  }
 }

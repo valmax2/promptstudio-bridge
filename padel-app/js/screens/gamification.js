@@ -1,7 +1,7 @@
 import { getState, setState } from '../store.js';
 import { listenPrizes } from '../cloud.js';
 import { firebaseAvailable } from '../firebase.js';
-import { escapeHtml } from '../utils.js';
+import { escapeHtml, BACK_ICON } from '../utils.js';
 import { navigate } from '../router.js';
 import { isAdmin } from '../admin.js';
 import { openImageLightbox } from '../image-lightbox.js';
@@ -12,8 +12,12 @@ import { openImageLightbox } from '../image-lightbox.js';
 // mettere in vetrina in questo momento. Stessa "tipologia" a righe di
 // "Telecomandi compatibili" (vedi remote-board.js) invece della griglia di
 // prima, per coerenza tra le due bacheche - tocca la foto per vederla grande.
-export async function renderGamification(el) {
+export async function renderGamification(el, params = {}) {
   let unsubPrizes = null;
+  // Raggiungibile sia da Home (dentro l'app) sia dalla bacheca sulla
+  // schermata di benvenuto, prima ancora di scegliere Full/Light - il tasto
+  // indietro deve tornare al punto di partenza giusto in entrambi i casi.
+  const backTarget = params.from === 'welcome' ? 'welcome' : 'home';
 
   paint();
 
@@ -21,7 +25,7 @@ export async function renderGamification(el) {
     const prizes = [...getState().prizes].sort((a, b) => (a.order ?? 9999) - (b.order ?? 9999));
 
     el.innerHTML = `
-      <div class="topbar"><h1>🔌 Accessori telecomandi</h1></div>
+      <div class="topbar"><div class="row"><button class="icon-btn" id="gami-back" aria-label="Indietro">${BACK_ICON}</button><h1>🔌 Accessori telecomandi</h1></div></div>
 
       <div class="card">
         <p class="small mb0">${prizes.length ? 'Le novità del momento, scelte a mano.' : 'Nessun accessorio in vetrina al momento.'}</p>
@@ -45,6 +49,7 @@ export async function renderGamification(el) {
       ${isAdmin() ? `<div class="card"><button class="btn secondary block" id="go-admin">🛠️ Gestisci accessori</button></div>` : ''}
     `;
 
+    el.querySelector('#gami-back').addEventListener('click', () => navigate(backTarget));
     el.querySelector('#go-admin')?.addEventListener('click', () => navigate('admin'));
     el.querySelectorAll('[data-open-lightbox]').forEach((box) => box.addEventListener('click', () => {
       openImageLightbox(box.dataset.openLightbox, box.dataset.lightboxLabel);

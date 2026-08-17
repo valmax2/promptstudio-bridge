@@ -1200,6 +1200,7 @@ function onUndo() {
   }
   match = history.pop();
   stopSpeech();
+  if (ttsEnabled) say('Punto annullato');
   paint(document.querySelector('.screen'));
 }
 

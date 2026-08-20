@@ -674,7 +674,7 @@ label { font-size: 0.85em; color: var(--text-dim); display: block; margin-bottom
    rispetto alla freccia in alto a sinistra, senza doverci "mirare" col
    pollice. z-index sopra le due metà cliccabili sotto, e il click ha il
    suo stopPropagation così non registra anche un punto per la metà sotto. */
-.sb-home-btn {
+.sb-overlay-icon-btn {
   position: absolute;
   left: 50%;
   top: 50%;
@@ -690,17 +690,19 @@ label { font-size: 0.85em; color: var(--text-dim); display: block; margin-bottom
   align-items: center;
   justify-content: center;
 }
-.sb-home-btn svg { width: 22px; height: 22px; }
-.sb-home-btn:active { background: rgba(0,0,0,0.75); }
+.sb-overlay-icon-btn svg { width: 22px; height: 22px; }
+.sb-overlay-icon-btn:active { background: rgba(0,0,0,0.75); }
 
 .sb-help-row { display: flex; gap: 10px; align-items: flex-start; margin-top: 10px; }
 .sb-help-row .sb-help-icon { flex: 0 0 auto; width: 2.4em; text-align: center; }
+.sb-help-row .sb-help-icon svg { width: 1.3em; height: 1.3em; vertical-align: middle; }
 
 .sb-controls {
   flex: 0 0 auto;
   display: grid;
-  /* auto-fit: 3 pulsanti normalmente, 4 in Modalità Light (c'è anche il
-     tasto Bluetooth) - si dividono comunque la larghezza in parti uguali. */
+  /* auto-fit: sempre 3 pulsanti (Home, Bluetooth/Opzioni, Nuova partita) -
+     si dividono comunque la larghezza in parti uguali qualunque sia il
+     numero effettivo di figli. */
   grid-auto-flow: column;
   grid-auto-columns: 1fr;
   background: #111;

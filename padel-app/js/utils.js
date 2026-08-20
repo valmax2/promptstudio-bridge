@@ -1,6 +1,10 @@
 // Crisp chevron-left icon for "back" buttons — renders consistently across
 // devices, unlike the "←" text glyph whose weight/size varies by font.
 export const BACK_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>';
+// Clipboard/lista appuntata, per il pulsante "Riepilogo" al centro del
+// tabellone - stesso stile a tratto pulito di BACK_ICON, non un'emoji, per
+// restare nitida alla dimensione piccola dell'icona overlay.
+export const SUMMARY_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="17" rx="2"/><rect x="9" y="2.5" width="6" height="3" rx="1"/><path d="M8.5 11h7"/><path d="M8.5 14.5h7"/><path d="M8.5 18h4"/></svg>';
 
 // The real Bluetooth rune on a filled blue badge - clearer at a glance than
 // the generic 🔵 dot emoji used before, which just read as "a blue circle".

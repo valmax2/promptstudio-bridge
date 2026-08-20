@@ -11,6 +11,18 @@ const DEFAULT_STATE = {
     fontFamily: "'Segoe UI', Roboto, system-ui, -apple-system, sans-serif",
     fontScale: 1,
     ttsEnabled: true,
+    // 'voice' = annuncio parlato (predefinito) - 'sound' = "Modalità
+    // riservata": un breve segnale acustico al posto della voce, per non
+    // far sentire il telefono parlare (es. in un locale chiuso). Ignorato
+    // se ttsEnabled è false. Vedi js/speech.js.
+    ttsAnnounceMode: 'voice',
+    // Suono usato in modalità riservata: null = beep predefinito incluso
+    // nell'app (point-beep.wav); altrimenti l'URI di un file scelto
+    // dall'utente e salvato sul dispositivo (vedi js/screens/settings.js).
+    ttsCustomSoundUri: null,
+    // Nome del file mostrato in Impostazioni quando è stato caricato un
+    // suono personalizzato - solo per l'interfaccia, non serve a riprodurlo.
+    ttsCustomSoundName: null,
     ttsVoiceLang: 'it-IT',
     // 'natural' | 'energetic' | 'calm' - rate/pitch preset applied on top
     // of the chosen voice so announcements sound less robotic.

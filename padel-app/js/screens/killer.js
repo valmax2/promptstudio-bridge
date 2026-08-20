@@ -72,7 +72,7 @@ function paintSetup(el) {
       </div>
       <div class="toggle-row">
         <div><strong>Killer Point</strong><p class="mb0 small">Vantaggio classico, ma su vantaggio pari il punto dopo decide - ignorato se attivo il Punto d'oro</p></div>
-        <label class="switch"><input type="checkbox" id="setup-killer-point" ${settings.killerPoint ? 'checked' : ''} ${settings.goldenPoint ? 'disabled' : ''}><span class="slider"></span></label>
+        <label class="switch"><input type="checkbox" id="setup-killer-point" ${settings.killerPoint && !settings.goldenPoint ? 'checked' : ''} ${settings.goldenPoint ? 'disabled' : ''}><span class="slider"></span></label>
       </div>
     </div>
     ` : ''}

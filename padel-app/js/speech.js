@@ -13,6 +13,11 @@ let voiceMode = 'natural';
 let cachedVoices = null;
 let cachedVoiceKey = null; // lang the cached index below was resolved for
 let cachedVoiceIndex = -1;
+// "Modalità riservata": 'voice' (predefinito) parla come sempre, 'sound'
+// riproduce un breve segnale acustico al posto della voce - vedi say()
+// sotto e announceMode in configureSpeech.
+let announceMode = 'voice';
+let customSoundUri = null;
 
 // Rate/pitch presets ("tre modalità di voce") layered on top of whichever
 // voice gets picked, so speech sounds less flat/robotic than a fixed 1.0/1.0.
@@ -30,10 +35,26 @@ const VOICE_MODES = {
 // something this plugin's API exposes).
 const PITCH_MULTIPLIER = 1.15;
 
-export function configureSpeech({ enabled: en, lang: l, voiceMode: vm } = {}) {
+export function configureSpeech({ enabled: en, lang: l, voiceMode: vm, announceMode: am, customSoundUri: csu } = {}) {
   if (typeof en === 'boolean') enabled = en;
   if (l && l !== lang) { lang = l; cachedVoices = null; }
   if (vm) voiceMode = vm;
+  if (am) announceMode = am;
+  if (csu !== undefined) customSoundUri = csu;
+}
+
+// Riproduce il beep predefinito (incluso nell'app) o, se presente, il suono
+// personalizzato caricato dall'utente - quest'ultimo è un URI nativo (salvato
+// via Capacitor Filesystem, vedi js/screens/settings.js) e va convertito in
+// un URL utilizzabile dalla WebView; il beep predefinito è invece già un
+// asset web servito direttamente, non serve nessuna conversione.
+function playAnnounceSound() {
+  try {
+    const convert = window.Capacitor?.convertFileSrc;
+    const src = customSoundUri && convert ? convert(customSoundUri) : './point-beep.wav';
+    const audio = new Audio(src);
+    audio.play().catch(() => {});
+  } catch {}
 }
 
 function nativeTts() {
@@ -97,9 +118,25 @@ async function pump() {
   pump();
 }
 
+// La sintesi vocale italiana legge "Tie-break" (prestito inglese) come se
+// fosse scritto in italiano, risultando quasi incomprensibile - solo per
+// quello che viene detto ad alta voce lo riscriviamo con una grafia
+// fonetica; il testo mostrato a schermo resta "Tie-break"/"Super tie-break"
+// invariato (vedi scoring.js), qui tocchiamo solo l'audio.
+const IT_PHONETIC_REPLACEMENTS = [
+  [/Super tie-break/gi, 'Super tai-brek'],
+  [/Tie-break/gi, 'tai-brek'],
+];
+
+function toSpeakable(text) {
+  if (lang !== 'it-IT') return text;
+  return IT_PHONETIC_REPLACEMENTS.reduce((out, [pattern, replacement]) => out.replace(pattern, replacement), text);
+}
+
 export function say(text) {
   if (!enabled || !text) return;
-  queue.push(text);
+  if (announceMode === 'sound') { playAnnounceSound(); return; }
+  queue.push(toSpeakable(text));
   pump();
 }
 

@@ -51,6 +51,33 @@ function resetPromoCodeAttempts() {
   localStorage.removeItem(PROMO_LOCK_KEY);
 }
 
+// Suono personalizzato per la "Modalità riservata" (vedi js/speech.js):
+// salvato sul dispositivo con Capacitor Filesystem (directory DATA, quindi
+// persistente e privata all'app), non nel cloud - è solo una preferenza
+// locale. Nome file fisso: un nuovo caricamento sovrascrive il precedente
+// invece di accumulare file orfani.
+function Filesystem() {
+  return window.Capacitor?.Plugins?.Filesystem || null;
+}
+
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result).split(',')[1] || '');
+    reader.onerror = () => reject(reader.error || new Error('Lettura file fallita'));
+    reader.readAsDataURL(file);
+  });
+}
+
+async function saveCustomSound(file) {
+  const fs = Filesystem();
+  if (!fs) throw new Error("Serve l'app installata da Play Store, non l'anteprima da browser");
+  const base64 = await fileToBase64(file);
+  const ext = (file.name.split('.').pop() || 'mp3').toLowerCase();
+  const { uri } = await fs.writeFile({ path: `announce-sound.${ext}`, data: base64, directory: 'DATA' });
+  return uri;
+}
+
 const CATEGORIES = [
   { id: 'aspetto', icon: '🎨', label: 'Aspetto' },
   { id: 'audio', icon: '🔊', label: 'Audio' },
@@ -146,11 +173,16 @@ function paint(el) {
     ${activeCategory === 'audio' ? `
     <div class="card">
       <h2>🔊 Audio e voce</h2>
-      <div class="toggle-row">
-        <div><strong>Annuncio vocale (TTS)</strong><p class="mb0 small">${speechSupported() ? 'Riproduce l\'audio su altoparlante o cassa Bluetooth' : 'Non supportato su questo dispositivo'}</p></div>
-        <label class="switch"><input type="checkbox" id="tts" ${settings.ttsEnabled ? 'checked' : ''}><span class="slider"></span></label>
+      <div class="field mb0">
+        <label>Annunci ad ogni punto</label>
+        <div class="segmented">
+          <button data-announce="voice" class="${settings.ttsEnabled && settings.ttsAnnounceMode !== 'sound' ? 'active' : ''}">🔊 Voce</button>
+          <button data-announce="sound" class="${settings.ttsEnabled && settings.ttsAnnounceMode === 'sound' ? 'active' : ''}">🔔 Solo suono</button>
+          <button data-announce="off" class="${!settings.ttsEnabled ? 'active' : ''}">🔇 Spento</button>
+        </div>
+        ${!speechSupported() ? '<p class="small mb0">La voce non è supportata su questo dispositivo - resta disponibile "Solo suono".</p>' : ''}
       </div>
-      ${settings.ttsEnabled ? `
+      ${settings.ttsEnabled && settings.ttsAnnounceMode !== 'sound' ? `
       <div class="field mt mb0">
         <label>Modalità voce</label>
         <div class="segmented">
@@ -169,6 +201,18 @@ function paint(el) {
       </div>
       <button class="btn secondary small mt" id="test-voice">🔊 Prova voce</button>
       ` : ''}
+      ${settings.ttsEnabled && settings.ttsAnnounceMode === 'sound' ? `
+      <div class="field mt mb0">
+        <label>Suono</label>
+        <p class="small mb0">${settings.ttsCustomSoundUri ? `Personalizzato: ${escapeHtml(settings.ttsCustomSoundName || 'file caricato')}` : 'Beep predefinito'}</p>
+        <div class="row mt" style="gap:8px;flex-wrap:wrap;">
+          <button class="btn secondary small" id="sound-test">🔔 Prova suono</button>
+          <button class="btn secondary small" id="sound-upload">📁 Carica suono</button>
+          ${settings.ttsCustomSoundUri ? '<button class="btn ghost small" id="sound-reset">↺ Predefinito</button>' : ''}
+        </div>
+        <input type="file" id="sound-file-input" accept="audio/*" style="display:none;">
+      </div>
+      ` : ''}
     </div>
     ` : ''}
 
@@ -181,7 +225,7 @@ function paint(el) {
       </div>
       <div class="toggle-row">
         <div><strong>Killer Point</strong><p class="mb0 small">Vantaggio classico, ma se torna in parità (vantaggio pari) il punto dopo decide il gioco - niente oscillazione infinita. Ignorato se attivo il Punto d'oro.</p></div>
-        <label class="switch"><input type="checkbox" id="killer-point" ${settings.killerPoint ? 'checked' : ''} ${settings.goldenPoint ? 'disabled' : ''}><span class="slider"></span></label>
+        <label class="switch"><input type="checkbox" id="killer-point" ${settings.killerPoint && !settings.goldenPoint ? 'checked' : ''} ${settings.goldenPoint ? 'disabled' : ''}><span class="slider"></span></label>
       </div>
       <div class="toggle-row">
         <div><strong>Super tie-break al 3° set</strong><p class="mb0 small">Il set decisivo si gioca al tie-break fino a 10</p></div>
@@ -397,7 +441,33 @@ function paint(el) {
   });
   el.querySelector('#font-scale')?.addEventListener('change', syncSettings);
 
-  el.querySelector('#tts')?.addEventListener('change', (e) => { updateSettings({ ttsEnabled: e.target.checked }); paint(el); syncSettings(); });
+  el.querySelectorAll('[data-announce]').forEach((btn) => btn.addEventListener('click', () => {
+    const mode = btn.dataset.announce;
+    if (mode === 'off') updateSettings({ ttsEnabled: false });
+    else updateSettings({ ttsEnabled: true, ttsAnnounceMode: mode });
+    paint(el);
+    syncSettings();
+  }));
+  el.querySelector('#sound-test')?.addEventListener('click', () => say('Prova suono'));
+  el.querySelector('#sound-upload')?.addEventListener('click', () => el.querySelector('#sound-file-input')?.click());
+  el.querySelector('#sound-file-input')?.addEventListener('change', async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const uri = await saveCustomSound(file);
+      updateSettings({ ttsCustomSoundUri: uri, ttsCustomSoundName: file.name });
+      toast('Suono caricato');
+      syncSettings();
+      paint(el);
+    } catch (err) {
+      toast('Errore nel caricare il suono: ' + err.message);
+    }
+  });
+  el.querySelector('#sound-reset')?.addEventListener('click', () => {
+    updateSettings({ ttsCustomSoundUri: null, ttsCustomSoundName: null });
+    syncSettings();
+    paint(el);
+  });
   el.querySelector('#golden')?.addEventListener('change', (e) => { updateSettings({ goldenPoint: e.target.checked }); paint(el); syncSettings(); });
   el.querySelector('#killer-point')?.addEventListener('change', (e) => { updateSettings({ killerPoint: e.target.checked }); syncSettings(); });
   el.querySelector('#super-tb')?.addEventListener('change', (e) => { updateSettings({ superTiebreak3rdSet: e.target.checked }); syncSettings(); });

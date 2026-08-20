@@ -1,8 +1,7 @@
 import { getState, setState, addMatch, updateSettings } from '../store.js';
 import { pushMatch } from '../cloud.js';
 import { say, stopSpeech } from '../speech.js';
-import { escapeHtml, BACK_ICON, uid as genId } from '../utils.js';
-import { NAV_ICONS } from '../nav-icons.js';
+import { escapeHtml, BACK_ICON, SUMMARY_ICON, uid as genId } from '../utils.js';
 import {
   createMatch, addPoint, matchPointDisplay, teamName, isGamePoint, resetCurrentGame, endTimeMatch,
 } from '../scoring.js';
@@ -19,6 +18,13 @@ import {
 let match = null;
 let history = [];
 let matchAutoSaved = false;
+// Timestamp dell'ultimo tap che ha segnato un punto - un secondo tap entro
+// questa finestra su UNA QUALSIASI delle due metà annulla il punto appena
+// segnato invece di segnarne un altro (vedi onHalfTap). Niente ritardo sul
+// primo tap: segna subito come sempre, solo il secondo tap cambia
+// comportamento se arriva abbastanza in fretta.
+let lastPointTapAt = 0;
+const DOUBLE_TAP_UNDO_MS = 350;
 let ttsEnabled = true;
 // Visual-only: hides the smaller game/set rows so just the point shows big
 // and full-screen - game/set are still spoken aloud via TTS regardless.
@@ -469,7 +475,7 @@ function paintSetup(el) {
           </div>
           <div class="toggle-row">
             <div><strong>Killer Point</strong><p class="mb0 small">Vantaggio classico, ma su vantaggio pari il punto dopo decide - ignorato se attivo il Punto d'oro</p></div>
-            <label class="switch"><input type="checkbox" id="setup-killer-point" ${settings.killerPoint ? 'checked' : ''} ${settings.goldenPoint ? 'disabled' : ''}><span class="slider"></span></label>
+            <label class="switch"><input type="checkbox" id="setup-killer-point" ${settings.killerPoint && !settings.goldenPoint ? 'checked' : ''} ${settings.goldenPoint ? 'disabled' : ''}><span class="slider"></span></label>
           </div>
           <div class="toggle-row">
             <div><strong>Super tie-break al 3° set</strong><p class="mb0 small">Il set decisivo si gioca al tie-break fino a 10</p></div>
@@ -516,7 +522,7 @@ function paintSetup(el) {
           ${(settings.newMatchButtonText || settings.newMatchButtonBg || settings.newMatchButtonTextColor) ? '<button class="btn ghost block mt" id="new-match-btn-reset">↺ Predefinito</button>' : ''}
         </div>
         ${isLiteMode() ? '<button class="btn secondary block mt" id="setup-bluetooth">🔵 Configura Bluetooth</button>' : ''}
-        ${canExitLiteMode() ? '<button class="btn lite-highlight block mt" id="setup-exit-lite">↩️ Esci da Modalità Light</button>' : ''}
+        ${canExitLiteMode() ? '<button class="btn lite-highlight block mt" id="setup-exit-lite">↩️ Esci da Modalità Essenziale</button>' : ''}
         <button class="btn primary block mt" id="start-match">Inizia partita</button>
       </div>
     </div>
@@ -731,7 +737,7 @@ function paint(el) {
         ${match.matchOver ? matchOverOverlay(settings) : ''}
         ${isLiteMode() ? '' : `<button class="sb-back-btn" id="sb-back" aria-label="Torna alla home">${BACK_ICON}</button>`}
         <button class="sb-help-btn" id="sb-help" aria-label="Guida ai comandi">i</button>
-        ${isLiteMode() ? '' : `<button class="sb-home-btn" id="sb-home-center" aria-label="Torna alla home">${NAV_ICONS.home}</button>`}
+        <button class="sb-overlay-icon-btn" id="sb-summary-center" aria-label="Riepilogo partita">${SUMMARY_ICON}</button>
       </div>
       <div class="sb-bottom-bar">
         <button class="sb-controls-toggle" id="sb-controls-toggle" aria-label="${controlsExpanded ? 'Nascondi barra comandi' : 'Mostra barra comandi'}">${controlsExpanded ? '▼' : '▲'}</button>
@@ -743,8 +749,7 @@ function paint(el) {
       </div>
       ${controlsExpanded ? `
       <div class="sb-controls">
-        <button id="sb-undo" ${history.length ? '' : 'disabled'}>↩️ Annulla</button>
-        <button id="sb-settings">📋 Riepilogo</button>
+        ${!isLiteMode() || canExitLiteMode() ? '<button id="sb-home">🏠 Home</button>' : ''}
         ${isLiteMode() ? '<button id="sb-bluetooth">🔵 Bluetooth</button>' : '<button id="sb-open-options">⚙️ Opzioni</button>'}
         <button id="sb-newmatch">🔄 Nuova partita</button>
       </div>` : ''}
@@ -757,7 +762,11 @@ function paint(el) {
 
   wireAllMicButtons(el);
   el.querySelector('#sb-back')?.addEventListener('click', (e) => { e.stopPropagation(); navigate('home'); });
-  el.querySelector('#sb-home-center')?.addEventListener('click', (e) => { e.stopPropagation(); navigate('home'); });
+  el.querySelector('#sb-summary-center')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    quickSummaryOpen = true;
+    paint(el);
+  });
   el.querySelector('#sb-controls-toggle').addEventListener('click', () => {
     controlsOpen = !controlsOpen;
     paint(el);
@@ -780,9 +789,9 @@ function paint(el) {
   el.querySelector('#sb-help-modal')?.addEventListener('click', (e) => {
     if (e.target.id === 'sb-help-modal') closeHelp();
   });
-  el.querySelector('#sb-settings')?.addEventListener('click', () => {
-    quickSummaryOpen = true;
-    paint(el);
+  el.querySelector('#sb-home')?.addEventListener('click', () => {
+    if (isLiteMode()) updateSettings({ liteModeUser: false });
+    navigate('home');
   });
   el.querySelector('#sb-bluetooth')?.addEventListener('click', () => navigate('bluetooth-setup'));
   el.querySelector('#sb-open-options')?.addEventListener('click', () => navigate('settings'));
@@ -802,13 +811,12 @@ function paint(el) {
     const current = getState().settings.numberSizeStep || 0;
     updateSettings({ numberSizeStep: (current + 1) % 4 });
   });
-  el.querySelector('#sb-undo')?.addEventListener('click', onUndo);
   el.querySelector('#sb-newmatch')?.addEventListener('click', onReset);
   el.querySelector('#sb-overlay-newmatch')?.addEventListener('click', onReset);
 
   if (!match.matchOver) {
-    el.querySelector('#half-a').addEventListener('click', () => onPoint('A'));
-    el.querySelector('#half-b').addEventListener('click', () => onPoint('B'));
+    el.querySelector('#half-a').addEventListener('click', () => onHalfTap('A'));
+    el.querySelector('#half-b').addEventListener('click', () => onHalfTap('B'));
   }
   el.querySelectorAll('[data-edit-name]').forEach((nameEl) => {
     nameEl.addEventListener('click', (e) => {
@@ -952,7 +960,10 @@ function teamHalf(team) {
   const disp = matchPointDisplay(match)[team.toLowerCase()];
   const gamesInSet = team === 'A' ? match.currentSet.gamesA : match.currentSet.gamesB;
   const setsWon = team === 'A' ? match.setsWonA : match.setsWonB;
-  const serving = match.server === team && !match.inTiebreak && !match.inMatchTiebreak && !match.matchOver;
+  // Il servizio nel tie-break ora viene calcolato punto per punto (vedi
+  // addTiebreakPoint in scoring.js), quindi match.server resta corretto
+  // anche lì - non va più nascosto in quei casi come prima.
+  const serving = match.server === team && !match.matchOver;
   const isDoubles = players.length > 1;
   const serverPlayerIdx = (team === 'A' ? match.serverPlayerA : match.serverPlayerB) || 0;
   const servingPlayerName = isDoubles ? players[serverPlayerIdx] : null;
@@ -989,13 +1000,14 @@ function helpModal() {
       <div class="modal-card">
         <h2><span>👆 Come si usa il tabellone</span></h2>
         ${row('🟦🟨', 'Tocca la <strong>metà di una squadra</strong> per assegnarle un punto')}
+        ${row('↩️', '<strong>Doppio tocco</strong> su una metà qualsiasi per annullare l\'ultimo punto')}
         ${row('✏️', 'Tocca il <strong>nome</strong> per cambiare nome a squadra/giocatore')}
         ${row('🎾', 'Tocca il <strong>nome di chi serve</strong> per scegliere o cambiare battitore (anche a caso)')}
         ${row('➕', 'In basso: <strong>ingrandisci i numeri</strong> (tocca più volte per i 4 livelli)')}
         ${row('🔢', 'In basso: passa a <strong>solo punteggio</strong> o vista completa con game e set')}
         ${row('🔊', 'In basso: accendi/spegni la <strong>voce</strong>')}
-        ${row('▲', `Il <strong>triangolino in basso</strong> apre la barra con Annulla, Riepilogo${isLiteMode() ? ', Bluetooth' : ''}, Opzioni e Nuova partita`)}
-        ${row('📋', '<strong>Riepilogo</strong>: cambia regole, modalità, battitore e nomi senza uscire dalla partita')}
+        ${row('▲', `Il <strong>triangolino in basso</strong> apre la barra con Home${isLiteMode() ? ', Bluetooth' : ', Opzioni'} e Nuova partita`)}
+        ${row(SUMMARY_ICON, '<strong>Riepilogo</strong> (icona al centro del tabellone): cambia regole, modalità, battitore e nomi senza uscire dalla partita')}
         ${row('i', 'Rivedi questa guida quando vuoi dal <strong>cerchietto in basso a sinistra</strong>')}
         <button class="btn primary block mt" id="sb-help-close">Ho capito, si gioca!</button>
       </div>
@@ -1032,7 +1044,7 @@ function quickSummaryModal(settings) {
         </div>
         <div class="toggle-row mt">
           <div><strong>Killer Point</strong><p class="mb0 small">Vantaggio classico, ma su vantaggio pari il punto dopo decide - ignorato se attivo il Punto d'oro</p></div>
-          <label class="switch"><input type="checkbox" id="quick-killer-point" ${match.killerPointRule ? 'checked' : ''} ${match.goldenPoint ? 'disabled' : ''}><span class="slider"></span></label>
+          <label class="switch"><input type="checkbox" id="quick-killer-point" ${match.killerPointRule && !match.goldenPoint ? 'checked' : ''} ${match.goldenPoint ? 'disabled' : ''}><span class="slider"></span></label>
         </div>
         <div class="toggle-row mt">
           <div><strong>Super tie-break al 3° set</strong><p class="mb0 small">Set decisivo fino a 10 punti invece di un set intero</p></div>
@@ -1165,6 +1177,22 @@ function matchOverOverlay(settings) {
       <button class="btn primary block sb-overlay-cta" id="sb-overlay-newmatch" style="${btnStyle}"><span class="sb-overlay-cta-icon">🎾</span> ${btnText}</button>
     </div>
   `;
+}
+
+// Tap su una metà del tabellone: il primo segna subito un punto come sempre;
+// se un secondo tap (su una metà qualsiasi) arriva entro DOUBLE_TAP_UNDO_MS
+// annulla quel punto invece di segnarne un altro - sostituisce il vecchio
+// pulsante "Annulla" nella barra comandi, che veniva scambiato per il
+// "indietro" di sistema del telefono essendo in basso a sinistra.
+function onHalfTap(team) {
+  const now = Date.now();
+  if (now - lastPointTapAt < DOUBLE_TAP_UNDO_MS) {
+    lastPointTapAt = 0;
+    onUndo();
+    return;
+  }
+  lastPointTapAt = now;
+  onPoint(team);
 }
 
 async function onPoint(team) {

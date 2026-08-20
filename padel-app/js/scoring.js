@@ -55,6 +55,11 @@ export function createMatch({
     currentGame: { a: 0, b: 0, advantage: null, killerPointActive: false },
     inTiebreak: false,
     inMatchTiebreak: false,
+    // Squadra che ha servito il 1° punto del tie-break in corso (null fuori
+    // dal tie-break) - catturato all'ingresso, serve sia a calcolare chi
+    // batte punto per punto (vedi addTiebreakPoint/tiebreakServingTeamForPoint)
+    // sia a chi riceve per primo nel set successivo (vedi finalizeSet).
+    tiebreakServerTeam: null,
     server: startingServer,
     // Which of the 2 players on each team (index 0/1) is currently serving -
     // only meaningful in doubles. Auto-alternates between partners every
@@ -117,14 +122,25 @@ function finalizeSet(match, winner, scoreA, scoreB, isTiebreak, tiebreakDetail =
   if (winner === 'A') match.setsWonA++; else match.setsWonB++;
   match.currentSet = { gamesA: 0, gamesB: 0 };
   match.currentGame = { a: 0, b: 0, advantage: null, killerPointActive: false };
+
+  const matchOver = match.setsWonA === 2 || match.setsWonB === 2;
+  // Chi ha servito il 1° punto del tie-break riceve per primo nel set
+  // successivo (regola reale) - durante il tie-break il servizio gira punto
+  // per punto (vedi addTiebreakPoint), quindi a fine tie-break potrebbe non
+  // coincidere con questa regola se non lo forziamo qui.
+  if (isTiebreak && match.tiebreakServerTeam && !matchOver) {
+    match.server = other(match.tiebreakServerTeam);
+  }
   match.inTiebreak = false;
   match.inMatchTiebreak = false;
+  match.tiebreakServerTeam = null;
 
-  if (match.setsWonA === 2 || match.setsWonB === 2) {
+  if (matchOver) {
     match.matchOver = true;
     match.matchWinner = match.setsWonA === 2 ? 'A' : 'B';
   } else if (match.setsWonA === 1 && match.setsWonB === 1 && match.superTiebreak3rdSet) {
     match.inMatchTiebreak = true;
+    match.tiebreakServerTeam = match.server;
   }
 }
 
@@ -186,7 +202,8 @@ function awardGame(match, team) {
 
   if (gamesA === 6 && gamesB === 6) {
     match.inTiebreak = true;
-    announcement += '. Tie-break';
+    match.tiebreakServerTeam = match.server;
+    announcement += '. Tie-break' + nextServerAnnouncement(match);
   } else {
     const hi = Math.max(gamesA, gamesB);
     const lo = Math.min(gamesA, gamesB);
@@ -241,12 +258,36 @@ function addRegularPoint(match, team) {
   return result(match, describeGamePoint(g));
 }
 
+// Regola reale del tie-break: il 1° punto lo serve chi tocca (tiebreakServerTeam,
+// catturato all'ingresso nel tie-break - vedi awardGame/finalizeSet), poi il
+// servizio passa all'altra squadra e da lì si alterna ogni 2 punti.
+// pointNumber è 1-based (1 = il punto che sta per essere giocato).
+function tiebreakServingTeamForPoint(match, pointNumber) {
+  const switches = Math.floor(pointNumber / 2);
+  return switches % 2 === 0 ? match.tiebreakServerTeam : other(match.tiebreakServerTeam);
+}
+
 function addTiebreakPoint(match, team, target, isMatchTiebreak) {
   const g = match.currentGame;
   const key = team === 'A' ? 'a' : 'b';
   g[key]++;
   const lead = team === 'A' ? g.a : g.b;
   const trail = team === 'A' ? g.b : g.a;
+
+  // Tiene aggiornati server/serverPlayerA-B punto per punto durante il
+  // tie-break, così l'indicatore "chi batte" e l'annuncio vocale restano
+  // corretti invece di restare congelati/nascosti (vedi anche teamHalf in
+  // scoreboard.js, che prima li disattivava del tutto durante il tie-break).
+  let serverChanged = false;
+  if (match.tiebreakServerTeam) {
+    const played = g.a + g.b;
+    const nextServer = tiebreakServingTeamForPoint(match, played + 1);
+    if (nextServer !== match.server) {
+      match.server = nextServer;
+      alternateServingPlayer(match, nextServer);
+      serverChanged = true;
+    }
+  }
 
   if (lead >= target && lead - trail >= 2) {
     if (isMatchTiebreak) {
@@ -264,7 +305,9 @@ function addTiebreakPoint(match, team, target, isMatchTiebreak) {
     }
     return result(match, announcement, { gameWon: !isMatchTiebreak, setWon: true, matchWon });
   }
-  return result(match, `${g.a} a ${g.b}`);
+  let announcement = `${g.a} a ${g.b}`;
+  if (serverChanged) announcement += nextServerAnnouncement(match);
+  return result(match, announcement);
 }
 
 export function addPoint(matchIn, team) {

@@ -64,6 +64,8 @@ function applyTheme() {
     enabled: settings.ttsEnabled,
     lang: settings.ttsVoiceLang,
     voiceMode: settings.ttsVoiceMode,
+    announceMode: settings.ttsAnnounceMode,
+    customSoundUri: settings.ttsCustomSoundUri,
   });
   applyColorsToDom(settings);
   applyUiAccent(settings.uiAccent);

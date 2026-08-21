@@ -18,13 +18,6 @@ import {
 let match = null;
 let history = [];
 let matchAutoSaved = false;
-// Timestamp dell'ultimo tap che ha segnato un punto - un secondo tap entro
-// questa finestra su UNA QUALSIASI delle due metà annulla il punto appena
-// segnato invece di segnarne un altro (vedi onHalfTap). Niente ritardo sul
-// primo tap: segna subito come sempre, solo il secondo tap cambia
-// comportamento se arriva abbastanza in fretta.
-let lastPointTapAt = 0;
-const DOUBLE_TAP_UNDO_MS = 350;
 let ttsEnabled = true;
 // Visual-only: hides the smaller game/set rows so just the point shows big
 // and full-screen - game/set are still spoken aloud via TTS regardless.
@@ -54,7 +47,7 @@ let renameTarget = null;
 // Selettore colore rapido nella schermata di impostazione partita ('A'|'B'
 // mentre è aperto, altrimenti null) - vedi colorPickerModal più sotto.
 let colorPickerOpen = null;
-// Barra comandi (Annulla/Riepilogo/.../Nuova partita) a scomparsa durante il
+// Barra comandi (Annulla/Home/Opzioni/Nuova partita) a scomparsa durante il
 // punteggio: nascosta di default per lasciare tutto lo spazio ai numeri, si
 // riapre col triangolino in basso. A partita finita si forza aperta (serve
 // "Nuova partita").
@@ -749,6 +742,7 @@ function paint(el) {
       </div>
       ${controlsExpanded ? `
       <div class="sb-controls">
+        <button id="sb-undo" ${history.length ? '' : 'disabled'}>↩️ Annulla punto</button>
         ${!isLiteMode() || canExitLiteMode() ? '<button id="sb-home">🏠 Home</button>' : ''}
         ${isLiteMode() ? '<button id="sb-bluetooth">🔵 Bluetooth</button>' : '<button id="sb-open-options">⚙️ Opzioni</button>'}
         <button id="sb-newmatch">🔄 Nuova partita</button>
@@ -789,6 +783,7 @@ function paint(el) {
   el.querySelector('#sb-help-modal')?.addEventListener('click', (e) => {
     if (e.target.id === 'sb-help-modal') closeHelp();
   });
+  el.querySelector('#sb-undo')?.addEventListener('click', onUndo);
   el.querySelector('#sb-home')?.addEventListener('click', () => {
     if (isLiteMode()) updateSettings({ liteModeUser: false });
     navigate('home');
@@ -1006,7 +1001,7 @@ function helpModal() {
         ${row('➕', 'In basso: <strong>ingrandisci i numeri</strong> (tocca più volte per i 4 livelli)')}
         ${row('🔢', 'In basso: passa a <strong>solo punteggio</strong> o vista completa con game e set')}
         ${row('🔊', 'In basso: accendi/spegni la <strong>voce</strong>')}
-        ${row('▲', `Il <strong>triangolino in basso</strong> apre la barra con Home${isLiteMode() ? ', Bluetooth' : ', Opzioni'} e Nuova partita`)}
+        ${row('▲', `Il <strong>triangolino in basso</strong> apre la barra con Annulla punto, Home${isLiteMode() ? ', Bluetooth' : ', Opzioni'} e Nuova partita`)}
         ${row(SUMMARY_ICON, '<strong>Riepilogo</strong> (icona al centro del tabellone): cambia regole, modalità, battitore e nomi senza uscire dalla partita')}
         ${row('i', 'Rivedi questa guida quando vuoi dal <strong>cerchietto in basso a sinistra</strong>')}
         <button class="btn primary block mt" id="sb-help-close">Ho capito, si gioca!</button>
@@ -1179,19 +1174,14 @@ function matchOverOverlay(settings) {
   `;
 }
 
-// Tap su una metà del tabellone: il primo segna subito un punto come sempre;
-// se un secondo tap (su una metà qualsiasi) arriva entro DOUBLE_TAP_UNDO_MS
-// annulla quel punto invece di segnarne un altro - sostituisce il vecchio
-// pulsante "Annulla" nella barra comandi, che veniva scambiato per il
-// "indietro" di sistema del telefono essendo in basso a sinistra.
+// Il doppio tap per annullare (provato al posto del pulsante) in pratica
+// segnava comunque il punto al primo tocco e lo toglieva al secondo: il
+// punteggio tornava uguale a prima, ma senza annullare davvero il punto
+// precedente - risultato "dice annullato ma non annulla" per chi si
+// aspettava di togliere l'ultimo punto già segnato. Tornato al pulsante
+// dedicato (vedi #sb-undo), rinominato "Annulla punto" per non confonderlo
+// col tasto indietro di sistema del telefono.
 function onHalfTap(team) {
-  const now = Date.now();
-  if (now - lastPointTapAt < DOUBLE_TAP_UNDO_MS) {
-    lastPointTapAt = 0;
-    onUndo();
-    return;
-  }
-  lastPointTapAt = now;
   onPoint(team);
 }
 

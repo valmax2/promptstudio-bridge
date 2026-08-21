@@ -22,7 +22,7 @@ npm install --save-dev @capacitor/assets
 
 echo "▶ Copio i file web in www/"
 rm -rf www && mkdir -p www
-cp index.html styles.css manifest.webmanifest sw.js icon.png firebase-config.js www/
+cp index.html styles.css manifest.webmanifest sw.js icon.png firebase-config.js point-beep.wav www/
 cp -r js www/js
 
 echo "▶ Creo il progetto Android (usa capacitor.config.json)"

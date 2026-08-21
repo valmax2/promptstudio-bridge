@@ -39,7 +39,7 @@ rm -rf "$BUILD"
 mkdir -p "$BUILD/www"
 
 cp "$HERE"/index.html "$HERE"/styles.css "$HERE"/manifest.webmanifest \
-   "$HERE"/sw.js "$HERE"/icon.png "$HERE"/firebase-config.js "$BUILD/www/"
+   "$HERE"/sw.js "$HERE"/icon.png "$HERE"/firebase-config.js "$HERE"/point-beep.wav "$BUILD/www/"
 cp -r "$HERE"/js "$BUILD/www/js"
 
 cd "$BUILD"

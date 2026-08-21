@@ -78,6 +78,9 @@ export async function renderScoreboard(el) {
   renameTarget = null;
   colorPickerOpen = null;
   pendingStartAnnouncement = null;
+  clearTimeout(pendingTapTimer);
+  pendingTapTimer = null;
+  pendingTapTeam = null;
 
   setKeepScreenOn(true);
   if (match) {
@@ -1174,15 +1177,34 @@ function matchOverOverlay(settings) {
   `;
 }
 
-// Il doppio tap per annullare (provato al posto del pulsante) in pratica
-// segnava comunque il punto al primo tocco e lo toglieva al secondo: il
-// punteggio tornava uguale a prima, ma senza annullare davvero il punto
-// precedente - risultato "dice annullato ma non annulla" per chi si
-// aspettava di togliere l'ultimo punto già segnato. Tornato al pulsante
-// dedicato (vedi #sb-undo), rinominato "Annulla punto" per non confonderlo
-// col tasto indietro di sistema del telefono.
+// Doppio tap per annullare, IN PIÙ rispetto al pulsante #sb-undo (non al suo
+// posto - un primo tentativo che segnava subito il punto al 1° tocco e lo
+// toglieva al 2° si annullava a vicenda ("dice annullato ma non annulla",
+// segnalato dall'utente) senza mai toccare il punto vero segnato PRIMA del
+// doppio tap. Per funzionare davvero, il punto del 1° tocco va tenuto in
+// sospeso per una finestra breve: se non arriva un 2° tocco entro quella
+// finestra si segna normalmente (ritardo minimo, quasi impercettibile); se
+// arriva, si annulla l'ultimo punto già sul tabellone invece di segnarne
+// uno nuovo. I tasti/telecomando restano istantanei (chiamano onPoint
+// direttamente, vedi sopra) - il ritardo riguarda solo il tocco a schermo.
+let pendingTapTeam = null;
+let pendingTapTimer = null;
+const DOUBLE_TAP_UNDO_MS = 280;
+
 function onHalfTap(team) {
-  onPoint(team);
+  if (pendingTapTimer) {
+    clearTimeout(pendingTapTimer);
+    pendingTapTimer = null;
+    pendingTapTeam = null;
+    onUndo();
+    return;
+  }
+  pendingTapTeam = team;
+  pendingTapTimer = setTimeout(() => {
+    pendingTapTimer = null;
+    onPoint(pendingTapTeam);
+    pendingTapTeam = null;
+  }, DOUBLE_TAP_UNDO_MS);
 }
 
 async function onPoint(team) {
@@ -1230,6 +1252,9 @@ async function onReset() {
   match = null;
   history = [];
   matchAutoSaved = false;
+  clearTimeout(pendingTapTimer);
+  pendingTapTimer = null;
+  pendingTapTeam = null;
   stopSpeech();
   stopHwKeys();
   disableRemote();

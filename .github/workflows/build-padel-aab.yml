@@ -42,7 +42,7 @@ jobs:
         uses: android-actions/setup-android@v3
 
       - name: Installa i pacchetti Android SDK richiesti
-        run: sdkmanager --install "platform-tools" "platforms;android-34" "build-tools;34.0.0"
+        run: sdkmanager --install "platform-tools" "platforms;android-36" "build-tools;36.0.0"
 
       - name: Decodifico il keystore dal Secret
         working-directory: padel-app

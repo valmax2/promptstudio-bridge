@@ -26,7 +26,15 @@ cp index.html styles.css manifest.webmanifest sw.js icon.png firebase-config.js 
 cp -r js www/js
 
 echo "▶ Creo il progetto Android (usa capacitor.config.json)"
-[ -d android ] || npx cap add android
+if [ ! -d android ]; then
+  npx cap add android
+  # Il target/compileSdkVersion che Capacitor scrive in variables.gradle
+  # dipende dalla versione di @capacitor/android risolta da "npm install"
+  # (non pinnata), quindi può cambiare da una build all'altra senza nessuna
+  # modifica nel repo. Lo forziamo al livello minimo richiesto da Google Play.
+  sed -i "s/compileSdkVersion = [0-9]*/compileSdkVersion = 36/" android/variables.gradle
+  sed -i "s/targetSdkVersion = [0-9]*/targetSdkVersion = 36/" android/variables.gradle
+fi
 
 if ! grep -q "kotlin-stdlib-jdk7" android/build.gradle 2>/dev/null; then
   echo "▶ Correggo un conflitto Gradle noto (classi Kotlin duplicate)"

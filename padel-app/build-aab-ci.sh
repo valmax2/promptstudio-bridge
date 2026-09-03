@@ -44,6 +44,20 @@ cp "$HERE"/capacitor.config.json .
 echo "▶ Aggiungo la piattaforma Android"
 npx cap add android
 
+# Il target/compileSdkVersion che Capacitor scrive in variables.gradle dipende
+# dalla versione di @capacitor/android risolta da "npm install" (non pinnata:
+# vedi sopra), quindi può cambiare da una build all'altra senza nessuna
+# modifica nel repo. Lo Store Google Play richiede periodicamente un livello
+# API target minimo (36 da inizio 2026): lo forziamo qui esplicitamente
+# invece di sperare che la versione risolta al momento lo soddisfi già.
+echo "▶ Forzo compileSdkVersion/targetSdkVersion=36 in variables.gradle"
+sed -i "s/compileSdkVersion = [0-9]*/compileSdkVersion = 36/" android/variables.gradle
+sed -i "s/targetSdkVersion = [0-9]*/targetSdkVersion = 36/" android/variables.gradle
+if ! grep -q "targetSdkVersion = 36" android/variables.gradle; then
+  echo "❌ Impossibile impostare targetSdkVersion: pattern non trovato in android/variables.gradle" >&2
+  exit 1
+fi
+
 echo "▶ Imposto versionCode=$VERSION_CODE versionName=$VERSION_NAME"
 sed -i "s/versionCode 1\$/versionCode $VERSION_CODE/" android/app/build.gradle
 sed -i "s/versionName \"1.0\"/versionName \"$VERSION_NAME\"/" android/app/build.gradle

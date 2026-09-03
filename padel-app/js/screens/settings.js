@@ -410,7 +410,15 @@ function paint(el) {
   }));
 
   el.querySelectorAll('[data-app-lang]').forEach((btn) => btn.addEventListener('click', () => {
-    updateSettings({ appLanguage: btn.dataset.appLang });
+    // Le bandiere sopra sono per la lingua dei TESTI, il selettore in Audio
+    // per la lingua della VOCE - due impostazioni pensate come separate, ma
+    // finora scegliere una bandiera non spostava la voce per niente,
+    // sembrando che "non servisse a nulla" (segnalato dall'utente). Le
+    // tengo comunque sincronizzate quando si tocca la bandiera, dato che di
+    // solito si vogliono cambiare insieme; restano comunque modificabili
+    // separatamente da Impostazioni → Audio se servono disallineate.
+    const voiceLangByAppLang = { it: 'it-IT', en: 'en-US', fr: 'fr-FR' };
+    updateSettings({ appLanguage: btn.dataset.appLang, ttsVoiceLang: voiceLangByAppLang[btn.dataset.appLang] });
     paint(el);
     syncSettings();
   }));

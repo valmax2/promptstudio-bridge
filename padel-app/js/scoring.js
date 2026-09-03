@@ -144,11 +144,13 @@ function finalizeSet(match, winner, scoreA, scoreB, isTiebreak, tiebreakDetail =
   }
 }
 
-function describeGamePoint(g) {
+// L'uso vuole che il punteggio si legga sempre "chi batte a chi riceve",
+// non "chi è avanti a chi è indietro" - prima veniva sempre letto più alto
+// prima, che è sbagliato quando chi riceve è avanti.
+function describeGamePoint(g, server) {
   if (g.a === g.b) return `${pointLabel(g.a)} pari`;
-  const hi = Math.max(g.a, g.b);
-  const lo = Math.min(g.a, g.b);
-  return `${pointLabel(hi)} a ${pointLabel(lo)}`;
+  const [mine, theirs] = server === 'A' ? [g.a, g.b] : [g.b, g.a];
+  return `${pointLabel(mine)} a ${pointLabel(theirs)}`;
 }
 
 // Names the player who serves next for whichever team match.server now
@@ -177,6 +179,36 @@ function alternateServingPlayer(match, team) {
     else match.serverPlayerB = match.serverPlayerB === 0 ? 1 : 0;
   }
   match[turnKey]++;
+}
+
+// Cambio manuale del battitore dal tabellone live ("Batte: <nome> ⇄") -
+// a differenza dell'alternanza automatica sopra, qui l'utente sceglie un
+// giocatore specifico "a mano", ma senza aggiornare i contatori di turno
+// il prossimo cambio automatico si sfasava (segnalato dall'utente): la
+// squadra scavalcata restava segnata come "ha già servito" fin dalla
+// creazione della partita anche se in realtà non aveva ancora battuto,
+// e/o la squadra scelta manualmente non risultava "già servita" quindi
+// al turno successivo l'alternanza ripartiva dal giocatore di default
+// invece di continuare da quello appena scelto a mano.
+export function setLiveServer(match, team, idx) {
+  const noPointsYet = !match.sets.length && !match.currentSet.gamesA && !match.currentSet.gamesB
+    && !match.currentGame.a && !match.currentGame.b;
+  match.server = team;
+  match[team === 'A' ? 'serverPlayerA' : 'serverPlayerB'] = idx;
+  if (noPointsYet) {
+    // Nessun punto ancora giocato in tutta la partita: è ancora la scelta
+    // "di partenza", non una vera rotazione - riallinea entrambi i
+    // contatori come se la partita fosse ripartita da questa scelta.
+    match.serverTurnCountA = team === 'A' ? 1 : 0;
+    match.serverTurnCountB = team === 'B' ? 1 : 0;
+  } else {
+    // A partita in corso, questa scelta manuale conta come il turno
+    // "corrente" di questa squadra: la prossima volta che le tocca
+    // servire, l'alternanza automatica deve girare via da qui, non
+    // ripartire dal compagno di default.
+    const turnKey = team === 'A' ? 'serverTurnCountA' : 'serverTurnCountB';
+    match[turnKey] = Math.max(1, match[turnKey]);
+  }
 }
 
 function awardGame(match, team) {
@@ -214,6 +246,11 @@ function awardGame(match, team) {
       if (match.matchOver) {
         matchWon = true;
         announcement = `Partita vinta da ${teamName(match, team)}!`;
+      } else {
+        // Stessa ragione della finestra gemella in addTiebreakPoint: il set
+        // appena vinto può far entrare nel super tie-break decisivo o in un
+        // nuovo set normale, e va detto chi lo serve.
+        announcement += nextServerAnnouncement(match);
       }
     } else {
       announcement += nextServerAnnouncement(match);
@@ -255,7 +292,7 @@ function addRegularPoint(match, team) {
   if (g.a === 3 && g.b === 3) {
     return result(match, match.goldenPoint ? "Parità, punto d'oro" : 'Parità');
   }
-  return result(match, describeGamePoint(g));
+  return result(match, describeGamePoint(g, match.server));
 }
 
 // Regola reale del tie-break: il 1° punto lo serve chi tocca (tiebreakServerTeam,
@@ -302,10 +339,17 @@ function addTiebreakPoint(match, team, target, isMatchTiebreak) {
     if (match.matchOver) {
       matchWon = true;
       announcement = `Partita vinta da ${teamName(match, team)}!`;
+    } else {
+      // Il set/tie-break appena concluso può far entrare in un nuovo
+      // tie-break (il "super tie-break" decisivo al 3° set) o in un nuovo
+      // set normale - in entrambi i casi va detto chi serve, altrimenti
+      // (segnalato) il tie-break decisivo resta muto su chi batte.
+      announcement += nextServerAnnouncement(match);
     }
     return result(match, announcement, { gameWon: !isMatchTiebreak, setWon: true, matchWon });
   }
-  let announcement = `${g.a} a ${g.b}`;
+  const [mine, theirs] = match.server === 'A' ? [g.a, g.b] : [g.b, g.a];
+  let announcement = `${mine} a ${theirs}`;
   if (serverChanged) announcement += nextServerAnnouncement(match);
   return result(match, announcement);
 }

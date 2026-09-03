@@ -526,7 +526,7 @@ label { font-size: 0.85em; color: var(--text-dim); display: block; margin-bottom
   border-top: 2px solid rgba(255,255,255,0.2);
   margin-top: 4px;
   background: rgba(0,0,0,0.3); color: #fff;
-  font-size: clamp(1.3rem, 5.2vw, 2.1rem); font-weight: 700;
+  font-size: clamp(1.5rem, 6vw, 2.4rem); font-weight: 700;
   padding: 10px 8px; text-transform: none; letter-spacing: normal;
 }
 
@@ -587,6 +587,12 @@ label { font-size: 0.85em; color: var(--text-dim); display: block; margin-bottom
   -webkit-text-stroke: var(--number-border-width, 0px) var(--number-border-color, transparent);
   paint-order: stroke fill;
 }
+/* Il numero dei SET vinti è meno leggibile da fondo campo di quello dei
+   GAME nonostante conti di più (segnalato dall'utente) - un po' più grande
+   dello stesso .sb-mid usato per i game. */
+.sb-mid-set {
+  font-size: min(19vw, 21vh);
+}
 /* In orizzontale l'altezza dello schermo è poca, e il tetto del punteggio
    (min(...vw, ...vh)) era legato quasi solo al vh: aumentare lo scale col ➕
    non lo faceva crescere quasi per niente. GAME/SET occupano meno spazio
@@ -602,6 +608,7 @@ label { font-size: 0.85em; color: var(--text-dim); display: block; margin-bottom
      punteggio grande (.sb-point sopra) cresce in orizzontale. */
   .sb-cap { font-size: clamp(0.7rem, 1.8vw, 0.95rem); }
   .sb-mid { font-size: min(10vw, 25vh); }
+  .sb-mid-set { font-size: min(12vw, 28vh); }
 }
 
 .sb-badge {

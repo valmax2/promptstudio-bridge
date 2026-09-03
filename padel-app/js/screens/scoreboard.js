@@ -3,7 +3,7 @@ import { pushMatch } from '../cloud.js';
 import { say, stopSpeech } from '../speech.js';
 import { escapeHtml, BACK_ICON, SUMMARY_ICON, uid as genId } from '../utils.js';
 import {
-  createMatch, addPoint, matchPointDisplay, teamName, isGamePoint, resetCurrentGame, endTimeMatch,
+  createMatch, addPoint, matchPointDisplay, teamName, isGamePoint, resetCurrentGame, endTimeMatch, setLiveServer,
 } from '../scoring.js';
 import { navigate } from '../router.js';
 import { toast } from '../app.js';
@@ -862,8 +862,7 @@ function paint(el) {
       ...(match.teamBPlayers.length > 1 ? [{ team: 'B', idx: 1 }] : []),
     ];
     const pick = options[Math.floor(Math.random() * options.length)];
-    match.server = pick.team;
-    match[pick.team === 'A' ? 'serverPlayerA' : 'serverPlayerB'] = pick.idx;
+    setLiveServer(match, pick.team, pick.idx);
     const players = pick.team === 'A' ? match.teamAPlayers : match.teamBPlayers;
     const name = players[pick.idx];
     if (ttsEnabled && name) say(`Batte ${name}`);
@@ -878,8 +877,7 @@ function paint(el) {
     btn.addEventListener('click', () => {
       const [team, idxStr] = btn.dataset.pickLiveServer.split(':');
       const idx = Number(idxStr);
-      match.server = team;
-      match[team === 'A' ? 'serverPlayerA' : 'serverPlayerB'] = idx;
+      setLiveServer(match, team, idx);
       const players = team === 'A' ? match.teamAPlayers : match.teamBPlayers;
       const name = players[idx];
       if (ttsEnabled && name) say(`Ora batte ${name}`);
@@ -975,7 +973,7 @@ function teamHalf(team) {
       <div class="sb-cap">${isTimeFormat ? 'GIOCHI VINTI' : 'GAME'}</div>
       <div class="sb-mid">${isTimeFormat ? gamesInSet : (match.inMatchTiebreak ? '—' : gamesInSet)}</div>
       <div class="sb-cap">${isTimeFormat ? '' : 'SET'}</div>
-      <div class="sb-mid">${isTimeFormat ? '' : setsWon}</div>
+      <div class="sb-mid sb-mid-set">${isTimeFormat ? '' : setsWon}</div>
     `;
 
   return `

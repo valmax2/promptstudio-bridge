@@ -12,7 +12,7 @@ import { isLiteMode, canExitLiteMode } from '../lite-mode.js';
 import { micButtonHtml, wireAllMicButtons } from '../speech-input.js';
 import {
   enableRemote, disableRemote, listenBindings,
-  setKeepScreenOn,
+  setKeepScreenOn, onBleTagRssi, bleTagRssiPercent,
 } from '../ble-remote.js';
 
 let match = null;
@@ -36,6 +36,7 @@ let setupTimeMinutes = 45;
 let pendingNameFill = null;
 let timeInterval = null;
 let stopHwKeys = () => {};
+let stopRssiFeed = () => {};
 let victoryModalOpen = false;
 let serverPickerOpen = false;
 let quickSummaryOpen = false;
@@ -94,14 +95,49 @@ export async function renderScoreboard(el) {
     paintSetup(el);
   }
 
+  stopRssiFeed = onBleTagRssi(() => paint(el));
+
   return () => {
     stopSpeech();
     stopHwKeys();
+    stopRssiFeed();
     disableRemote();
     setKeepScreenOn(false);
     clearInterval(timeInterval);
     showNav();
   };
+}
+
+// Percentuale segnale (RSSI) dell'eventuale tag BLE associato al punto di
+// questa squadra, o null se quel punto non è legato a un tag (nessun
+// dispositivo, o un telecomando HID classico - per quelli il segnale non è
+// leggibile, vedi ble-remote.js). Un solo binding per team/pointX è il caso
+// normale: con più di uno vince il primo trovato, stessa semplificazione già
+// usata altrove per questi elenchi.
+function signalPercentForTeam(team) {
+  const { settings } = getState();
+  const action = team === 'A' ? 'pointA' : 'pointB';
+  const binding = settings.remoteBindings.find((b) => b.action === action);
+  if (!binding) return null;
+  const tag = settings.bleTags.find((t) => t.address === binding.deviceDescriptor && t.enabled);
+  if (!tag) return null;
+  return bleTagRssiPercent(tag.address);
+}
+
+// Pillola segnale nella barra bassa, simmetrica a .sb-icons-pill (a destra) -
+// vedi anteprima approvata. Sparisce del tutto (non solo vuota) se nessuna
+// delle due squadre ha un tag BLE associato, per non aggiungere rumore
+// visivo a chi gioca senza telecomandi.
+function signalPillHtml() {
+  const pctA = signalPercentForTeam('A');
+  const pctB = signalPercentForTeam('B');
+  if (pctA == null && pctB == null) return '';
+  return `
+    <div class="sb-signal-pill">
+      ${pctA != null ? `<span class="sb-signal-a">🟦📶 ${pctA}%</span>` : ''}
+      ${pctB != null ? `<span class="sb-signal-b">🟧📶 ${pctB}%</span>` : ''}
+    </div>
+  `;
 }
 
 // Active in both the setup and live screens, so a remote key can e.g. start
@@ -736,6 +772,7 @@ function paint(el) {
         <button class="sb-overlay-icon-btn" id="sb-summary-center" aria-label="Riepilogo partita">${SUMMARY_ICON}</button>
       </div>
       <div class="sb-bottom-bar">
+        ${signalPillHtml()}
         <button class="sb-controls-toggle" id="sb-controls-toggle" aria-label="${controlsExpanded ? 'Nascondi barra comandi' : 'Mostra barra comandi'}">${controlsExpanded ? '▼' : '▲'}</button>
         <div class="sb-icons-pill">
           <button id="sb-display-mode" aria-label="Modalità visualizzazione" title="Solo punteggio">${pointsOnlyMode ? '🔢' : '📋'}</button>

@@ -352,3 +352,28 @@ export function onBleTagBattery(cb) {
   const handle = plugin.addListener('batteryLevel', (data) => cb(data));
   return () => handle.remove();
 }
+
+// ---- Signal strength (RSSI, polled nativamente ogni ~2s mentre connesso) ----
+// Serve a capire dove conviene posizionare telefono/tag (schermata Bluetooth)
+// e a tenerlo d'occhio durante la partita (tabellone) - vedi
+// native-android/BleTagPlugin.java per il polling e la conversione in %.
+const rssiByAddress = new Map();
+
+(function bridgeBleTagRssi() {
+  const plugin = bleTag();
+  if (!plugin) return;
+  plugin.addListener('rssi', ({ address, percent }) => {
+    rssiByAddress.set(address, percent);
+  });
+})();
+
+export function bleTagRssiPercent(address) {
+  return rssiByAddress.has(address) ? rssiByAddress.get(address) : null;
+}
+
+export function onBleTagRssi(cb) {
+  const plugin = bleTag();
+  if (!plugin) return () => {};
+  const handle = plugin.addListener('rssi', (data) => cb(data));
+  return () => handle.remove();
+}

@@ -70,6 +70,14 @@ public class BleTagPlugin extends Plugin {
     // finestra di scansione, facendo sembrare il dispositivo "introvabile"
     // anche se acceso e vicino - LOW_LATENCY scansiona quasi di continuo.
     private static final long SCAN_DURATION_MS = 9000;
+    // Intervallo di polling della potenza del segnale (RSSI) per un tag
+    // connesso - usato per l'indicatore "vicino/lontano" sia nella schermata
+    // Bluetooth (per capire dove posizionarlo) sia sul tabellone durante la
+    // partita. 2s è un compromesso: abbastanza reattivo da vedere l'effetto
+    // di uno spostamento, senza intasare la connessione BLE con letture
+    // continue (che a differenza delle notifiche vanno richieste a comando,
+    // non arrivano da sole).
+    private static final long RSSI_POLL_INTERVAL_MS = 2000;
 
     // Keyed by MAC address rather than a single field, so more than one tag
     // (e.g. one per team) can stay connected at the same time.
@@ -338,6 +346,11 @@ public class BleTagPlugin extends Plugin {
                 if (battery != null) {
                     try { g.readCharacteristic(battery); } catch (SecurityException ignored) {}
                 }
+                // Avvia il polling periodico del segnale (vedi scheduleRssiRead):
+                // il primo giro arriva dopo RSSI_POLL_INTERVAL_MS, dando tempo
+                // alla lettura della batteria qui sopra di completarsi prima -
+                // le operazioni GATT vanno serializzate una alla volta.
+                scheduleRssiRead(g, address);
                 return;
             }
             BluetoothGattDescriptor descriptor = queue.poll();
@@ -376,6 +389,43 @@ public class BleTagPlugin extends Plugin {
             data.put("address", address);
             data.put("level", level);
             notifyListeners("batteryLevel", data);
+        }
+
+        // Richiede una lettura RSSI una volta sola; il giro successivo lo
+        // pianifica onReadRemoteRssi stesso (loop auto-concatenato finché il
+        // device resta in gattByAddress) - mai due letture in sospeso insieme,
+        // stesso principio di serializzazione delle altre operazioni GATT qui.
+        private void scheduleRssiRead(BluetoothGatt g, String address) {
+            getBridge().getWebView().postDelayed(() -> {
+                if (!gattByAddress.containsKey(address)) return; // disconnesso nel frattempo
+                try {
+                    g.readRssi();
+                } catch (SecurityException e) {
+                    scheduleRssiRead(g, address); // riprova al giro dopo invece di fermarsi per sempre
+                }
+            }, RSSI_POLL_INTERVAL_MS);
+        }
+
+        // RSSI (dBm, tipicamente tra circa -100 "al limite" e -40 "vicinissimo")
+        // convertito in una percentuale indicativa per l'utente - non è una
+        // misura scientifica, è la stessa logica delle "barrette" del segnale
+        // wifi/cellulare: sotto -100 è 0%, sopra -50 è 100%, in mezzo lineare.
+        private int rssiToPercent(int rssi) {
+            int pct = (rssi + 100) * 2;
+            return Math.max(0, Math.min(100, pct));
+        }
+
+        @Override
+        public void onReadRemoteRssi(BluetoothGatt g, int rssi, int status) {
+            String address = addressOf(g);
+            if (status == BluetoothGatt.GATT_SUCCESS) {
+                JSObject data = new JSObject();
+                data.put("address", address);
+                data.put("rssi", rssi);
+                data.put("percent", rssiToPercent(rssi));
+                notifyListeners("rssi", data);
+            }
+            scheduleRssiRead(g, address);
         }
 
         @Override

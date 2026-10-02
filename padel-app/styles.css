@@ -487,6 +487,31 @@ label { font-size: 0.85em; color: var(--text-dim); display: block; margin-bottom
 }
 .sb-icons-pill button:active { opacity: 0.6; }
 
+/* Pillola segnale (RSSI) di eventuali tag BLE connessi, simmetrica a
+   .sb-icons-pill sul lato opposto - stessa barra, stesso linguaggio visivo,
+   stessa logica di posizionamento assoluto. Compare solo se almeno una
+   squadra ha un tag associato (vedi signalPillHtml in scoreboard.js), quindi
+   non esiste proprio per chi gioca senza telecomandi. */
+.sb-signal-pill {
+  position: absolute;
+  left: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  border-radius: 20px;
+  background: rgba(255,255,255,0.12);
+  padding: 4px 10px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #fff;
+  white-space: nowrap;
+}
+.sb-signal-a { color: #8ecbff; }
+.sb-signal-b { color: #ffd98e; }
+
 .sb-halves {
   flex: 1 1 auto;
   display: flex;

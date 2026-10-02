@@ -7,7 +7,7 @@ import {
   KEY_LABELS, ACTION_LABELS, PATTERN_LABELS, remoteSupported, captureNextPress,
   enableRemote, disableRemote, listenRawPresses, openBluetoothSettings,
   bleTagSupported, scanBleTags, connectBleTag,
-  bleTagBatteryLevel, onBleTagBattery,
+  bleTagBatteryLevel, onBleTagBattery, bleTagRssiPercent, onBleTagRssi,
 } from '../ble-remote.js';
 import { escapeHtml, uid as genId, BACK_ICON } from '../utils.js';
 import { isLiteMode } from '../lite-mode.js';
@@ -48,6 +48,7 @@ let wizardLastCaptureNutale = false;
 let liveLog = [];
 let stopLiveFeed = null;
 let stopBatteryFeed = null;
+let stopRssiFeed = null;
 
 // Elenco servizi/caratteristiche GATT dell'ultimo tag collegato che risulta
 // senza NESSUNA caratteristica NOTIFY/INDICATE (bottone quindi non
@@ -91,6 +92,7 @@ export async function renderBluetoothSetup(el) {
   // sulla card del tag (vedi tagRow) si aggiorna da sola senza dover uscire
   // e rientrare dalla schermata.
   stopBatteryFeed = onBleTagBattery(() => paint(el));
+  stopRssiFeed = onBleTagRssi(() => paint(el));
 
   paint(el);
 
@@ -99,6 +101,8 @@ export async function renderBluetoothSetup(el) {
     stopLiveFeed = null;
     stopBatteryFeed?.();
     stopBatteryFeed = null;
+    stopRssiFeed?.();
+    stopRssiFeed = null;
     if (remoteSupported()) disableRemote();
   };
 }
@@ -618,11 +622,21 @@ function batteryBadge(address) {
   return `<span class="badge small" style="color:${color};">${icon} ${level}%</span>`;
 }
 
+// null = ancora nessuna lettura (arrivano ogni ~2s mentre connesso, vedi
+// native-android/BleTagPlugin.java) - niente badge in quel caso, non un
+// errore. Utile proprio per capire dove posizionare telefono/tag: muovendoli
+// la percentuale cambia in tempo reale mentre questa schermata resta aperta.
+function signalBadge(address) {
+  const pct = bleTagRssiPercent(address);
+  if (pct == null) return '';
+  return `<span class="badge small">📶 ${pct}%</span>`;
+}
+
 function tagRow(t, remoteBindings) {
   const hasBindings = remoteBindings.some((b) => b.deviceDescriptor === t.address);
   return `<div class="card" style="background:var(--surface-2);margin-top:10px;">
     <div class="toggle-row">
-      <div><strong>🔑 ${escapeHtml(t.deviceName || 'Dispositivo')}</strong> ${batteryBadge(t.address)}<p class="mb0 small">${t.address}</p></div>
+      <div><strong>🔑 ${escapeHtml(t.deviceName || 'Dispositivo')}</strong> ${batteryBadge(t.address)} ${signalBadge(t.address)}<p class="mb0 small">${t.address}</p></div>
       <label class="switch"><input type="checkbox" data-tag-enabled="${t.id}" ${t.enabled ? 'checked' : ''}><span class="slider"></span></label>
     </div>
     ${teamLabelFor(t.address, remoteBindings) ? `<div class="mt">${teamLabelFor(t.address, remoteBindings)}</div>` : ''}

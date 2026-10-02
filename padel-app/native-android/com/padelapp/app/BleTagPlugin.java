@@ -399,7 +399,7 @@ public class BleTagPlugin extends Plugin {
             getBridge().getWebView().postDelayed(() -> {
                 if (!gattByAddress.containsKey(address)) return; // disconnesso nel frattempo
                 try {
-                    g.readRssi();
+                    g.readRemoteRssi();
                 } catch (SecurityException e) {
                     scheduleRssiRead(g, address); // riprova al giro dopo invece di fermarsi per sempre
                 }

@@ -5,7 +5,7 @@ import { configureSpeech } from './speech.js';
 import { applyColorsToDom } from './color-presets.js';
 import { applyUiAccent } from './ui-accents.js';
 import { initNotifications, stopNotifications } from './notifications.js';
-import { bleTagSupported, connectBleTag, disconnectBleTag } from './ble-remote.js';
+import { bleTagSupported, connectBleTag, disconnectBleTag, onBleTagBattery } from './ble-remote.js';
 import { initAds } from './ads.js';
 import { verifyProOnLaunch } from './billing.js';
 
@@ -143,6 +143,25 @@ applyTheme();
 
 subscribe(reconcileBleTags);
 reconcileBleTags();
+
+// Avviso batteria scarica per tag/telecomandi BLE collegati, globale (non
+// solo nella schermata Bluetooth) - così arriva anche a partita in corso,
+// quando è il momento in cui scoprirlo serve davvero. "A fronte" (edge-
+// triggered): un solo avviso quando si scende sotto soglia, non uno ad ogni
+// notifica ripetuta mentre resta scarica; si riarma da solo se risale sopra
+// soglia (es. dopo una ricarica) e poi scende di nuovo.
+const LOW_BATTERY_THRESHOLD = 20;
+const lowBatteryWarned = new Set();
+onBleTagBattery(({ address, level }) => {
+  if (level > LOW_BATTERY_THRESHOLD) {
+    lowBatteryWarned.delete(address);
+    return;
+  }
+  if (lowBatteryWarned.has(address)) return;
+  lowBatteryWarned.add(address);
+  const tag = getState().settings.bleTags.find((t) => t.address === address);
+  toast(`🔋 Batteria scarica (${level}%) su ${tag?.deviceName || 'telecomando'}`, 4500);
+});
 
 initAds();
 verifyProOnLaunch();

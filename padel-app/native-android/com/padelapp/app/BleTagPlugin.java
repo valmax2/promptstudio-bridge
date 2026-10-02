@@ -56,6 +56,13 @@ import java.util.UUID;
 public class BleTagPlugin extends Plugin {
 
     private static final UUID CCCD_UUID = UUID.fromString("00002902-0000-1000-8000-00805f9b34fb");
+    // Caratteristica BLE standard "Battery Level" (servizio "Battery Service"
+    // 0x180F): molti tag/telecomandi economici la espongono già - già vista
+    // notificabile su device come il Nutale Mate (vedi commento più sotto su
+    // subscribedCountByAddress). Non tutti i dispositivi la hanno: quando
+    // manca, semplicemente non arriva mai nessun evento "batteryLevel", senza
+    // errori - stesso comportamento permissivo del resto di questo plugin.
+    private static final UUID BATTERY_LEVEL_UUID = UUID.fromString("00002a19-0000-1000-8000-00805f9b34fb");
     // 9s invece di 6, e SCAN_MODE_LOW_LATENCY invece del default LOW_POWER:
     // alcuni tracker (es. Nutale Mate) pubblicizzano la propria presenza a
     // intervalli più radi per risparmiare batteria, e col duty-cycle ridotto
@@ -82,6 +89,11 @@ public class BleTagPlugin extends Plugin {
     private final Map<String, Queue<BluetoothGattDescriptor>> pendingDescriptorQueue = new HashMap<>();
     private final Map<BluetoothGattDescriptor, byte[]> descriptorEnableValue = new HashMap<>();
     private final Map<String, Integer> subscribedCountByAddress = new HashMap<>();
+    // Caratteristica Battery Level trovata per questo device (assente se il
+    // device non la espone) - usata per leggerne subito il valore appena le
+    // sottoscrizioni NOTIFY sono tutte sistemate (vedi writeNextDescriptor),
+    // invece di aspettare passivamente che il device la notifichi da solo.
+    private final Map<String, BluetoothGattCharacteristic> batteryCharByAddress = new HashMap<>();
     private final Map<String, JSArray> servicesInfoByAddress = new HashMap<>();
 
     // Diverse tracker economici (confermato su iTag e Nutale Mate: 4 notifiche
@@ -254,6 +266,7 @@ public class BleTagPlugin extends Plugin {
                 subscribedCountByAddress.remove(address);
                 servicesInfoByAddress.remove(address);
                 lastPressAtByAddress.remove(address);
+                batteryCharByAddress.remove(address);
                 JSObject data = new JSObject();
                 data.put("address", address);
                 notifyListeners("disconnected", data);
@@ -281,6 +294,7 @@ public class BleTagPlugin extends Plugin {
                     chInfo.put("uuid", ch.getUuid().toString());
                     chInfo.put("notify", notify || indicate);
                     chars.put(chInfo);
+                    if (ch.getUuid().equals(BATTERY_LEVEL_UUID)) batteryCharByAddress.put(address, ch);
                     if (!notify && !indicate) continue;
                     try {
                         g.setCharacteristicNotification(ch, true);
@@ -316,6 +330,14 @@ public class BleTagPlugin extends Plugin {
                 data.put("subscribed", subscribedCountByAddress.getOrDefault(address, 0));
                 data.put("services", servicesInfoByAddress.get(address));
                 notifyListeners("connected", data);
+                // Letta solo ora che la coda dei descrittori NOTIFY è vuota:
+                // le operazioni GATT vanno rigorosamente serializzate (vedi
+                // commento sulle mappe più sopra), quindi avviarla prima
+                // avrebbe rischiato di farla silenziosamente cadere.
+                BluetoothGattCharacteristic battery = batteryCharByAddress.get(address);
+                if (battery != null) {
+                    try { g.readCharacteristic(battery); } catch (SecurityException ignored) {}
+                }
                 return;
             }
             BluetoothGattDescriptor descriptor = queue.poll();
@@ -343,9 +365,38 @@ public class BleTagPlugin extends Plugin {
             writeNextDescriptor(g, address);
         }
 
+        // Letta sia dalla notifica spontanea del device sia dalla lettura
+        // esplicita avviata appena connessi (vedi writeNextDescriptor) -
+        // unico punto che traduce il valore grezzo in percentuale.
+        private void emitBatteryLevel(String address, BluetoothGattCharacteristic characteristic) {
+            byte[] value = characteristic.getValue();
+            if (value == null || value.length == 0) return;
+            int level = value[0] & 0xFF; // percentuale 0-100, 1 byte senza segno
+            JSObject data = new JSObject();
+            data.put("address", address);
+            data.put("level", level);
+            notifyListeners("batteryLevel", data);
+        }
+
+        @Override
+        public void onCharacteristicRead(BluetoothGatt g, BluetoothGattCharacteristic characteristic, int status) {
+            if (status != BluetoothGatt.GATT_SUCCESS) return;
+            if (!characteristic.getUuid().equals(BATTERY_LEVEL_UUID)) return;
+            emitBatteryLevel(addressOf(g), characteristic);
+        }
+
         @Override
         public void onCharacteristicChanged(BluetoothGatt g, BluetoothGattCharacteristic characteristic) {
             String address = addressOf(g);
+            // La Battery Level può essere tra le caratteristiche notificabili
+            // (vedi commento su subscribedCountByAddress) - una sua notifica
+            // non è una pressione del pulsante, quindi va smistata a parte
+            // invece di passare per "tagPressed" (altrimenti un aggiornamento
+            // batteria spontaneo segnerebbe un punto a caso in partita).
+            if (characteristic.getUuid().equals(BATTERY_LEVEL_UUID)) {
+                emitBatteryLevel(address, characteristic);
+                return;
+            }
             long now = System.currentTimeMillis();
             Long last = lastPressAtByAddress.get(address);
             if (last != null && (now - last) < PRESS_DEBOUNCE_MS) return;

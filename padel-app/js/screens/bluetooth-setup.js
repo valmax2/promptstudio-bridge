@@ -7,6 +7,7 @@ import {
   KEY_LABELS, ACTION_LABELS, PATTERN_LABELS, remoteSupported, captureNextPress,
   enableRemote, disableRemote, listenRawPresses, openBluetoothSettings,
   bleTagSupported, scanBleTags, connectBleTag,
+  bleTagBatteryLevel, onBleTagBattery,
 } from '../ble-remote.js';
 import { escapeHtml, uid as genId, BACK_ICON } from '../utils.js';
 import { isLiteMode } from '../lite-mode.js';
@@ -46,6 +47,7 @@ let wizardLastCaptureNutale = false;
 // at all, before worrying about which action it's bound to.
 let liveLog = [];
 let stopLiveFeed = null;
+let stopBatteryFeed = null;
 
 // Elenco servizi/caratteristiche GATT dell'ultimo tag collegato che risulta
 // senza NESSUNA caratteristica NOTIFY/INDICATE (bottone quindi non
@@ -85,11 +87,18 @@ export async function renderBluetoothSetup(el) {
     renderLiveLog(el);
   });
 
+  // Ripaint quando arriva una lettura batteria, così la percentuale mostrata
+  // sulla card del tag (vedi tagRow) si aggiorna da sola senza dover uscire
+  // e rientrare dalla schermata.
+  stopBatteryFeed = onBleTagBattery(() => paint(el));
+
   paint(el);
 
   return () => {
     stopLiveFeed?.();
     stopLiveFeed = null;
+    stopBatteryFeed?.();
+    stopBatteryFeed = null;
     if (remoteSupported()) disableRemote();
   };
 }
@@ -597,11 +606,23 @@ function bindingRow(b) {
   </div>`;
 }
 
+// null = batteria non nota (device che non la espone, o letta non ancora
+// arrivata) - in quel caso non mostriamo nessuna etichetta, niente di
+// allarmante/sbagliato da far vedere.
+function batteryBadge(address) {
+  const level = bleTagBatteryLevel(address);
+  if (level == null) return '';
+  const low = level <= 20;
+  const icon = low ? '🪫' : '🔋';
+  const color = low ? 'var(--danger,#e5484d)' : 'inherit';
+  return `<span class="badge small" style="color:${color};">${icon} ${level}%</span>`;
+}
+
 function tagRow(t, remoteBindings) {
   const hasBindings = remoteBindings.some((b) => b.deviceDescriptor === t.address);
   return `<div class="card" style="background:var(--surface-2);margin-top:10px;">
     <div class="toggle-row">
-      <div><strong>🔑 ${escapeHtml(t.deviceName || 'Dispositivo')}</strong><p class="mb0 small">${t.address}</p></div>
+      <div><strong>🔑 ${escapeHtml(t.deviceName || 'Dispositivo')}</strong> ${batteryBadge(t.address)}<p class="mb0 small">${t.address}</p></div>
       <label class="switch"><input type="checkbox" data-tag-enabled="${t.id}" ${t.enabled ? 'checked' : ''}><span class="slider"></span></label>
     </div>
     ${teamLabelFor(t.address, remoteBindings) ? `<div class="mt">${teamLabelFor(t.address, remoteBindings)}</div>` : ''}

@@ -322,3 +322,33 @@ export function onBleTagDisconnected(cb) {
   const handle = plugin.addListener('disconnected', (data) => cb(data));
   return () => handle.remove();
 }
+
+// ---- Battery level (standard BLE "Battery Level" characteristic) ----
+// Non tutti i tag/telecomandi la espongono (dipende dal modello): quando
+// manca, semplicemente non arriva mai nessun evento qui, senza errori - vedi
+// native-android/BleTagPlugin.java. Tenuta in cache qui (non in store.js: è
+// un valore live del dispositivo, non un'impostazione da salvare/sincronizzare)
+// così qualunque schermata può leggere l'ultimo valore noto anche se non era
+// montata quando è arrivato l'evento.
+const batteryByAddress = new Map();
+
+(function bridgeBleTagBattery() {
+  const plugin = bleTag();
+  if (!plugin) return;
+  plugin.addListener('batteryLevel', ({ address, level }) => {
+    batteryByAddress.set(address, level);
+  });
+})();
+
+// Ultima percentuale batteria nota per questo tag, o null se non ancora
+// ricevuta (device che non espone la caratteristica, o non ancora letta).
+export function bleTagBatteryLevel(address) {
+  return batteryByAddress.has(address) ? batteryByAddress.get(address) : null;
+}
+
+export function onBleTagBattery(cb) {
+  const plugin = bleTag();
+  if (!plugin) return () => {};
+  const handle = plugin.addListener('batteryLevel', (data) => cb(data));
+  return () => handle.remove();
+}

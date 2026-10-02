@@ -346,11 +346,14 @@ public class BleTagPlugin extends Plugin {
                 if (battery != null) {
                     try { g.readCharacteristic(battery); } catch (SecurityException ignored) {}
                 }
-                // Avvia il polling periodico del segnale (vedi scheduleRssiRead):
-                // il primo giro arriva dopo RSSI_POLL_INTERVAL_MS, dando tempo
-                // alla lettura della batteria qui sopra di completarsi prima -
-                // le operazioni GATT vanno serializzate una alla volta.
-                scheduleRssiRead(g, address);
+                // DISATTIVATO (temporaneo): il polling continuo del segnale per
+                // tutta la durata della connessione è sospettato di disturbare
+                // la ricezione delle notifiche (il bottone) su hardware reale -
+                // segnalato dall'utente subito dopo questa modifica ("non
+                // riesco più a configurarli"). Tolto finché non si capisce
+                // meglio la causa - vedi scheduleRssiRead/onReadRemoteRssi più
+                // sotto, lasciati pronti per quando si riattiva in sicurezza.
+                // scheduleRssiRead(g, address);
                 return;
             }
             BluetoothGattDescriptor descriptor = queue.poll();

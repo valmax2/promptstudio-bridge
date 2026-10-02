@@ -133,11 +133,28 @@ EOF
 echo "▶ Compilo l'AAB firmato (bundleRelease)"
 cd android
 chmod +x ./gradlew
+# Un build Capacitor/Android genera MOLTO output (migliaia di righe, spesso
+# dominate da warning D8/R8 su librerie di terze parti) - il visualizzatore
+# dei log di GitHub Actions che uso per diagnosticare da remoto può leggere
+# solo un pezzo finale di dimensione limitata, quindi un vero errore di
+# compilazione annegato in quel rumore può restare fuori dalla parte
+# leggibile. Salvo tutto su file e, in caso di fallimento, ristampo SOLO le
+# righe che sembrano un vero errore del compilatore ("file.java:123: error:")
+# vicino alla fine dell'output, dove resta sicuramente visibile.
+set +e
 ./gradlew bundleRelease \
   -Pandroid.injected.signing.store.file="$KEYSTORE_PATH" \
   -Pandroid.injected.signing.store.password="$KEYSTORE_PASSWORD" \
   -Pandroid.injected.signing.key.alias="$KEY_ALIAS" \
-  -Pandroid.injected.signing.key.password="$KEY_PASSWORD"
+  -Pandroid.injected.signing.key.password="$KEY_PASSWORD" 2>&1 | tee /tmp/gradle-bundle-output.log
+GRADLE_STATUS=${PIPESTATUS[0]}
+set -e
+if [ "$GRADLE_STATUS" -ne 0 ]; then
+  echo ""
+  echo "❌ gradlew bundleRelease fallito (exit $GRADLE_STATUS). Righe con un vero errore di compilazione, se presenti:"
+  grep -nE "\.java:[0-9]+:|error:|FAILURE:|What went wrong" /tmp/gradle-bundle-output.log | tail -n 60 || echo "(nessuna corrispondenza - vedi il resto del log sopra)"
+  exit "$GRADLE_STATUS"
+fi
 
 AAB="$BUILD/android/app/build/outputs/bundle/release/app-release.aab"
 echo ""

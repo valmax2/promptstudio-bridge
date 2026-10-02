@@ -148,7 +148,20 @@ EOF
 echo "▶ Compilo l'APK di debug (gradlew assembleDebug)"
 cd android
 chmod +x ./gradlew
-./gradlew assembleDebug
+# Vedi lo stesso commento in build-aab-ci.sh: il log di un build Android è
+# enorme (spesso dominato da warning D8/R8 di librerie terze), quindi un vero
+# errore di compilazione può restare fuori dalla parte finale che riesco a
+# leggere da remoto - lo ristampo esplicitamente in caso di fallimento.
+set +e
+./gradlew assembleDebug 2>&1 | tee /tmp/gradle-apk-output.log
+GRADLE_STATUS=${PIPESTATUS[0]}
+set -e
+if [ "$GRADLE_STATUS" -ne 0 ]; then
+  echo ""
+  echo "❌ gradlew assembleDebug fallito (exit $GRADLE_STATUS). Righe con un vero errore di compilazione, se presenti:"
+  grep -nE "\.java:[0-9]+:|error:|FAILURE:|What went wrong" /tmp/gradle-apk-output.log | tail -n 60 || echo "(nessuna corrispondenza - vedi il resto del log sopra)"
+  exit "$GRADLE_STATUS"
+fi
 
 APK="$BUILD/android/app/build/outputs/apk/debug/app-debug.apk"
 echo ""

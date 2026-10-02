@@ -40,6 +40,13 @@ jobs:
 
       - name: Installa e configura l'Android SDK
         uses: android-actions/setup-android@v3
+        with:
+          # Il default di questa versione dell'azione prova a installare
+          # anche il pacchetto "tools" (legacy), che Google ha tolto dal
+          # repository SDK - senza questo override lo step fallisce subito
+          # con "Failed to find package 'tools'" prima ancora di arrivare
+          # allo step sotto, che installa comunque quello che serve davvero.
+          packages: 'platform-tools'
 
       - name: Installa i pacchetti Android SDK richiesti
         run: sdkmanager --install "platform-tools" "platforms;android-36" "build-tools;36.0.0"

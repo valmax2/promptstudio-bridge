@@ -65,6 +65,7 @@ function paint(el) {
         <button class="btn secondary" id="welcome-support" style="flex:1;min-width:0;">${MAIL_ICON} ${t('welcomeSupport')}</button>
       </div>
       <p class="welcome-footer small">${t('welcomeFooter')}</p>
+      <p class="welcome-footer small">Grazie a Pasquale Barrucci per i test sul campo e i consigli.</p>
     </div>
 
     <div class="modal-backdrop hidden" id="tutorial-modal">

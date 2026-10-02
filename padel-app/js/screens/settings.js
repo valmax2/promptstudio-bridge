@@ -401,6 +401,7 @@ function paint(el) {
 
     <button class="btn ghost block mt" id="open-welcome">ⓘ Guida e informazioni sull'app</button>
     <p class="small center mt mb0" style="opacity:0.6;">Padel App ${APP_VERSION}</p>
+    <p class="small center mb0" style="opacity:0.6;">Grazie a Pasquale Barrucci per i test sul campo e i consigli.</p>
   `;
 
   wireAllMicButtons(el);

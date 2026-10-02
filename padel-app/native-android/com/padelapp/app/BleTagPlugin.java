@@ -63,6 +63,15 @@ public class BleTagPlugin extends Plugin {
     // manca, semplicemente non arriva mai nessun evento "batteryLevel", senza
     // errori - stesso comportamento permissivo del resto di questo plugin.
     private static final UUID BATTERY_LEVEL_UUID = UUID.fromString("00002a19-0000-1000-8000-00805f9b34fb");
+    // Caratteristica BLE standard "Service Changed" (servizio "Generic
+    // Attribute" 0x1801): molti device (Nutale Mate compreso, vedi commento
+    // sotto) la espongono con proprietà INDICATE e la fanno scattare DA SOLI
+    // appena ci si connette, per dire al telefono "ricontrolla i miei
+    // servizi" - prima di questo controllo, quell'indicazione automatica
+    // veniva scambiata per una pressione reale del pulsante, segnando un
+    // punto da solo appena il dispositivo si collegava (anche senza che
+    // l'utente toccasse nulla).
+    private static final UUID SERVICE_CHANGED_UUID = UUID.fromString("00002a05-0000-1000-8000-00805f9b34fb");
     // 9s invece di 6, e SCAN_MODE_LOW_LATENCY invece del default LOW_POWER:
     // alcuni tracker (es. Nutale Mate) pubblicizzano la propria presenza a
     // intervalli più radi per risparmiare batteria, e col duty-cycle ridotto
@@ -450,6 +459,13 @@ public class BleTagPlugin extends Plugin {
                 emitBatteryLevel(address, characteristic);
                 return;
             }
+            // "Service Changed" indica da sola, appena ci si connette, che il
+            // device vuole dire "ricontrolla i miei servizi" - non è mai una
+            // pressione reale del pulsante. Senza questo controllo, quella
+            // indicazione automatica di connessione veniva letta come un
+            // click vero, segnando un punto a caso appena il dispositivo si
+            // collegava (prima ancora che l'utente toccasse qualcosa).
+            if (characteristic.getUuid().equals(SERVICE_CHANGED_UUID)) return;
             long now = System.currentTimeMillis();
             Long last = lastPressAtByAddress.get(address);
             if (last != null && (now - last) < PRESS_DEBOUNCE_MS) return;

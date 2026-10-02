@@ -54,15 +54,16 @@ EOF
 echo "▶ Aggiungo la piattaforma Android"
 npx cap add android
 
-# Il target/compileSdkVersion che Capacitor scrive in variables.gradle dipende
-# dalla versione di @capacitor/android risolta da "npm install" (non pinnata),
-# quindi può cambiare da una build all'altra senza nessuna modifica nel repo.
-# Lo forziamo qui esplicitamente al livello minimo richiesto da Google Play.
-echo "▶ Forzo compileSdkVersion/targetSdkVersion=36 in variables.gradle"
+# Il target/compile/minSdkVersion che Capacitor scrive in variables.gradle
+# dipende dalla versione di @capacitor/android risolta da "npm install" (non
+# pinnata), quindi può cambiare da una build all'altra senza nessuna modifica
+# nel repo. Li forziamo qui esplicitamente ai livelli richiesti da Google Play.
+echo "▶ Forzo min/compile/targetSdkVersion in variables.gradle"
+sed -i "s/minSdkVersion = [0-9]*/minSdkVersion = 24/" android/variables.gradle
 sed -i "s/compileSdkVersion = [0-9]*/compileSdkVersion = 36/" android/variables.gradle
 sed -i "s/targetSdkVersion = [0-9]*/targetSdkVersion = 36/" android/variables.gradle
-if ! grep -q "targetSdkVersion = 36" android/variables.gradle; then
-  echo "❌ Impossibile impostare targetSdkVersion: pattern non trovato in android/variables.gradle" >&2
+if ! grep -q "targetSdkVersion = 36" android/variables.gradle || ! grep -q "minSdkVersion = 24" android/variables.gradle; then
+  echo "❌ Impossibile impostare min/targetSdkVersion: pattern non trovato in android/variables.gradle" >&2
   exit 1
 fi
 

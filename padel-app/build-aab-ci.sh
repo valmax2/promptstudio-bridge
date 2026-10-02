@@ -44,17 +44,20 @@ cp "$HERE"/capacitor.config.json .
 echo "▶ Aggiungo la piattaforma Android"
 npx cap add android
 
-# Il target/compileSdkVersion che Capacitor scrive in variables.gradle dipende
-# dalla versione di @capacitor/android risolta da "npm install" (non pinnata:
-# vedi sopra), quindi può cambiare da una build all'altra senza nessuna
-# modifica nel repo. Lo Store Google Play richiede periodicamente un livello
-# API target minimo (36 da inizio 2026): lo forziamo qui esplicitamente
-# invece di sperare che la versione risolta al momento lo soddisfi già.
-echo "▶ Forzo compileSdkVersion/targetSdkVersion=36 in variables.gradle"
+# Il target/compile/minSdkVersion che Capacitor scrive in variables.gradle
+# dipende dalla versione di @capacitor/android risolta da "npm install" (non
+# pinnata: vedi sopra), quindi può cambiare da una build all'altra senza
+# nessuna modifica nel repo - già successo con targetSdkVersion (35 invece di
+# 36) e di nuovo con minSdkVersion (23 invece di 24, bloccato da Play perché
+# sotto il minimo richiesto dalla protezione automatica). Li forziamo tutti
+# qui esplicitamente invece di sperare che la versione risolta al momento li
+# soddisfi già.
+echo "▶ Forzo min/compile/targetSdkVersion in variables.gradle"
+sed -i "s/minSdkVersion = [0-9]*/minSdkVersion = 24/" android/variables.gradle
 sed -i "s/compileSdkVersion = [0-9]*/compileSdkVersion = 36/" android/variables.gradle
 sed -i "s/targetSdkVersion = [0-9]*/targetSdkVersion = 36/" android/variables.gradle
-if ! grep -q "targetSdkVersion = 36" android/variables.gradle; then
-  echo "❌ Impossibile impostare targetSdkVersion: pattern non trovato in android/variables.gradle" >&2
+if ! grep -q "targetSdkVersion = 36" android/variables.gradle || ! grep -q "minSdkVersion = 24" android/variables.gradle; then
+  echo "❌ Impossibile impostare min/targetSdkVersion: pattern non trovato in android/variables.gradle" >&2
   exit 1
 fi
 

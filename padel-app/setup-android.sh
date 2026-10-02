@@ -28,10 +28,11 @@ cp -r js www/js
 echo "▶ Creo il progetto Android (usa capacitor.config.json)"
 if [ ! -d android ]; then
   npx cap add android
-  # Il target/compileSdkVersion che Capacitor scrive in variables.gradle
+  # Il target/compile/minSdkVersion che Capacitor scrive in variables.gradle
   # dipende dalla versione di @capacitor/android risolta da "npm install"
   # (non pinnata), quindi può cambiare da una build all'altra senza nessuna
-  # modifica nel repo. Lo forziamo al livello minimo richiesto da Google Play.
+  # modifica nel repo. Li forziamo ai livelli richiesti da Google Play.
+  sed -i "s/minSdkVersion = [0-9]*/minSdkVersion = 24/" android/variables.gradle
   sed -i "s/compileSdkVersion = [0-9]*/compileSdkVersion = 36/" android/variables.gradle
   sed -i "s/targetSdkVersion = [0-9]*/targetSdkVersion = 36/" android/variables.gradle
 fi

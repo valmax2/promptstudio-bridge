@@ -25,6 +25,7 @@ import com.getcapacitor.PermissionState;
 import com.getcapacitor.annotation.CapacitorPlugin;
 import com.getcapacitor.annotation.Permission;
 import com.getcapacitor.annotation.PermissionCallback;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
@@ -87,6 +88,15 @@ public class BleTagPlugin extends Plugin {
     // continue (che a differenza delle notifiche vanno richieste a comando,
     // non arrivano da sole).
     private static final long RSSI_POLL_INTERVAL_MS = 2000;
+    // Su alcuni device/telefoni le primissime richieste di attivazione NOTIFY
+    // fatte appena finita la scoperta dei servizi falliscono perché la
+    // connessione non si è ancora "stabilizzata" del tutto (parametri di
+    // connessione/MTU ancora in negoziazione) - un piccolo ritardo prima di
+    // iniziare, più qualche tentativo extra per singola caratteristica (vedi
+    // DESCRIPTOR_RETRY_MAX), riduce questi fallimenti "0 sottoscrizioni
+    // attivate" segnalati su un tag reale subito dopo essersi connessi.
+    private static final long FIRST_DESCRIPTOR_DELAY_MS = 300;
+    private static final int DESCRIPTOR_RETRY_MAX = 2;
 
     // Keyed by MAC address rather than a single field, so more than one tag
     // (e.g. one per team) can stay connected at the same time.
@@ -103,7 +113,11 @@ public class BleTagPlugin extends Plugin {
     // characteristic is the physical button silently never got subscribed
     // if it wasn't first. These per-address queues make the writes happen
     // one at a time, waiting for each real completion before the next.
-    private final Map<String, Queue<BluetoothGattDescriptor>> pendingDescriptorQueue = new HashMap<>();
+    private final Map<String, Deque<BluetoothGattDescriptor>> pendingDescriptorQueue = new HashMap<>();
+    // Tentativi già fatti per ciascun descrittore CCCD (vedi
+    // DESCRIPTOR_RETRY_MAX) - rimossa non appena il descrittore va a buon
+    // fine o esaurisce i tentativi, non cresce per tutta la connessione.
+    private final Map<BluetoothGattDescriptor, Integer> descriptorRetries = new HashMap<>();
     private final Map<BluetoothGattDescriptor, byte[]> descriptorEnableValue = new HashMap<>();
     private final Map<String, Integer> subscribedCountByAddress = new HashMap<>();
     // Caratteristica Battery Level trovata per questo device (assente se il
@@ -298,7 +312,7 @@ public class BleTagPlugin extends Plugin {
             // serve per capire perché un bottone non arriva, senza dover
             // ricorrere a un'app esterna come nRF Connect.
             JSArray services = new JSArray();
-            Queue<BluetoothGattDescriptor> toWrite = new LinkedList<>();
+            Deque<BluetoothGattDescriptor> toWrite = new LinkedList<>();
             for (BluetoothGattService service : g.getServices()) {
                 JSObject svcInfo = new JSObject();
                 svcInfo.put("uuid", service.getUuid().toString());
@@ -331,7 +345,11 @@ public class BleTagPlugin extends Plugin {
             pendingDescriptorQueue.put(address, toWrite);
             servicesInfoByAddress.put(address, services);
             subscribedCountByAddress.put(address, 0);
-            writeNextDescriptor(g, address);
+            // Piccolo ritardo prima del PRIMO tentativo (vedi
+            // FIRST_DESCRIPTOR_DELAY_MS) - non per i successivi, quelli
+            // restano concatenati da onDescriptorWrite non appena arriva la
+            // risposta reale, niente da aspettare lì.
+            getBridge().getWebView().postDelayed(() -> writeNextDescriptor(g, address), FIRST_DESCRIPTOR_DELAY_MS);
         }
 
         // Scrive un descrittore CCCD alla volta e aspetta onDescriptorWrite
@@ -340,7 +358,7 @@ public class BleTagPlugin extends Plugin {
         // "connected" parte con il conteggio reale delle sottoscrizioni
         // andate davvero a buon fine, non solo di quelle tentate.
         private void writeNextDescriptor(BluetoothGatt g, String address) {
-            Queue<BluetoothGattDescriptor> queue = pendingDescriptorQueue.get(address);
+            Deque<BluetoothGattDescriptor> queue = pendingDescriptorQueue.get(address);
             if (queue == null || queue.isEmpty()) {
                 JSObject data = new JSObject();
                 data.put("address", address);
@@ -385,7 +403,22 @@ public class BleTagPlugin extends Plugin {
         public void onDescriptorWrite(BluetoothGatt g, BluetoothGattDescriptor descriptor, int status) {
             String address = addressOf(g);
             if (status == BluetoothGatt.GATT_SUCCESS) {
+                descriptorRetries.remove(descriptor);
                 subscribedCountByAddress.merge(address, 1, Integer::sum);
+            } else {
+                // Riprova la STESSA caratteristica (non passa a quella dopo)
+                // fino a DESCRIPTOR_RETRY_MAX volte prima di arrendersi -
+                // segnalato un caso reale in cui TUTTE le richieste fatte
+                // subito dopo la connessione fallivano la prima volta, anche
+                // se il device le supportava regolarmente.
+                int retries = descriptorRetries.getOrDefault(descriptor, 0);
+                if (retries < DESCRIPTOR_RETRY_MAX) {
+                    descriptorRetries.put(descriptor, retries + 1);
+                    Deque<BluetoothGattDescriptor> queue = pendingDescriptorQueue.get(address);
+                    if (queue != null) queue.addFirst(descriptor);
+                } else {
+                    descriptorRetries.remove(descriptor);
+                }
             }
             writeNextDescriptor(g, address);
         }

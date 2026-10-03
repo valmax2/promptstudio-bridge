@@ -34,6 +34,10 @@ export async function renderRemoteBoard(el, params = {}) {
     el.innerHTML = `
     <div class="topbar"><div class="row"><button class="icon-btn" id="rb-back" aria-label="Indietro">${BACK_ICON}</button><h1>📡 Telecomandi compatibili</h1></div></div>
 
+    <div class="card" style="background:var(--surface-2);">
+      <p class="small mb0">⚠️ <strong>I tag/portachiavi Bluetooth economici senza marca</strong> (tipici su Amazon/AliExpress/Temu, spesso chiamati tutti genericamente "iTAG") possono comportarsi diversamente anche tra due pezzi identici dello stesso lotto - uno può funzionare perfettamente e un altro no, senza nessun modo per saperlo prima di provarlo. <strong>Testa sempre il pulsante subito dopo l'acquisto</strong>, finché sei ancora nei tempi per il reso.</p>
+    </div>
+
     ${list.length ? list.map((r) => `
       <div class="card row" style="gap:14px;align-items:center;">
         <div class="avatar" style="width:64px;height:64px;${r.imageUrl ? 'cursor:pointer;' : ''}" ${r.imageUrl ? `data-open-lightbox="${escapeHtml(r.imageUrl)}" data-lightbox-label="${escapeHtml(r.label || '')}"` : ''}>${r.imageUrl ? `<img src="${r.imageUrl}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">` : '🎮'}</div>

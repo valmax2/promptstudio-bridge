@@ -393,8 +393,27 @@ public class BleTagPlugin extends Plugin {
                     descriptor.setValue(value);
                     started = g.writeDescriptor(descriptor);
                 }
-                if (!started) writeNextDescriptor(g, address);
+                // "started" falso vuol dire che la richiesta non è nemmeno
+                // partita (es. connessione GATT ancora occupata/non pronta) -
+                // diverso dal caso "partita ma rifiutata" di onDescriptorWrite,
+                // ma su un device reale si è visto fallire ESATTAMENTE qui,
+                // sempre, per tutte le caratteristiche: stesso trattamento
+                // (ritenta con un piccolo ritardo prima di arrendersi).
+                if (!started) retryOrGiveUp(g, address, descriptor);
             } catch (SecurityException e) {
+                retryOrGiveUp(g, address, descriptor);
+            }
+        }
+
+        private void retryOrGiveUp(BluetoothGatt g, String address, BluetoothGattDescriptor descriptor) {
+            int retries = descriptorRetries.getOrDefault(descriptor, 0);
+            if (retries < DESCRIPTOR_RETRY_MAX) {
+                descriptorRetries.put(descriptor, retries + 1);
+                Deque<BluetoothGattDescriptor> queue = pendingDescriptorQueue.get(address);
+                if (queue != null) queue.addFirst(descriptor);
+                getBridge().getWebView().postDelayed(() -> writeNextDescriptor(g, address), FIRST_DESCRIPTOR_DELAY_MS);
+            } else {
+                descriptorRetries.remove(descriptor);
                 writeNextDescriptor(g, address);
             }
         }
@@ -405,22 +424,14 @@ public class BleTagPlugin extends Plugin {
             if (status == BluetoothGatt.GATT_SUCCESS) {
                 descriptorRetries.remove(descriptor);
                 subscribedCountByAddress.merge(address, 1, Integer::sum);
+                writeNextDescriptor(g, address);
             } else {
                 // Riprova la STESSA caratteristica (non passa a quella dopo)
-                // fino a DESCRIPTOR_RETRY_MAX volte prima di arrendersi -
-                // segnalato un caso reale in cui TUTTE le richieste fatte
-                // subito dopo la connessione fallivano la prima volta, anche
-                // se il device le supportava regolarmente.
-                int retries = descriptorRetries.getOrDefault(descriptor, 0);
-                if (retries < DESCRIPTOR_RETRY_MAX) {
-                    descriptorRetries.put(descriptor, retries + 1);
-                    Deque<BluetoothGattDescriptor> queue = pendingDescriptorQueue.get(address);
-                    if (queue != null) queue.addFirst(descriptor);
-                } else {
-                    descriptorRetries.remove(descriptor);
-                }
+                // fino a DESCRIPTOR_RETRY_MAX volte prima di arrendersi - vedi
+                // retryOrGiveUp, stesso trattamento del caso "richiesta mai
+                // nemmeno partita" in writeNextDescriptor.
+                retryOrGiveUp(g, address, descriptor);
             }
-            writeNextDescriptor(g, address);
         }
 
         // Letta sia dalla notifica spontanea del device sia dalla lettura

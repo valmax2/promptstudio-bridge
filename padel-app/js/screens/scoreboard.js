@@ -162,8 +162,11 @@ function setupRemoteListening(el) {
 }
 
 function handleRemoteAction(action, el) {
-  if (action === 'pointA') { if (match) onPoint('A'); return; }
-  if (action === 'pointB') { if (match) onPoint('B'); return; }
+  // Stesso bip immediato del tocco a schermo (vedi onHalfTap) - segnalato
+  // dall'utente: voleva lo stesso riscontro subito anche segnando con un
+  // telecomando/tag Bluetooth, non solo toccando il tabellone.
+  if (action === 'pointA') { if (match) { if (ttsEnabled) playTapFeedback(); onPoint('A'); } return; }
+  if (action === 'pointB') { if (match) { if (ttsEnabled) playTapFeedback(); onPoint('B'); } return; }
   if (action === 'undo') { onUndo(); return; }
   if (action === 'resetGame') {
     if (match && !match.matchOver) {

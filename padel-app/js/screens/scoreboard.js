@@ -1,6 +1,6 @@
 import { getState, setState, addMatch, updateSettings } from '../store.js';
 import { pushMatch } from '../cloud.js';
-import { say, stopSpeech } from '../speech.js';
+import { say, stopSpeech, playTapFeedback } from '../speech.js';
 import { escapeHtml, BACK_ICON, SUMMARY_ICON, uid as genId } from '../utils.js';
 import {
   createMatch, addPoint, matchPointDisplay, teamName, isGamePoint, resetCurrentGame, endTimeMatch, setLiveServer,
@@ -1218,10 +1218,15 @@ function matchOverOverlay(settings) {
 // segnalato dall'utente) senza mai toccare il punto vero segnato PRIMA del
 // doppio tap. Per funzionare davvero, il punto del 1° tocco va tenuto in
 // sospeso per una finestra breve: se non arriva un 2° tocco entro quella
-// finestra si segna normalmente (ritardo minimo, quasi impercettibile); se
-// arriva, si annulla l'ultimo punto già sul tabellone invece di segnarne
-// uno nuovo. I tasti/telecomando restano istantanei (chiamano onPoint
-// direttamente, vedi sopra) - il ritardo riguarda solo il tocco a schermo.
+// finestra si segna normalmente; se arriva, si annulla l'ultimo punto già
+// sul tabellone invece di segnarne uno nuovo. I tasti/telecomando restano
+// istantanei (chiamano onPoint direttamente, vedi sopra) - il ritardo
+// riguarda solo il tocco a schermo.
+// Quella breve attesa veniva percepita come un rallentamento dell'app
+// (segnalato dall'utente) perché finché non scade non succede nulla di
+// visibile/udibile - un bip immediato al tocco (vedi playTapFeedback) fa
+// capire subito che il tocco è arrivato, senza dover accorciare l'attesa
+// (che serve a riconoscere il doppio tap in modo affidabile).
 let pendingTapTeam = null;
 let pendingTapTimer = null;
 const DOUBLE_TAP_UNDO_MS = 280;
@@ -1234,6 +1239,7 @@ function onHalfTap(team) {
     onUndo();
     return;
   }
+  if (ttsEnabled) playTapFeedback();
   pendingTapTeam = team;
   pendingTapTimer = setTimeout(() => {
     pendingTapTimer = null;

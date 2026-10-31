@@ -57,6 +57,23 @@ function playAnnounceSound() {
   } catch {}
 }
 
+// Bip istantaneo di conferma al tocco sullo schermo - indipendente da
+// announceMode/voce, suona SEMPRE (se le voci non sono disattivate) appena
+// arriva il tocco, prima ancora che il punto venga davvero segnato. Serve a
+// far capire subito che il tocco è arrivato, perché il numero sul tabellone
+// e l'annuncio vero (voce o bip della modalità riservata) arrivano un
+// attimo dopo - vedi onHalfTap in scoreboard.js, dove il tocco singolo
+// resta in sospeso brevemente per riconoscere un eventuale doppio tap
+// (annulla). Segnalato dall'utente: senza questo bip quell'attesa breve
+// sembrava un rallentamento dell'app invece che un tocco riconosciuto.
+export function playTapFeedback() {
+  if (!enabled) return;
+  try {
+    const audio = new Audio('./point-beep.wav');
+    audio.play().catch(() => {});
+  } catch {}
+}
+
 function nativeTts() {
   return window.Capacitor?.Plugins?.TextToSpeech || null;
 }

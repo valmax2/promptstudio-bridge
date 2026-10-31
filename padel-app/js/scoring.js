@@ -144,13 +144,15 @@ function finalizeSet(match, winner, scoreA, scoreB, isTiebreak, tiebreakDetail =
   }
 }
 
-// L'uso vuole che il punteggio si legga sempre "chi batte a chi riceve",
-// non "chi è avanti a chi è indietro" - prima veniva sempre letto più alto
-// prima, che è sbagliato quando chi riceve è avanti.
+// L'uso vuole che il punteggio si legga sempre "chi batte, chi riceve",
+// non "chi è avanti, chi è indietro" - prima veniva sempre letto più alto
+// prima, che è sbagliato quando chi riceve è avanti. I due numeri si
+// leggono uno via l'altro senza congiunzione ("15 40", non "15 a 40") -
+// è così che si annuncia davvero in campo, segnalato dall'utente.
 function describeGamePoint(g, server) {
   if (g.a === g.b) return `${pointLabel(g.a)} pari`;
   const [mine, theirs] = server === 'A' ? [g.a, g.b] : [g.b, g.a];
-  return `${pointLabel(mine)} a ${pointLabel(theirs)}`;
+  return `${pointLabel(mine)} ${pointLabel(theirs)}`;
 }
 
 // Names the player who serves next for whichever team match.server now
@@ -349,7 +351,7 @@ function addTiebreakPoint(match, team, target, isMatchTiebreak) {
     return result(match, announcement, { gameWon: !isMatchTiebreak, setWon: true, matchWon });
   }
   const [mine, theirs] = match.server === 'A' ? [g.a, g.b] : [g.b, g.a];
-  let announcement = `${mine} a ${theirs}`;
+  let announcement = `${mine} ${theirs}`;
   if (serverChanged) announcement += nextServerAnnouncement(match);
   return result(match, announcement);
 }

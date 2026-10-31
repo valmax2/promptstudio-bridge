@@ -162,11 +162,13 @@ function setupRemoteListening(el) {
 }
 
 function handleRemoteAction(action, el) {
-  // Stesso bip immediato del tocco a schermo (vedi onHalfTap) - segnalato
-  // dall'utente: voleva lo stesso riscontro subito anche segnando con un
-  // telecomando/tag Bluetooth, non solo toccando il tabellone.
-  if (action === 'pointA') { if (match) { if (ttsEnabled) playTapFeedback(); onPoint('A'); } return; }
-  if (action === 'pointB') { if (match) { if (ttsEnabled) playTapFeedback(); onPoint('B'); } return; }
+  // Il bip di riscontro per il telecomando/tag Bluetooth è già gestito PRIMA
+  // di arrivare qui, in listenBindings (ble-remote.js) - appena arriva la
+  // pressione fisica, non qui quando l'azione è già stata decisa (spesso
+  // fino a 900ms dopo, il tempo di distinguere singolo da doppio click).
+  // Metterlo qui invece suonerebbe insieme alla voce invece che prima.
+  if (action === 'pointA') { if (match) onPoint('A'); return; }
+  if (action === 'pointB') { if (match) onPoint('B'); return; }
   if (action === 'undo') { onUndo(); return; }
   if (action === 'resetGame') {
     if (match && !match.matchOver) {

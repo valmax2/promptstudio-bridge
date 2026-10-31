@@ -10,6 +10,7 @@
 // events into the WebView as a "padel-hw-key" custom event, tagged with the
 // source device's stable descriptor.
 import { getState } from './store.js';
+import { playTapFeedback } from './speech.js';
 
 export const KEY_LABELS = {
   24: 'Volume +',
@@ -160,6 +161,16 @@ export function listenBindings(bindings, onAction) {
     const now = Date.now();
 
     if (!state) {
+      // Una pressione legata sia a singolo che a doppio/triplo (il caso
+      // normale di un tag: singolo click = punto, doppio = annulla) non
+      // scatta subito - resta in attesa fino a DOUBLE_SLOW_MS per vedere se
+      // arriva una seconda pressione, altrimenti non si distinguerebbe mai
+      // in modo affidabile un singolo da un doppio lento. Senza riscontro,
+      // quell'attesa sembra un ritardo dell'app (segnalato dall'utente,
+      // stesso identico problema già risolto per il tocco a schermo in
+      // scoreboard.js) - stesso bip immediato qui, prima di sapere quale
+      // pattern risulterà alla fine.
+      playTapFeedback();
       const timer = setTimeout(() => {
         pending.delete(key);
         fireFromPresses(deviceDescriptor, keyCode, [now]);

@@ -16,6 +16,19 @@ on:
         description: 'versionName (es. 1.0.0)'
         required: true
         default: '1.0.0'
+      upload_to_play:
+        description: 'Carica anche su Play Console come BOZZA in Produzione (serve il Secret PLAY_SERVICE_ACCOUNT_JSON). Il click "Invia per la revisione" resta manuale.'
+        type: boolean
+        required: false
+        default: false
+      release_notes_it:
+        description: 'Note di rilascio in italiano (max 500 caratteri), usate solo se carichi su Play'
+        required: false
+        default: ''
+
+# Upload su Play: usa il Secret PLAY_SERVICE_ACCOUNT_JSON (chiave JSON di un
+# service account Google con permesso di rilascio sull'app in Play Console).
+# La release viene creata con status "draft": NON viene mai pubblicata da qui.
 
 permissions:
   contents: read
@@ -72,6 +85,28 @@ jobs:
           name: padel-app-release-aab-${{ inputs.version_code }}
           path: padel-app/.capacitor-build-release/android/app/build/outputs/bundle/release/app-release.aab
           retention-days: 30
+
+      - name: Preparo le note di rilascio per Play
+        if: ${{ inputs.upload_to_play }}
+        env:
+          NOTES_IT: ${{ inputs.release_notes_it }}
+        run: |
+          mkdir -p whatsnew
+          if [ -n "$NOTES_IT" ]; then
+            printf '%s' "$NOTES_IT" > whatsnew/whatsnew-it-IT
+          fi
+
+      - name: Carico l'AAB su Play Console come BOZZA (Produzione)
+        if: ${{ inputs.upload_to_play }}
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: com.padelapp.app
+          releaseFiles: padel-app/.capacitor-build-release/android/app/build/outputs/bundle/release/app-release.aab
+          track: production
+          status: draft
+          releaseName: ${{ inputs.version_code }} (${{ inputs.version_name }})
+          whatsNewDirectory: whatsnew
 
       - name: Rimuovo il keystore decodificato dal runner
         if: always()

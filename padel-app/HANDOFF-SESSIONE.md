@@ -1,4 +1,4 @@
-# Consegna sessione — Padel Score Master (aggiornato 4 nov 2026)
+# Consegna sessione — Padel Score Master (aggiornato 8 nov 2026)
 
 ## Branch
 `claude/padel-app-development-4lb2mu` — continua da qui.
@@ -41,9 +41,21 @@ Build debug finale testata e approvata: **V164**
 (https://github.com/valmax2/promptstudio-bridge/actions/runs/41218904165,
 artifact `padel-app-debug-apk` — NON quello `-beta-`, che salta il login).
 
-## Task in corso: pubblicare la nuova release sullo Store
+## ✅ Release inviata in revisione (8 nov 2026)
 
-L'AAB firmato è già compilato e pronto, non va rifatto:
+La release **38 (1.0.37)** è stata caricata su Play Console (Produzione,
+implementazione completa) e inviata per la revisione Google l'8/11/2026 sera.
+Fatto da una sessione locale PC tramite Claude in Chrome; click finale
+dell'utente. Note di rilascio inserite solo in **it-IT** (l'unica lingua
+proposta dal modulo). Unico avviso: nessun file di deoffuscamento (innocuo).
+
+Prossimo passo: controllare in Play Console → Panoramica della pubblicazione
+che la revisione sia approvata e la versione pubblicata. Niente altro da fare
+su questa release.
+
+## (Storico) Task: pubblicare la nuova release sullo Store
+
+L'AAB firmato era già compilato e pronto:
 
 - Run: https://github.com/valmax2/promptstudio-bridge/actions/runs/41228480275
 - Artifact: `padel-app-release-aab-38`
@@ -56,7 +68,7 @@ L'AAB firmato è già compilato e pronto, non va rifatto:
   (verificato nel log di build: lo script `build-aab-ci.sh` lo forza sempre
   a 36, non serve toccare nulla)
 
-**Bloccato su**: l'utente deve caricarlo a mano su Google Play Console
+**Era bloccato su** (risolto l'8/11): l'utente doveva caricarlo a mano su Google Play Console
 (https://play.google.com/console/u/0/developers/6947419478155730686/app/4974558405539275409/app-dashboard).
 Nessuna sessione cloud ha accesso a browser/account Google per farlo in sua
 vece. Se la sessione locale ha Chrome extension o Computer Use configurati
